@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 
-import type { Actor, Reason, Result } from "@espacios/domain";
+import type { Actor, Reason, RefusalDetails, Result } from "@espacios/domain";
 import { getTranslations } from "next-intl/server";
 import type { z } from "zod";
 
@@ -11,9 +11,9 @@ import { authenticateRequest } from "@/lib/session/api";
 const NO_STORE = { "Cache-Control": "private, no-store" };
 
 /** A refusal as the API's JSON, `{ code, message }`, with the reason's status. */
-export async function refuse(reason: Reason): Promise<Response> {
+export async function refuse(reason: Reason, details?: RefusalDetails): Promise<Response> {
   const t = await getTranslations({ locale: LOCALE, namespace: "errors" });
-  return failureResponse(reason, t(reason));
+  return failureResponse(reason, t(reason), details);
 }
 
 /**
@@ -47,7 +47,7 @@ export function readQuery<S extends z.ZodType>(request: NextRequest, schema: S):
  * failure with its reason's status. The body never carries a driver error.
  */
 export async function respond<T>(result: Result<T>, key: string, created?: (value: T) => string): Promise<Response> {
-  if (!result.ok) return refuse(result.reason);
+  if (!result.ok) return refuse(result.reason, result.details);
   const headers = new Headers(NO_STORE);
   if (created) headers.set("Location", created(result.value));
   return Response.json({ [key]: result.value }, { status: created ? 201 : 200, headers });

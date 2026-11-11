@@ -2,9 +2,10 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, develop]
   push:
-    branches: [main]
+    # Feature and hotfix branches get feedback too, before they are merged.
+    branches: [main, develop, "feat/**", "hotfix/**"]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -16,7 +17,7 @@ permissions:
 jobs:
   quality-gates:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v5
         with:
@@ -27,4 +28,14 @@ jobs:
           node-version-file: .nvmrc
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
+      # The e2e gate drives a real browser, which a fresh runner does not have. Docker for testcontainers is preinstalled.
+      - run: pnpm --filter @espacios/web exec playwright install --with-deps chromium
       - run: pnpm check:ai --lines=60
+      - name: Keep the Playwright report when a gate fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          if-no-files-found: ignore
+          retention-days: 7

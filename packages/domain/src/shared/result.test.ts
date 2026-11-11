@@ -11,6 +11,11 @@ describe("result", () => {
     expect(fail("conflict")).toEqual({ ok: false, reason: "conflict" });
   });
 
+  it("carries the bookings in the way only when given", () => {
+    const details = { total: 0, bookings: [] };
+    expect(fail("has_future_bookings", details)).toEqual({ ok: false, reason: "has_future_bookings", details });
+  });
+
   it("lists each reason once", () => {
     expect(new Set(REASONS).size).toBe(REASONS.length);
   });

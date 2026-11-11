@@ -1,4 +1,4 @@
-import { isTimeZone } from "../booking/calendar";
+import { isTimeZone, localDateOf, weekdayOf, zonedInstant } from "../booking/calendar";
 import type { FacilityRules } from "../booking/facility";
 import { fail, ok, type Result } from "../shared/result";
 
@@ -27,3 +27,33 @@ export function validateFacilityRules(rules: FacilityRules): Result<FacilityRule
     validWeekdays;
   return valid ? ok(rules) : fail("invalid_input");
 }
+
+/** True when two sets of rules differ in anything a booking's validity depends on (spec 0004, AC-6). */
+export function changesBookingRules(current: FacilityRules, next: FacilityRules): boolean {
+  const days = (rules: FacilityRules) => [...rules.openWeekdays].sort().join(",");
+  return (
+    current.timeZone !== next.timeZone ||
+    current.opensAt !== next.opensAt ||
+    current.closesAt !== next.closesAt ||
+    days(current) !== days(next)
+  );
+}
+
+/**
+ * Whether a booking still fits a facility's rules: it starts and ends on one local day that the facility opens, inside
+ * the opening hours, read in the facility's zone. The same test the database guard applies on insert.
+ */
+export function fitsFacilityRules(booking: { startsAt: Date; endsAt: Date }, rules: FacilityRules): boolean {
+  const day = localDateOf(booking.startsAt, rules.timeZone);
+  if (localDateOf(booking.endsAt, rules.timeZone) !== day && booking.endsAt.getTime() !== closing(day, rules)) {
+    return false;
+  }
+  return (
+    rules.openWeekdays.includes(weekdayOf(day)) &&
+    booking.startsAt.getTime() >= zonedInstant(day, rules.opensAt, rules.timeZone).getTime() &&
+    booking.endsAt.getTime() <= closing(day, rules)
+  );
+}
+
+const closing = (day: Parameters<typeof zonedInstant>[0], rules: FacilityRules) =>
+  zonedInstant(day, rules.closesAt, rules.timeZone).getTime();

@@ -1,14 +1,16 @@
 import {
   type BlockRecord,
+  type BookingScope,
   type ClientRecord,
   type FacilityRecord,
   MissingReferenceError,
   type OperatorCatalog,
+  type OperatorCatalogTransaction,
   type RoomRecord,
   UniqueViolationError,
 } from "@espacios/application";
 
-import type { DatabaseClient } from "./client";
+import type { DatabaseClient, TransactionClient } from "./client";
 import { sqlState, translateDatabaseError } from "./sql-state";
 
 const UNIQUE_VIOLATION = "23505";
@@ -42,7 +44,91 @@ const active = (includeInactive: boolean) => (includeInactive ? {} : { deactivat
  * have the shape of the application's records, so no mapping is needed.
  */
 export function createPrismaOperatorCatalog(db: DatabaseClient): OperatorCatalog {
-  const catalog: OperatorCatalog = {
+  return {
+    ...translated(catalogMethods(db)),
+    transaction: async (work) => {
+      try {
+        return await db.$transaction((tx) => work(transactionCatalog(tx)));
+      } catch (error) {
+        throw translate(error);
+      }
+    },
+  };
+}
+
+type Db = DatabaseClient | TransactionClient;
+type CatalogMethods = Omit<OperatorCatalog, "transaction">;
+
+/** Every call goes through `translate`, so the use cases see application errors and never driver errors. */
+function translated<T extends object>(methods: T): T {
+  return Object.fromEntries(
+    Object.entries(methods).map(([name, method]) => [
+      name,
+      async (...args: unknown[]) => {
+        try {
+          return await (method as (...inner: unknown[]) => Promise<unknown>)(...args);
+        } catch (error) {
+          throw translate(error);
+        }
+      },
+    ]),
+  ) as T;
+}
+
+const bookingWhere = (scope: BookingScope) =>
+  "roomId" in scope ? { roomId: scope.roomId } : { room: { facilityId: scope.facilityId } };
+
+/** The same catalog on one transaction, plus the locks and the reads of bookings in the way (spec 0004, P-16 to P-18). */
+function transactionCatalog(tx: TransactionClient): OperatorCatalogTransaction {
+  const affected = async (where: object) =>
+    (
+      await tx.booking.findMany({
+        where: { status: "confirmed", ...where },
+        include: { room: { select: { name: true } }, company: { select: { name: true } } },
+        orderBy: [{ startsAt: "asc" }, { id: "asc" }],
+      })
+    ).map((row) => ({
+      id: row.id,
+      roomId: row.roomId,
+      roomName: row.room.name,
+      companyName: row.company.name,
+      startsAt: row.startsAt,
+      endsAt: row.endsAt,
+    }));
+
+  return {
+    ...translated(catalogMethods(tx)),
+    ...translated({
+      // The lock first, then a plain read: a new statement sees what committed while the lock waited.
+      lockFacility: async (id: string) => {
+        await tx.$queryRaw`SELECT id FROM facility WHERE id = ${id} FOR UPDATE`;
+        return tx.facility.findUnique({ where: { id } }) as Promise<FacilityRecord | null>;
+      },
+      lockRoom: async (id: string) => {
+        await tx.$queryRaw`SELECT id FROM room WHERE id = ${id} FOR UPDATE`;
+        return tx.room.findUnique({ where: { id } });
+      },
+      lockClient: async (id: string) => {
+        await tx.$queryRaw`SELECT id FROM company WHERE id = ${id} FOR UPDATE`;
+        return tx.company.findUnique({ where: { id } }) as Promise<ClientRecord | null>;
+      },
+      futureBookings: (scope: BookingScope, after: Date) =>
+        affected({ ...bookingWhere(scope), startsAt: { gt: after } }),
+      overlappingBookings: (scope: BookingScope, startsAt: Date, endsAt: Date) =>
+        affected({ ...bookingWhere(scope), startsAt: { lt: endsAt }, endsAt: { gt: startsAt } }),
+      countActiveRooms: (facilityId: string) => tx.room.count({ where: { facilityId, deactivatedAt: null } }),
+      setFacilityDeactivation: (id: string, at: Date | null) =>
+        orNull(tx.facility.update({ where: { id }, data: { deactivatedAt: at } })),
+      setRoomDeactivation: (id: string, at: Date) =>
+        orNull(tx.room.update({ where: { id }, data: { deactivatedAt: at } })),
+      setClientDeactivation: (id: string, at: Date | null) =>
+        orNull(tx.company.update({ where: { id }, data: { deactivatedAt: at } })),
+    }),
+  } as OperatorCatalogTransaction;
+}
+
+function catalogMethods(db: Db): CatalogMethods {
+  return {
     listFacilities: (includeInactive) =>
       db.facility.findMany({ where: active(includeInactive), orderBy: [{ name: "asc" }, { id: "asc" }] }),
     findFacility: (id) => db.facility.findUnique({ where: { id } }),
@@ -104,18 +190,4 @@ export function createPrismaOperatorCatalog(db: DatabaseClient): OperatorCatalog
     insertBlock: (data) => db.block.create({ data }) as Promise<BlockRecord>,
     releaseBlock: (id, at) => orNull(db.block.update({ where: { id }, data: { releasedAt: at } })),
   };
-
-  // Every call goes through `translate`, so the use cases see application errors and never driver errors.
-  return Object.fromEntries(
-    Object.entries(catalog).map(([name, method]) => [
-      name,
-      async (...args: unknown[]) => {
-        try {
-          return await (method as (...inner: unknown[]) => Promise<unknown>)(...args);
-        } catch (error) {
-          throw translate(error);
-        }
-      },
-    ]),
-  ) as unknown as OperatorCatalog;
 }

@@ -1,15 +1,25 @@
-import { MissingReferenceError, UniqueViolationError } from "@espacios/application";
-import { afterAll, describe, expect, inject, it } from "vitest";
+import {
+  createBlock,
+  deactivateClient,
+  deactivateFacility,
+  deactivateRoom,
+  MissingReferenceError,
+  UniqueViolationError,
+  updateFacility,
+} from "@espacios/application";
+import type { Actor, UserId } from "@espacios/domain";
+import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 
 import { createDatabaseClient } from "./client";
 import { createPrismaOperatorCatalog } from "./operator-catalog";
-import { at } from "./testing/fixtures";
+import { asTenant, at, createMember, createTenant } from "./testing/fixtures";
 
+const owner = createDatabaseClient(inject("databaseUrls").ownerUrl);
 const operator = createDatabaseClient(inject("databaseUrls").operatorUrl);
 const catalog = createPrismaOperatorCatalog(operator);
 
 afterAll(async () => {
-  await operator.$disconnect();
+  await Promise.all([operator.$disconnect(), owner.$disconnect()]);
 });
 
 const unique = () => crypto.randomUUID().slice(0, 8);
@@ -98,3 +108,138 @@ describe("the operator catalog on the operator login (spec 0004, thin CRUD)", ()
     expect(await catalog.listBlocks({ facilityId: site.id, includeReleased: true })).toHaveLength(1);
   });
 });
+
+describe("deactivation, hours change and blocks against the real database (spec 0004, AC-5, AC-6, AC-18, P-16)", () => {
+  const operatorUserId = `user-operador-${unique()}`;
+  const actor: Actor = { role: "operator", userId: operatorUserId as UserId };
+  beforeAll(async () => {
+    await owner.appUser.create({ data: { id: operatorUserId, name: operatorUserId, role: "operator" } });
+  });
+  const deps = { catalog, clock: { now: () => at(0) }, ids: { next: () => `id-${crypto.randomUUID()}` } };
+
+  async function world() {
+    const site = await facility();
+    const room = await catalog.insertRoom({
+      id: `room-${unique()}`,
+      facilityId: site.id,
+      name: "Sala 1",
+      capacity: 4,
+      activeFrom: at(0),
+    });
+    const tenantId = await createTenant(owner, "deact");
+    const bookedBy = await createMember(owner, tenantId);
+    const book = async (startsAt: Date, endsAt: Date) => {
+      const id = `b-${unique()}`;
+      await asTenant(owner, tenantId, (tx) =>
+        tx.booking.create({ data: { id, tenantId, roomId: room.id, bookedBy, startsAt, endsAt } }),
+      );
+      return id;
+    };
+    return { site, room, tenantId, bookedBy, book };
+  }
+
+  it("lists the future bookings that stop a room's deactivation, then deactivates after they are cancelled", async () => {
+    const { room, tenantId, book } = await world();
+    const bookingId = await book(at(10), at(11));
+    const refused = await deactivateRoom(deps, actor, room.id);
+    expect(refused).toMatchObject({
+      ok: false,
+      reason: "has_future_bookings",
+      details: {
+        total: 1,
+        bookings: [{ id: bookingId, roomName: "Sala 1", companyName: expect.stringContaining("deact") }],
+      },
+    });
+
+    await sqlCancel(bookingId, tenantId);
+    const done = await deactivateRoom(deps, actor, room.id);
+    expect(done).toMatchObject({ ok: true, value: { deactivatedAt: at(0) } });
+  });
+
+  it("waits for a booking in flight and then sees it, so a racing booking is never lost (P-16)", async () => {
+    const { room, tenantId, bookedBy } = await world();
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let inserted!: () => void;
+    const insertedSignal = new Promise<void>((resolve) => {
+      inserted = resolve;
+    });
+    const runtime = createDatabaseClient(inject("databaseUrls").runtimeUrl);
+    const inFlight = asTenant(runtime, tenantId, async (tx) => {
+      await tx.booking.create({
+        data: { id: `b-${unique()}`, tenantId, roomId: room.id, bookedBy, startsAt: at(10), endsAt: at(11) },
+      });
+      inserted();
+      await held;
+    });
+    await insertedSignal;
+
+    const deactivation = deactivateRoom(deps, actor, room.id);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    release();
+    await inFlight;
+    await expect(deactivation).resolves.toMatchObject({
+      ok: false,
+      reason: "has_future_bookings",
+      details: { total: 1 },
+    });
+    await runtime.$disconnect();
+  });
+
+  it("deactivates a facility only without active rooms, and a client both ways", async () => {
+    const { site, room } = await world();
+    await expect(deactivateFacility(deps, actor, site.id)).resolves.toEqual({
+      ok: false,
+      reason: "facility_has_active_rooms",
+    });
+    await deactivateRoom(deps, actor, room.id);
+    await expect(deactivateFacility(deps, actor, site.id)).resolves.toMatchObject({
+      ok: true,
+      value: { deactivatedAt: at(0) },
+    });
+
+    const { client } = await catalog.insertClient(
+      { id: `c-${unique()}`, name: "Cliente", slug: `s-${unique()}`, kind: "company", logoUrl: null },
+      { id: `u-${unique()}`, name: "Ana" },
+    );
+    await expect(deactivateClient(deps, actor, client.id)).resolves.toMatchObject({
+      ok: true,
+      value: { deactivatedAt: at(0) },
+    });
+  });
+
+  it("refuses an hours change that strands a booking and a block over one, with the list", async () => {
+    const { site, room, book } = await world();
+    const bookingId = await book(at(18), at(19));
+
+    const stranded = await updateFacility(deps, actor, site.id, { closesAt: 17 * 60 });
+    expect(stranded).toMatchObject({
+      ok: false,
+      reason: "has_future_bookings",
+      details: { total: 1, bookings: [{ id: bookingId }] },
+    });
+    await expect(updateFacility(deps, actor, site.id, { closesAt: 1200, opensAt: 540 })).resolves.toMatchObject({
+      ok: true,
+    });
+
+    const blocked = await createBlock(deps, actor, {
+      facilityId: site.id,
+      roomId: room.id,
+      startsAt: at(17),
+      endsAt: at(20),
+      reason: "obra",
+    });
+    expect(blocked).toMatchObject({ ok: false, reason: "block_has_bookings", details: { total: 1 } });
+    await expect(
+      createBlock(deps, actor, { facilityId: site.id, roomId: null, startsAt: at(19), endsAt: at(20), reason: "obra" }),
+    ).resolves.toMatchObject({ ok: true });
+  });
+});
+
+async function sqlCancel(bookingId: string, tenantId: string) {
+  await asTenant(createDatabaseClient(inject("databaseUrls").ownerUrl), tenantId, (tx) =>
+    tx.booking.update({ where: { id: bookingId }, data: { status: "cancelled", cancelledAt: new Date() } }),
+  );
+}

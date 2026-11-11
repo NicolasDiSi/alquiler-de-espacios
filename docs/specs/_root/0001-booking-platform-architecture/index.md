@@ -135,6 +135,7 @@ Cookie session on every route. Server Actions for the UI call the same use cases
 | `/api/v1/operator/metrics/companies` | GET    | `from`, `to`                                                                                     | usage per company                                                                                 | operator           | 401, 403, 422                |
 | `/api/v1/operator/metrics/heatmap`   | GET    | `from`, `to`, optional `roomId`                                                                  | weekday by hour occupancy                                                                         | operator           | 401, 403, 422                |
 
+- **Extended by [spec 0003](../0003-booking-form-my-bookings/index.md):** the member list `GET /api/v1/bookings` takes `view` (`upcoming`, `past`, `cancelled`) in place of `status`, `from` and `to`, and the booking view adds `phase` and `createdAt`.
 - **Booking view** (the same DTO everywhere): `id`, `room` (id, name), `startsAt`, `endsAt`, `status`, `bookedBy` (name), `cancelledAt`. The operator view adds the company name. A company never receives another company's name or booking id.
 - **Pagination:** keyset on `(starts_at, id)`, opaque base64 cursor, `limit` default 50, maximum 100, upcoming first.
 - Server Actions: `signInAs(userId)`, `bookRoom`, `cancelBooking`. The booking form uses `useActionState` and disables submit while pending (double click guard).

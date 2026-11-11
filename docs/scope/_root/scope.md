@@ -15,7 +15,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 2   | Database foundation: roles, FORCE RLS, schema, seeds  | Foundation | done        |
 | 3   | Company identity: seeded users, signed cookie, picker | Foundation | done        |
 | 4   | Result and error contract                             | Foundation | in-progress |
-| 5   | Book a room and see it in my bookings                 | Slice 1    | planned     |
+| 5   | Book a room and see it in my bookings                 | Slice 1    | in-progress |
 | 13  | Role based navigation in the sidebar                  | Slice 1    | planned     |
 | 14  | Rooms list: every room, pick one to see it            | Slice 2    | planned     |
 | 6   | Room availability grid                                | Slice 2    | planned     |
@@ -64,12 +64,19 @@ The typed `Result` with reason codes, `reasonToHttp`, the es-AR message catalog,
 
 ## Slice 1: the thin thread
 
-### 5. Book a room and see it in my bookings · needs a decision
+### 5. Book a room and see it in my bookings · in-progress
 
 The walking skeleton. A signed in company member picks a room, a date and a time, books it, and sees the booking in its own list. Real database, real rules (grid, hours, length, past, horizon), real overlap guard, real failure messages. Only the two screens (booking form, my bookings) still need a design.
 **Done when:** a booking is stored and listed under its company; a second company booking the same room and time gets `conflict` with a clear message; each rule violation shows its own reason; N parallel requests for one slot give exactly one success; a double submit by the same company returns the existing booking.
-- [ ] Design it (spec): `/architect booking form and my bookings screens`
-  Spec 0001 covers the rules and API; the spec for this feature covers the two screens.
+- [x] Design it (spec): `/architect booking form and my bookings screens`
+- [ ] Build it: `/develop book a room`
+  - [ ] Booking core: domain rules, the book and list use cases, the database proofs (P-1, P-2, P-11, cross company cursor) · AC-2, AC-4, AC-5, AC-6, AC-7, AC-12
+  - [ ] Thin thread: `POST` and `GET /api/v1/bookings`, the `bookRoom` Server Action, a minimal form and a one view list · AC-1, AC-3, AC-5, AC-12, AC-14
+  - [ ] Full form: calendar, defaults, prefill, field marks, the busy retry and the expired session link · AC-3, AC-7, AC-8, AC-9
+  - [ ] Full list and e2e: three views, cards on phones, "Ver más", empty, loading and error states, e2e with axe · AC-1, AC-2, AC-10, AC-11, AC-13
+- [ ] Verify it: `/check verify book a room`
+- [ ] Test it: `/test book a room`
+  Spec 0001 (rules, API, error contract) and [spec 0003](../../specs/_root/0003-booking-form-my-bookings/index.md) (the two screens) · code in `packages/domain/`, `packages/application/`, `packages/db/`, `apps/web/`
 
 ### 13. Role based navigation in the sidebar
 
@@ -156,6 +163,7 @@ Out of scope for this build pass, kept so the plan stays honest. All are also li
 - **Cancellation window and per room opening hours**: extra business rules · needs a decision
 - **Holidays and several facilities**: calendar and facility model · needs a decision
 - **Rule based insights list** (idle clients, off peak hints): extra on top of the heatmap · needs a decision
+- **Subject per booking, "solo las mías" filter, busy times in the booking form** (from spec 0003): next version ideas for the README; the grid of feature 6 covers busy times · needs a decision
 - **Operator detail view per company** (one company's bookings, hours and cancellations over time): in v1 the feature 9 dashboard table covers "analyze each client company"; list it in the README limitations · needs a decision
 
 ## Legend

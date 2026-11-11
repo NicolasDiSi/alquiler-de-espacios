@@ -1,3 +1,7 @@
+export * from "./booking/booking";
+export * from "./booking/calendar";
+export * from "./booking/rules";
+export * from "./booking/slots";
 export * from "./identity/actor";
 export * from "./shared/brand";
 export * from "./shared/result";

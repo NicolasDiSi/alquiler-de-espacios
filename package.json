@@ -8,7 +8,8 @@
   },
   "type": "module",
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "pnpm services:up && pnpm db:deploy && pnpm db:seed && turbo run dev",
+    "dev:app": "turbo run dev",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",

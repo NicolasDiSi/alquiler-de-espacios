@@ -1,5 +1,7 @@
 import type { TenantId } from "@espacios/domain";
 
+import type { BookingRepository, MyBookingsQuery } from "./bookings";
+
 export interface Clock {
   now(): Date;
 }
@@ -13,7 +15,10 @@ export interface IdGenerator {
  * Repositories obtained from a `TenantTransaction` are already scoped to one tenant (and protected by RLS),
  * so their methods never take a tenant id. Add each repository here as its slice is built.
  */
-export type TenantTransaction = Record<string, never>;
+export type TenantTransaction = {
+  readonly bookings: BookingRepository;
+  readonly myBookings: MyBookingsQuery;
+};
 
 /**
  * Runs `work` in one database transaction scoped to a tenant. Everything written inside commits together,

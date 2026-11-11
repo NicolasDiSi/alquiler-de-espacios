@@ -1,10 +1,12 @@
 // The composition root: the only place in the app that creates adapters (dependency cruiser rule
 // `only-composition-root-wires-adapters`). Everything is created on first use, so `next build` needs no database.
-import type { RoomCatalog, UserDirectory } from "@espacios/application";
+import type { Dependencies, RoomCatalog, UserDirectory } from "@espacios/application";
 import {
   createDatabaseClient,
   createPrismaRoomCatalog,
+  createPrismaUnitOfWork,
   createPrismaUserDirectory,
+  createUuidV7Generator,
   type DatabaseClient,
 } from "@espacios/db";
 
@@ -33,6 +35,20 @@ export function userDirectory(): UserDirectory {
 
 export function roomCatalog(): RoomCatalog {
   return createPrismaRoomCatalog(runtimeDb());
+}
+
+/** The real clock. Use cases read "now" only through it, so tests can fix it. */
+const systemClock = { now: () => new Date() };
+
+/** What the company edge's use cases need: the tenant transaction, the clock, ids and the room catalog. */
+export function companyEdge(): Dependencies & { readonly rooms: RoomCatalog } {
+  const db = runtimeDb();
+  return {
+    uow: createPrismaUnitOfWork(db),
+    clock: systemClock,
+    ids: createUuidV7Generator(),
+    rooms: createPrismaRoomCatalog(db),
+  };
 }
 
 /** The HMAC key for the session cookie. A short key is refused rather than used. */

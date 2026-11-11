@@ -32,6 +32,23 @@ for (const mode of MODES) {
         await expectNoViolations(page);
       });
 
+      test("Mis reservas has no violations as a table and as cards on a phone", async ({ page }) => {
+        await page.goto("/?vista=pasadas");
+        await waitForHydration(page);
+        await expectNoViolations(page);
+        await page.setViewportSize({ width: 390, height: 844 });
+        await expectNoViolations(page);
+      });
+
+      test("the booking form has no violations, at rest and with the calendar open", async ({ page }) => {
+        await page.goto("/reservas/nueva");
+        await waitForHydration(page);
+        await expectNoViolations(page);
+        await page.getByRole("button", { name: /^Cambiar fecha/ }).click();
+        await expect(page.getByRole("grid")).toBeVisible();
+        await expectNoViolations(page);
+      });
+
       test("/design-system at rest, on hover and on keyboard focus", async ({ page }) => {
         await page.goto("/design-system");
         await waitForHydration(page);

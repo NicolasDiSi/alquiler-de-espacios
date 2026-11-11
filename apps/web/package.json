@@ -9,7 +9,9 @@
     "start": "next start",
     "typecheck": "next typegen && tsc -p tsconfig.json",
     "test": "vitest run --coverage --reporter=dot",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "e2e:bookings": "playwright test e2e/bookings.spec.ts e2e/my-bookings.spec.ts",
+    "e2e:shell": "playwright test e2e/shell.spec.ts e2e/keyboard.spec.ts e2e/accessibility.spec.ts"
   },
   "dependencies": {
     "@espacios/application": "workspace:*",
@@ -23,8 +25,10 @@
     "next-themes": "0.4.6",
     "radix-ui": "1.8.1",
     "react": "19.3.1",
+    "react-day-picker": "10.0.2",
     "react-dom": "19.3.1",
     "sonner": "2.0.8",
+    "zod": "4.6.7",
     "zustand": "5.0.16"
   },
   "devDependencies": {

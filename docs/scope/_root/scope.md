@@ -69,11 +69,11 @@ The typed `Result` with reason codes, `reasonToHttp`, the es-AR message catalog,
 The walking skeleton. A signed in company member picks a room, a date and a time, books it, and sees the booking in its own list. Real database, real rules (grid, hours, length, past, horizon), real overlap guard, real failure messages. Only the two screens (booking form, my bookings) still need a design.
 **Done when:** a booking is stored and listed under its company; a second company booking the same room and time gets `conflict` with a clear message; each rule violation shows its own reason; N parallel requests for one slot give exactly one success; a double submit by the same company returns the existing booking.
 - [x] Design it (spec): `/architect booking form and my bookings screens`
-- [ ] Build it: `/develop book a room`
-  - [ ] Booking core: domain rules, the book and list use cases, the database proofs (P-1, P-2, P-11, cross company cursor) · AC-2, AC-4, AC-5, AC-6, AC-7, AC-12
-  - [ ] Thin thread: `POST` and `GET /api/v1/bookings`, the `bookRoom` Server Action, a minimal form and a one view list · AC-1, AC-3, AC-5, AC-12, AC-14
-  - [ ] Full form: calendar, defaults, prefill, field marks, the busy retry and the expired session link · AC-3, AC-7, AC-8, AC-9
-  - [ ] Full list and e2e: three views, cards on phones, "Ver más", empty, loading and error states, e2e with axe · AC-1, AC-2, AC-10, AC-11, AC-13
+- [x] Build it: `/develop book a room`
+  - [x] Booking core: domain rules, the book and list use cases, the database proofs (P-1, P-2, P-11, cross company cursor) · AC-2, AC-4, AC-5, AC-6, AC-7, AC-12
+  - [x] Thin thread: `POST` and `GET /api/v1/bookings`, the `bookRoom` Server Action, a minimal form and a one view list · AC-1, AC-3, AC-5, AC-12, AC-14
+  - [x] Full form: calendar, defaults, prefill, field marks, the busy retry and the expired session link · AC-3, AC-7, AC-8, AC-9
+  - [x] Full list and e2e: three views, cards on phones, "Ver más", empty, loading and error states, e2e with axe · AC-1, AC-2, AC-10, AC-11, AC-13
 - [ ] Verify it: `/check verify book a room`
 - [ ] Test it: `/test book a room`
   Spec 0001 (rules, API, error contract) and [spec 0003](../../specs/_root/0003-booking-form-my-bookings/index.md) (the two screens) · code in `packages/domain/`, `packages/application/`, `packages/db/`, `apps/web/`

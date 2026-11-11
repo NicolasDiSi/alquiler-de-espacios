@@ -14,6 +14,7 @@
       "dependsOn": ["generate"]
     },
     "dev": {
+      "dependsOn": ["^generate"],
       "cache": false,
       "persistent": true
     },
@@ -22,7 +23,16 @@
     },
     "e2e": {
       "dependsOn": ["build"],
+      "cache": false,
       "outputs": ["playwright-report/**"]
+    },
+    "e2e:bookings": {
+      "dependsOn": ["build"],
+      "cache": false
+    },
+    "e2e:shell": {
+      "dependsOn": ["build"],
+      "cache": false
     }
   }
 }

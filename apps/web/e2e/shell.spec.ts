@@ -3,10 +3,10 @@ import { expect, test } from "@playwright/test";
 import { blockHydration, setPreferences, waitForHydration } from "./fixtures";
 
 test.describe("shell", () => {
-  test("renders the shell at / with an empty sidebar and an empty state", async ({ page }) => {
+  test("renders the shell at / with an empty sidebar and the member's bookings", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1, name: "Mis reservas" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Todavía no hay reservas" })).toBeVisible();
+    await expect(page.getByRole("main").getByRole("link", { name: "Nueva reserva" }).first()).toBeVisible();
 
     const sidebar = page.locator("[data-slot=sidebar]");
     await expect(sidebar.getByText("alquiler-de-espacios")).toBeVisible();
@@ -68,8 +68,8 @@ test.describe("shell", () => {
     await page.goto("/design-system");
     await expect(page.locator("html")).toHaveAttribute("lang", "es-AR");
     const firstRow = page.getByRole("row").filter({ hasText: "RES-104" });
-    // 13:05 UTC is 10:05 in Buenos Aires; es-AR writes day/month/year and a 12 hour clock.
-    await expect(firstRow).toContainText(/03\/11\/2026, 10:05\sa\.\sm\./);
+    // 13:05 UTC is 10:05 in Buenos Aires; es-AR writes day/month/year, and the app's formats use a 24 hour clock.
+    await expect(firstRow).toContainText("03/11/2026, 10:05");
     await expect(page.getByRole("row").filter({ hasText: "RES-103" })).toContainText("1.250,00");
 
     await waitForHydration(page);

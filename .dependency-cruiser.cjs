@@ -104,7 +104,9 @@ module.exports = {
   ],
   options: {
     doNotFollow: { path: ["node_modules"] },
-    exclude: { path: ["(^|/)(dist|coverage|\\.next|generated)/", "(^|/)next-env[.]d[.]ts$"] },
+    exclude: {
+      path: ["(^|/)(dist|coverage|\\.next|generated|playwright-report|test-results)/", "(^|/)next-env[.]d[.]ts$"],
+    },
     tsPreCompilationDeps: true,
     // Resolves the "@/" alias of apps/web. Packages declare no paths, so it changes nothing for them.
     tsConfig: { fileName: "tsconfig.depcruise.json" },

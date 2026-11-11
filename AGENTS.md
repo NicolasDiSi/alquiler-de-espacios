@@ -40,9 +40,11 @@ Tracer Bullet: one thin, real thread through every layer first (a company books 
 
 ```bash
 pnpm install
-pnpm dev               # turbo run dev (the web app on http://localhost:3000)
+pnpm dev               # services:up, db:deploy, db:seed, then the web app on http://localhost:3000
+pnpm dev:app           # only the web app (turbo run dev), when the database is already up
 pnpm check:ai          # every quality gate, one PASS/FAIL line each. Use this to iterate.
 pnpm check:ai --gate=test --lines=60
+pnpm check:ai --gate=e2e --suite=bookings   # one area's Playwright specs (suites: bookings, shell)
 pnpm check:fix         # Biome lint + format + import sorting
 pnpm test              # turbo run test
 pnpm typecheck
@@ -57,6 +59,13 @@ pnpm db:studio         # data panel on http://localhost:5555
 - Tests start their own throwaway Postgres with testcontainers, so Docker must be running for `pnpm test` and `pnpm check:ai`.
 - Gates: `biome`, `strings`, `typecheck`, `boundaries`, `knip`, `test`, `e2e`. The `e2e` gate builds `apps/web` and runs Playwright against `next start`, so it is the slow one; skip it while iterating on code it does not cover.
 - Hooks: `pre-commit` runs Biome and the tests related to the staged files, `commit-msg` runs commitlint, `pre-push` runs `check:ai --affected`. `.claude/settings.json` runs Biome on every file the agent edits.
+
+## Iterating cheaply
+
+- Run `pnpm check:ai` (or `--gate=<name>`) instead of individual tools. It prints one line per gate and at most 20 lines per failure.
+- When a gate fails, fix the reported files and rerun only that gate before running the full set again.
+- Run the smallest check that covers the change, and the full set once at the end. The table is in [scoped-verification](.claude/skills/scoped-verification/).
+- **The user runs end to end tests.** Hand over the exact command (for example `pnpm check:ai --gate=e2e --suite=bookings`), say which tests are new or edited, and keep working. Suites: `bookings` (book, my bookings) and `shell` (shell, keyboard, accessibility).
 
 ## Workflow
 

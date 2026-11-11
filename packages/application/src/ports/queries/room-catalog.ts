@@ -8,4 +8,6 @@ export type RoomView = {
 export interface RoomCatalog {
   /** Every room, by name. Three rooms in v1, so no pagination. */
   listRooms(): Promise<readonly RoomView[]>;
+  /** One room, or `null` when no room has that id. */
+  findRoom(id: string): Promise<RoomView | null>;
 }

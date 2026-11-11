@@ -115,9 +115,88 @@
   "home": {
     "title": "Mis reservas",
     "description": "Las reservas de salas de tu empresa.",
+    "newBooking": "Nueva reserva",
+    "columns": {
+      "room": "Sala",
+      "date": "Fecha",
+      "time": "Horario",
+      "bookedBy": "Reservada por",
+      "status": "Estado",
+      "createdAt": "Creada",
+      "cancelledAt": "Cancelada el"
+    },
+    "timeRange": "{start} a {end}",
+    "phase": {
+      "upcoming": "Confirmada",
+      "in_progress": "En curso",
+      "finished": "Finalizada",
+      "cancelled": "Cancelada"
+    },
+    "viewsLabel": "Vistas de reservas",
+    "views": {
+      "upcoming": "Próximas",
+      "past": "Pasadas",
+      "cancelled": "Canceladas"
+    },
+    "captions": {
+      "upcoming": "Próximas reservas de tu empresa, la más cercana primero",
+      "past": "Reservas pasadas de tu empresa, la más reciente primero",
+      "cancelled": "Reservas canceladas de tu empresa, la más reciente primero"
+    },
     "empty": {
-      "title": "Todavía no hay reservas",
-      "description": "Cuando reserves una sala, la reserva va a aparecer acá con su fecha y horario."
+      "upcoming": {
+        "title": "No hay reservas próximas",
+        "description": "Cuando tu empresa reserve una sala, la reserva va a aparecer acá con su fecha y horario."
+      },
+      "past": {
+        "title": "Todavía no hay reservas pasadas",
+        "description": "Las reservas de tu empresa aparecen acá cuando terminan."
+      },
+      "cancelled": {
+        "title": "No hay reservas canceladas",
+        "description": "Si tu empresa cancela una reserva, va a aparecer acá con la fecha en que se canceló."
+      }
+    },
+    "newBadge": "Nueva",
+    "loadMore": "Ver más",
+    "loadingMore": "Cargando…",
+    "noMore": "No hay más reservas",
+    "loadError": "No pudimos cargar más reservas.",
+    "retry": "Reintentar",
+    "loaded": "{count, plural, one {Se cargó # reserva más} other {Se cargaron # reservas más}}",
+    "loading": "Cargando reservas…",
+    "error": {
+      "title": "No pudimos mostrar tus reservas",
+      "description": "Puede ser un problema momentáneo. Probá de nuevo en unos segundos.",
+      "retry": "Reintentar"
+    },
+    "dateAndTime": "{date} · {time}"
+  },
+  "bookingForm": {
+    "metaTitle": "Nueva reserva",
+    "title": "Nueva reserva",
+    "description": "Elegí una sala, un día y un horario.",
+    "back": "Volver a Mis reservas",
+    "room": "Sala",
+    "roomOption": "{name} · {capacity, plural, one {# persona} other {# personas}}",
+    "roomPlaceholder": "Elegí una sala",
+    "date": "Fecha",
+    "datePlaceholder": "dd/mm/aaaa",
+    "dateFormat": "Escribí la fecha como día/mes/año, por ejemplo 12/11/2026, o elegila en el calendario.",
+    "chooseDate": "Elegir fecha en el calendario",
+    "changeDateTo": "Cambiar fecha, {date}",
+    "dateHint": "Se reserva de lunes a viernes, hasta 60 días adelante.",
+    "start": "Inicio",
+    "end": "Fin",
+    "timePlaceholder": "Elegí un horario",
+    "endNeedsStart": "Elegí primero el inicio",
+    "submit": "Reservar",
+    "submitting": "Reservando…",
+    "retry": "Reintentar",
+    "signInAgain": "Elegir usuario de nuevo",
+    "empty": {
+      "title": "No hay salas cargadas",
+      "description": "Cargá los datos de ejemplo con pnpm db:seed y volvé a abrir esta página."
     }
   },
   "operator": {

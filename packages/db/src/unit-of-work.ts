@@ -2,11 +2,19 @@ import type { IdGenerator, TenantTransaction, UnitOfWork } from "@espacios/appli
 import type { TenantId } from "@espacios/domain";
 
 import type { DatabaseClient, TransactionClient } from "./client";
+import { translateDatabaseError } from "./sql-state";
 
 export type PrismaUnitOfWorkOptions = {
   /** Interactive transactions hold a connection; keep them short. */
   readonly timeoutMs?: number;
+  /** How long a statement waits for a lock (a conflicting booking still in flight) before giving up as `busy`. */
+  readonly lockTimeoutMs?: number;
+  /** How long one statement may run before it is cancelled as `busy`. */
+  readonly statementTimeoutMs?: number;
 };
+
+/** Spec 0001: `SET LOCAL lock_timeout = '3s'` and `statement_timeout = '5s'` in every tenant transaction. */
+const DEFAULTS = { timeoutMs: 10_000, lockTimeoutMs: 3_000, statementTimeoutMs: 5_000 } as const;
 
 /**
  * Each `run` is one database transaction that first sets `app.tenant_id` with `set_config(..., true)` (a `SET LOCAL`
@@ -20,14 +28,35 @@ export function createPrismaUnitOfWork(
 ): UnitOfWork {
   return {
     run: (tenantId, work) =>
-      db.$transaction(
-        async (tx) => {
-          await tx.$executeRaw`SELECT set_config('app.tenant_id', ${tenantId}, true)`;
-          return work(tenantTransaction(tx, tenantId, ids));
-        },
-        { timeout: options.timeoutMs ?? 10_000 },
-      ),
+      runInTenantTransaction(db, tenantId, (tx) => work(tenantTransaction(tx, tenantId, ids)), options),
   };
+}
+
+/**
+ * The transaction behind `UnitOfWork.run`, on the raw Prisma client. The tenant and both timeouts are set in one
+ * round trip and last only for this transaction. A database error is translated after `$transaction` has rolled
+ * back (the PostgreSQL transaction is already aborted): an overlap throws `ConcurrencyError`, a timeout `BusyError`.
+ */
+export async function runInTenantTransaction<T>(
+  db: DatabaseClient,
+  tenantId: TenantId,
+  work: (tx: TransactionClient) => Promise<T>,
+  options: PrismaUnitOfWorkOptions = {},
+): Promise<T> {
+  const { timeoutMs, lockTimeoutMs, statementTimeoutMs } = { ...DEFAULTS, ...options };
+  try {
+    return await db.$transaction(
+      async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.tenant_id', ${tenantId}, true),
+          set_config('lock_timeout', ${`${lockTimeoutMs}ms`}, true),
+          set_config('statement_timeout', ${`${statementTimeoutMs}ms`}, true)`;
+        return work(tx);
+      },
+      { timeout: timeoutMs },
+    );
+  } catch (error) {
+    throw translateDatabaseError(error);
+  }
 }
 
 /** Add each repository here as its slice is built; every query filters by `tenantId` as well as relying on RLS. */

@@ -17,7 +17,7 @@ const operator: Session = {
 
 describe("checkAccess", () => {
   it.each(["any", "member", "operator"] as const)("answers 401 without a session (%s edge)", (edge) => {
-    expect(checkAccess(null, edge)).toEqual({ status: 401, code: "unauthenticated" });
+    expect(checkAccess(null, edge)).toEqual("unauthenticated");
   });
 
   it("lets any signed in user through the shared edge", () => {
@@ -26,12 +26,12 @@ describe("checkAccess", () => {
   });
 
   it("keeps a member out of operator routes with 403", () => {
-    expect(checkAccess(member, "operator")).toEqual({ status: 403, code: "forbidden" });
+    expect(checkAccess(member, "operator")).toEqual("forbidden");
     expect(checkAccess(member, "member")).toBeNull();
   });
 
   it("keeps the operator out of member routes with 403", () => {
-    expect(checkAccess(operator, "member")).toEqual({ status: 403, code: "forbidden" });
+    expect(checkAccess(operator, "member")).toEqual("forbidden");
     expect(checkAccess(operator, "operator")).toBeNull();
   });
 });
@@ -50,11 +50,11 @@ describe("checkStateChange", () => {
 
   it("refuses a cross origin post with 403", () => {
     const headers = new Headers({ ...json, origin: "http://localhost:4000" });
-    expect(checkStateChange("POST", headers)).toEqual({ status: 403, code: "forbidden" });
+    expect(checkStateChange("POST", headers)).toEqual("forbidden");
   });
 
   it("refuses a post that is not JSON with 400", () => {
     const headers = new Headers({ host: "localhost:3000", "content-type": "application/x-www-form-urlencoded" });
-    expect(checkStateChange("post", headers)).toEqual({ status: 400, code: "invalid_input" });
+    expect(checkStateChange("post", headers)).toEqual("invalid_input");
   });
 });

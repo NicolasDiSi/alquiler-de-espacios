@@ -24,10 +24,24 @@ export interface UnitOfWork {
   run<T>(tenantId: TenantId, work: (tx: TenantTransaction) => Promise<T>): Promise<T>;
 }
 
-/** Thrown by repositories when an update is based on a stale version. */
+/**
+ * Thrown by the adapter when a concurrent write won the race: the database overlap constraint refused the row
+ * (`23P01`). The use case turns it into `conflict`. The driver error stays in `cause` and never reaches a response.
+ */
 export class ConcurrencyError extends Error {
-  constructor(entity: string, id: string) {
-    super(`${entity} ${id} was changed by someone else.`);
+  constructor(options?: { cause?: unknown }) {
+    super("A concurrent write won the race for the same room and time.", options);
     this.name = "ConcurrencyError";
+  }
+}
+
+/**
+ * Thrown by the adapter when the database could not answer in time: lock or statement timeout, deadlock,
+ * serialization failure, or no transaction available. Nothing was written; the use case turns it into `busy`.
+ */
+export class BusyError extends Error {
+  constructor(options?: { cause?: unknown }) {
+    super("The database is busy. Retry in a moment.", options);
+    this.name = "BusyError";
   }
 }

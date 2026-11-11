@@ -1,8 +1,9 @@
 import { afterAll, describe, expect, inject, it } from "vitest";
 
 import { createDatabaseClient } from "./client";
+import { sqlState } from "./sql-state";
 import { asTenant, at, book, createMember, createRoom, createTenant } from "./testing/fixtures";
-import { sqlState, sqlStateOf } from "./testing/sql-state";
+import { sqlStateOf } from "./testing/sql-state";
 
 const urls = inject("databaseUrls");
 const owner = createDatabaseClient(urls.ownerUrl);

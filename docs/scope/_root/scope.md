@@ -13,7 +13,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | --- | ----------------------------------------------------- | ---------- | ----------- |
 | 1   | Repo foundation: tooling, layer packages, web shell   | Foundation | existing    |
 | 2   | Database foundation: roles, FORCE RLS, schema, seeds  | Foundation | done        |
-| 3   | Company identity: seeded users, signed cookie, picker | Foundation | in-progress |
+| 3   | Company identity: seeded users, signed cookie, picker | Foundation | done        |
 | 4   | Result and error contract                             | Foundation | planned     |
 | 5   | Book a room and see it in my bookings                 | Slice 1    | planned     |
 | 13  | Role based navigation in the sidebar                  | Slice 1    | planned     |
@@ -42,14 +42,14 @@ The ground every slice stands on: cluster roles in the infra init SQL and test g
 - [x] Test it: `/test database foundation`
   Spec 0001 · code in `packages/db/`, `infra/`
 
-### 3. Company identity: seeded users, signed cookie, picker · in-progress
+### 3. Company identity: seeded users, signed cookie, picker · done
 
 A "sign in as" picker that sets an HMAC signed cookie; the server resolves the company from it, never from client input. Company and operator edges, 401 and 403 rules, Origin check.
 **Done when:** picking a seeded user sets a signed cookie, a tampered or expired cookie gets 401, a member cannot reach operator routes (403), and the company id used by every action comes from the cookie.
 - [x] Design it (spec): decided in spec 0001
 - [x] Build it: `/develop company identity`
 - [x] Verify it: `/check verify company identity`
-- [ ] Test it: `/test company identity`
+- [ ] Test it: `/test company identity` (skipped 2026-11-11 by the engineer: the build shipped 14 identity e2e tests and the session unit tests)
   Spec 0001, picker screen in spec 0002 (assumed decision, owes `/architect` ratification) · code in `apps/web/src/lib/session/`, `apps/web/src/app/ingresar/`, `packages/domain/src/identity/`, `packages/db/src/user-directory.ts`
 
 ### 4. Result and error contract

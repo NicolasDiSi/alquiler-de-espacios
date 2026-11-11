@@ -1,0 +1,28 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "ui": "stream",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build", "generate"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck", "generate"]
+    },
+    "test": {
+      "outputs": ["coverage/**"],
+      "dependsOn": ["generate"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "generate": {
+      "outputs": ["src/generated/**"]
+    },
+    "e2e": {
+      "dependsOn": ["build"],
+      "outputs": ["playwright-report/**"]
+    }
+  }
+}

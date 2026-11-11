@@ -1,0 +1,10 @@
+{
+  "//": "Used only by dependency cruiser to resolve the \"@/\" alias of apps/web (see .dependency-cruiser.cjs).",
+  "compilerOptions": {
+    "allowJs": true,
+    "paths": {
+      "@/*": ["./apps/web/src/*"]
+    }
+  },
+  "include": ["apps/web/src"]
+}

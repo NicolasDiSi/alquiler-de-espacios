@@ -1,0 +1,252 @@
+{
+  "meta": {
+    "description": "Reservas de salas de reuniones para empresas: disponibilidad, reservas y métricas de uso."
+  },
+  "common": {
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "notifications": "Notificaciones"
+  },
+  "shell": {
+    "skipToContent": "Saltar al contenido",
+    "sidebar": {
+      "label": "Menú principal",
+      "home": "alquiler-de-espacios, ir al inicio",
+      "toggle": "Mostrar u ocultar el menú lateral"
+    },
+    "nav": {},
+    "header": {
+      "moreOptions": "Más opciones"
+    },
+    "mode": {
+      "label": "Modo",
+      "cycle": "Modo: {mode}. Cambiar de modo",
+      "options": {
+        "light": "Claro",
+        "dark": "Oscuro",
+        "system": "Sistema"
+      }
+    },
+    "density": {
+      "label": "Densidad",
+      "options": {
+        "compact": "Compacta",
+        "comfortable": "Cómoda"
+      }
+    },
+    "layout": {
+      "open": "Preferencias de diseño",
+      "title": "Preferencias",
+      "description": "Ajustá cómo se ve la app en este navegador.",
+      "reset": "Restablecer valores predeterminados",
+      "content_layout": {
+        "label": "Contenido",
+        "options": {
+          "centered": "Centrado",
+          "full-width": "Ancho completo"
+        }
+      },
+      "navbar_style": {
+        "label": "Barra superior",
+        "options": {
+          "sticky": "Fija",
+          "scroll": "Se desplaza"
+        }
+      },
+      "sidebar_variant": {
+        "label": "Menú lateral",
+        "options": {
+          "sidebar": "Integrado",
+          "inset": "Insertado",
+          "floating": "Flotante"
+        }
+      },
+      "sidebar_collapsible": {
+        "label": "Menú lateral contraído",
+        "options": {
+          "icon": "Íconos",
+          "offcanvas": "Oculto"
+        }
+      }
+    }
+  },
+  "home": {
+    "title": "Mis reservas",
+    "description": "Las reservas de salas de tu empresa.",
+    "empty": {
+      "title": "Todavía no hay reservas",
+      "description": "Cuando reserves una sala, la reserva va a aparecer acá con su fecha y horario."
+    }
+  },
+  "notFound": {
+    "title": "No encontramos esta página",
+    "description": "Puede que la dirección esté mal escrita o que la página ya no exista.",
+    "back": "Volver al inicio"
+  },
+  "designSystem": {
+    "title": "Sistema de diseño",
+    "description": "Los componentes base de la app en todos sus estados. Pasá el cursor o recorré la página con Tab para ver los estados de foco y de cursor encima.",
+    "buttons": {
+      "title": "Botones",
+      "description": "Una acción principal por vista; el resto, en variantes secundarias.",
+      "variants": "Variantes",
+      "variant": {
+        "default": "Reservar",
+        "secondary": "Ver disponibilidad",
+        "outline": "Cambiar horario",
+        "ghost": "Posponer",
+        "destructive": "Cancelar reserva",
+        "link": "Ver historial"
+      },
+      "sizes": "Tamaños",
+      "size": {
+        "sm": "Pequeño",
+        "default": "Normal",
+        "lg": "Grande"
+      },
+      "iconLabel": "Nueva reserva",
+      "states": "Estados",
+      "disabled": "Deshabilitado",
+      "loading": "Guardando"
+    },
+    "forms": {
+      "title": "Formularios",
+      "description": "Cada campo tiene su etiqueta, y los errores se anuncian junto al campo.",
+      "subject": "Motivo",
+      "subjectPlaceholder": "Por ejemplo: capacitación del equipo comercial",
+      "email": "Correo de contacto",
+      "emailError": "Ingresá un correo válido, por ejemplo nombre@empresa.com.",
+      "reference": "Referencia",
+      "priority": "Prioridad",
+      "priorities": {
+        "low": "Baja",
+        "medium": "Media",
+        "high": "Alta",
+        "urgent": "Urgente"
+      },
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "Contá qué necesitás para la reunión.",
+      "channel": "Tipo de evento",
+      "channels": {
+        "meeting": "Reunión",
+        "training": "Capacitación",
+        "event": "Evento"
+      },
+      "notify": "Avisarme por correo si la reserva cambia",
+      "notifyDisabled": "Avisarme por SMS (no disponible)",
+      "autoAssign": "Elegir sala automáticamente",
+      "autoAssignDisabled": "Reservar en serie (no disponible)"
+    },
+    "feedback": {
+      "title": "Insignias y alertas",
+      "description": "Los colores de estado son fijos del producto.",
+      "badges": "Insignias",
+      "badge": {
+        "default": "Destacada",
+        "secondary": "Interna",
+        "outline": "Pendiente",
+        "destructive": "Cancelada"
+      },
+      "alert": {
+        "default": {
+          "title": "Nueva sala disponible",
+          "description": "La Sala Norte ya se puede reservar."
+        },
+        "destructive": {
+          "title": "No se pudo reservar",
+          "description": "La sala ya está reservada en ese horario. Elegí otro horario u otra sala."
+        },
+        "success": {
+          "title": "Reserva confirmada",
+          "description": "Te enviamos los detalles por correo."
+        },
+        "warning": {
+          "title": "Reserva próxima",
+          "description": "Tu reunión en la Sala Sur empieza en menos de una hora."
+        },
+        "info": {
+          "title": "La sala volvió a estar libre",
+          "description": "Otra empresa canceló su reserva en ese horario."
+        }
+      }
+    },
+    "overlays": {
+      "title": "Superposiciones",
+      "description": "Diálogos, menús, ayudas y notificaciones. El foco entra al abrir y vuelve al cerrar.",
+      "dialogAndMenu": "Diálogo, menú y ayuda",
+      "toasts": "Notificaciones",
+      "dialog": {
+        "open": "Reservar sala",
+        "title": "Reservar sala",
+        "description": "Elegí la sala, el día y el horario.",
+        "assignee": "Sala",
+        "assigneePlaceholder": "Por ejemplo: Sala Norte",
+        "confirm": "Reservar"
+      },
+      "menu": {
+        "open": "Acciones",
+        "assign": "Ver detalle",
+        "escalate": "Cambiar horario",
+        "merge": "Duplicar",
+        "close": "Cancelar reserva"
+      },
+      "tooltip": {
+        "trigger": "Ayuda sobre la prioridad",
+        "content": "La prioridad la define tu equipo."
+      },
+      "toast": {
+        "showDefault": "Notificación",
+        "showSuccess": "Éxito",
+        "showInfo": "Información",
+        "showWarning": "Advertencia",
+        "showError": "Error",
+        "default": "Guardamos tu borrador.",
+        "success": "Reserva confirmada.",
+        "info": "Hay tres salas libres mañana.",
+        "warning": "Tu reserva empieza pronto.",
+        "error": "No se pudo guardar el cambio."
+      }
+    },
+    "bookings": {
+      "title": "Pestañas y tabla",
+      "description": "Fechas y números con formato de Argentina, en la hora de Buenos Aires.",
+      "tabs": {
+        "list": "Reservas",
+        "activity": "Actividad",
+        "archived": "Canceladas"
+      },
+      "columns": {
+        "key": "Código",
+        "subject": "Motivo",
+        "status": "Estado",
+        "receivedAt": "Inicio",
+        "minutes": "Minutos reservados"
+      },
+      "subjects": {
+        "checkout": "Reunión de directorio",
+        "login": "Capacitación de ventas",
+        "invoice": "Entrevistas"
+      },
+      "status": {
+        "new": "Confirmada",
+        "inProgress": "En curso",
+        "resolved": "Finalizada"
+      },
+      "activity": "Última reserva creada el {date}."
+    },
+    "states": {
+      "title": "Carga y vacío",
+      "description": "Mientras carga se muestra la forma del contenido; cuando no hay nada, se explica qué hacer.",
+      "loading": "Cargando reservas",
+      "empty": {
+        "title": "Sin reservas en esta vista",
+        "description": "Probá con otro filtro o reservá una sala.",
+        "action": "Nueva reserva"
+      }
+    },
+    "colors": {
+      "title": "Colores",
+      "description": "Los tokens del tema. Todo color en la app sale de acá."
+    }
+  }
+}

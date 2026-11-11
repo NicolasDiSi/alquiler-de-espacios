@@ -1,0 +1,46 @@
+/*
+ * Floating content never grows past the viewport: it caps to the space Radix measures and scrolls inside.
+ *
+ * Ported from Studio Admin (nextjs-templates 070023f), which patched each shadcn/ui file. Here the rules key on the
+ * `data-slot` every shadcn/ui component already renders, so the files in components/ui stay as the CLI generates them
+ * and a component added later is covered without touching it.
+ *
+ * The layer is declared after Tailwind's `utilities`, so it wins over the generated `overflow-hidden` on sub-menus.
+ * A call site that needs a different cap uses an important utility (`max-h-96!`).
+ * Radix sets the `--radix-*-available-*` variables on each content element; where one is missing the declaration
+ * is invalid at computed value time and falls back to `none`, so nothing is capped by accident.
+ */
+@layer overlays {
+  [data-slot="popover-content"] {
+    max-height: var(--radix-popover-content-available-height);
+    max-width: var(--radix-popover-content-available-width);
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  [data-slot="hover-card-content"] {
+    max-height: var(--radix-hover-card-content-available-height);
+    max-width: var(--radix-hover-card-content-available-width);
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  [data-slot="dropdown-menu-sub-content"] {
+    max-height: var(--radix-dropdown-menu-content-available-height);
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  [data-slot="context-menu-sub-content"] {
+    max-height: var(--radix-context-menu-content-available-height);
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  [data-slot="menubar-content"],
+  [data-slot="menubar-sub-content"] {
+    max-height: var(--radix-menubar-content-available-height);
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+}

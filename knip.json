@@ -1,0 +1,26 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/*.mjs", "commitlint.config.mjs", "lint-staged.config.mjs"],
+      "ignoreDependencies": ["@vitest/coverage-v8"]
+    },
+    "packages/*": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts", "src/**/*.tsx"]
+    },
+    "apps/*": {
+      "project": ["src/**/*.ts", "src/**/*.tsx"]
+    },
+    "packages/db": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"],
+      "ignoreDependencies": ["@prisma/client"]
+    },
+    "apps/web": {
+      "entry": ["src/i18n/request.ts", "src/global.d.ts"],
+      "project": ["src/**/*.ts", "src/**/*.tsx", "e2e/**/*.ts"]
+    }
+  },
+  "ignore": ["**/generated/**", ".claude/**", "apps/web/src/components/ui/**"]
+}

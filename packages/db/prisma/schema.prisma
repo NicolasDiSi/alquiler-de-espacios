@@ -1,0 +1,22 @@
+// Tables use snake_case (@@map/@map) so the hand-written RLS, constraint and grant SQL stays readable.
+// Every DateTime is timestamptz: bookings are instants, shown in the facility's time zone.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// A client company is a tenant. Tenant-owned tables carry `tenant_id` and an RLS policy (see multi-tenant-safety).
+model Company {
+  id        String   @id
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@map("company")
+}

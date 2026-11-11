@@ -1,0 +1,42 @@
+{
+  "name": "alquiler-de-espacios",
+  "private": true,
+  "packageManager": "pnpm@12.16.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "lint": "biome lint",
+    "format": "biome format --write",
+    "check": "biome check",
+    "check:fix": "biome check --write",
+    "depcruise": "depcruise apps packages --config .dependency-cruiser.cjs --output-type err",
+    "knip": "knip",
+    "check:ai": "node scripts/check-ai.mjs",
+    "services:up": "docker compose up -d --wait",
+    "services:down": "docker compose down",
+    "db:migrate": "pnpm --filter @espacios/db db:migrate",
+    "db:deploy": "pnpm --filter @espacios/db db:deploy",
+    "db:studio": "pnpm --filter @espacios/db db:studio",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.4",
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "dependency-cruiser": "18.7.0",
+    "husky": "9.1.7",
+    "knip": "6.44.1",
+    "lint-staged": "17.6.0",
+    "turbo": "2.11.10",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

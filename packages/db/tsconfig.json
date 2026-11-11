@@ -1,0 +1,4 @@
+{
+  "extends": "@espacios/config/tsconfig/node.json",
+  "include": ["src", "prisma", "prisma.config.ts", "vitest.config.ts"]
+}

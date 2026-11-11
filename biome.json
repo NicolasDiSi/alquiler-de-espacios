@@ -1,0 +1,182 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.6.4/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": {
+          "level": "on",
+          "options": {
+            "groups": [
+              ["react", "react/**", "preact", "preact/**"],
+              ":BLANK_LINE:",
+              "next/**",
+              ":BLANK_LINE:",
+              ":PACKAGE:",
+              ":BLANK_LINE:",
+              "@espacios/**",
+              ":BLANK_LINE:",
+              ":ALIAS:",
+              ":BLANK_LINE:",
+              ":PATH:"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "**",
+      "!.github",
+      "!.husky",
+      "!.claude/skills",
+      "!!.claude/worktrees",
+      "!**/node_modules",
+      "!**/.next",
+      "!**/dist",
+      "!**/coverage",
+      "!apps/web/src/components/ui",
+      "!apps/web/next-env.d.ts",
+      "!apps/web/playwright-report",
+      "!apps/web/test-results",
+      "!packages/db/src/generated"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": false,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 120,
+    "attributePosition": "auto",
+    "bracketSameLine": false,
+    "bracketSpacing": true,
+    "expand": "auto",
+    "useEditorconfig": true
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "correctness": {
+        "noUndeclaredVariables": "error",
+        "noNestedComponentDefinitions": "error",
+        "noUndeclaredDependencies": "error"
+      },
+      "nursery": {
+        "useNullishCoalescing": "error",
+        "noFloatingPromises": "error",
+        "noMisusedPromises": "error",
+        "useTailwindSortedClasses": "on"
+      },
+      "performance": {
+        "noImgElement": "warn"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "error",
+        "noDangerouslySetInnerHtmlWithChildren": "error",
+        "noGlobalEval": "error",
+        "noBlankTarget": "error",
+        "noSecrets": "warn"
+      },
+      "style": {
+        "noCommonJs": "error",
+        "noHeadElement": "warn",
+        "noNamespace": "error",
+        "useAsConstAssertion": "error",
+        "useSelfClosingElements": "error",
+        "noNestedTernary": "warn",
+        "noParameterAssign": "error",
+        "noInferrableTypes": "error",
+        "noUselessElse": "error",
+        "useFilenamingConvention": "error"
+      },
+      "suspicious": {
+        "noArrayIndexKey": "warn",
+        "noDocumentCookie": "error",
+        "noConstantBinaryExpressions": "error",
+        "noEmptyBlockStatements": "error",
+        "noUnknownAtRules": "off",
+        "noImportCycles": "error",
+        "noUnnecessaryConditions": "warn"
+      },
+      "complexity": {
+        "noImportantStyles": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.cjs", "**/*.config.*"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noCommonJs": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/web/src/scripts/theme-boot.tsx"],
+      "linter": {
+        "rules": {
+          "security": {
+            "noDangerouslySetInnerHtml": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/web/src/lib/cookie.client.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noDocumentCookie": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [".dependency-cruiser.cjs"],
+      "linter": {
+        "rules": {
+          "security": {
+            "noSecrets": "off"
+          }
+        }
+      }
+    }
+  ],
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "jsxQuoteStyle": "double",
+      "quoteProperties": "asNeeded",
+      "trailingCommas": "all",
+      "semicolons": "always",
+      "arrowParentheses": "always",
+      "bracketSameLine": false,
+      "quoteStyle": "double",
+      "attributePosition": "auto",
+      "bracketSpacing": true
+    }
+  },
+  "html": {
+    "formatter": {
+      "indentScriptAndStyle": false,
+      "selfCloseVoidElements": "always"
+    }
+  }
+}

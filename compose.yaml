@@ -1,0 +1,24 @@
+# Local infrastructure for development.
+name: alquiler-de-espacios
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      # The schema owner: migrations, Prisma Studio and system jobs. The app connects as espacios_app.
+      POSTGRES_USER: espacios
+      POSTGRES_PASSWORD: espacios
+      POSTGRES_DB: espacios
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./infra/local/postgres:/docker-entrypoint-initdb.d:ro
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U espacios -d espacios" ]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  postgres-data:

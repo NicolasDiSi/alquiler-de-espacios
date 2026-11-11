@@ -1,0 +1,132 @@
+{
+  "version": 2,
+  "skills": {
+    "accessible-data-tables-and-grids": {
+      "source": "smukh/a11y-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/accessible-data-tables-and-grids/SKILL.md",
+      "computedHash": "d306241ad9bc2ffbf25eeac30007df4488f232cb686d541aeade209eac2909a0",
+      "installMode": "copy"
+    },
+    "architect": {
+      "source": "jsmastery-pro/skills",
+      "sourceType": "github",
+      "skillPath": "skills/architect/SKILL.md",
+      "computedHash": "",
+      "installMode": "copy"
+    },
+    "audit": {
+      "source": "jsmastery-pro/skills",
+      "sourceType": "github",
+      "skillPath": "skills/audit/SKILL.md",
+      "computedHash": "",
+      "installMode": "copy"
+    },
+    "check": {
+      "source": "jsmastery-pro/skills",
+      "sourceType": "github",
+      "skillPath": "skills/check/SKILL.md",
+      "computedHash": "",
+      "installMode": "copy"
+    },
+    "data-display-and-selection": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/data-display-and-selection/SKILL.md",
+      "computedHash": "4801e33fcca784b54792b01af474e9945d3aa8f82045f4f35fd93aafb75bdfdc",
+      "installMode": "copy"
+    },
+    "debug": {
+      "source": "jsmastery-pro/skills",
+      "sourceType": "github",
+      "skillPath": "skills/debug/SKILL.md",
+      "computedHash": "",
+      "installMode": "copy"
+    },
+    "develop": {
+      "source": "jsmastery-pro/skills",
+      "sourceType": "github",
+      "skillPath": "skills/develop/SKILL.md",
+      "computedHash": "",
+      "installMode": "copy"
+    },
+    "document": {
+      "source": "jsmastery-pro/skills",
+      "sourceType": "github",
+      "skillPath": "skills/document/SKILL.md",
+      "computedHash": "",
+      "installMode": "copy"
+    },
+    "playwright-cli": {
+      "source": "microsoft/playwright-cli",
+      "sourceType": "github",
+      "skillPath": "skills/playwright-cli/SKILL.md",
+      "computedHash": ""
+    },
+    "prisma-cli": {
+      "source": "prisma/skills",
+      "sourceType": "github",
+      "skillPath": "prisma-cli/SKILL.md",
+      "computedHash": ""
+    },
+    "prisma-client-api": {
+      "source": "prisma/skills",
+      "sourceType": "github",
+      "skillPath": "prisma-client-api/SKILL.md",
+      "computedHash": ""
+    },
+    "scope": {
+      "source": "jsmastery-pro/skills",
+      "sourceType": "github",
+      "skillPath": "skills/scope/SKILL.md",
+      "computedHash": "",
+      "installMode": "copy"
+    },
+    "shadcn": {
+      "source": "shadcn/ui",
+      "sourceType": "github",
+      "skillPath": "skills/shadcn/SKILL.md",
+      "computedHash": ""
+    },
+    "status-colors-and-errors": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/status-colors-and-errors/SKILL.md",
+      "computedHash": "3e2c53a851ee4d9ef6bebb482d5244139d032e68b0d1371ca6fb660b015fdfa3",
+      "installMode": "copy"
+    },
+    "sync": {
+      "source": "jsmastery-pro/skills",
+      "sourceType": "github",
+      "skillPath": "skills/sync/SKILL.md",
+      "computedHash": "",
+      "installMode": "copy"
+    },
+    "test": {
+      "source": "jsmastery-pro/skills",
+      "sourceType": "github",
+      "skillPath": "skills/test/SKILL.md",
+      "computedHash": "",
+      "installMode": "copy"
+    },
+    "ui-density": {
+      "source": "dembrandt/dembrandt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ui-density/SKILL.md",
+      "computedHash": "8ecb31d841a4d0855bd526c6859860bc4db4b30d585025e08a9f75e2281c1ec3",
+      "installMode": "copy"
+    },
+    "vercel-composition-patterns": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/composition-patterns/SKILL.md",
+      "computedHash": ""
+    },
+    "vercel-react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-best-practices/SKILL.md",
+      "computedHash": ""
+    }
+  }
+}

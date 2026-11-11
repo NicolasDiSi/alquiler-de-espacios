@@ -1,0 +1,20 @@
+/*
+ * Sidebar widths follow Tailwind's spacing unit, so they grow with the density like everything inside them.
+ *
+ * shadcn/ui writes the widths as fixed rem values in inline styles (SIDEBAR_WIDTH* in components/ui/sidebar.tsx).
+ * With a fixed 3rem icon rail, comfortable density overflows it: the group padding (2 x 0.625rem) plus the
+ * icon button (size-8 = 2.5rem) need 3.75rem. Deriving every width from --spacing keeps them in proportion at any
+ * density, and keeps components/ui/sidebar.tsx as the CLI generates it.
+ *
+ * `!important` is the only way a stylesheet overrides an inline style; it is scoped to these custom properties.
+ * Ported from Studio Admin (nextjs-templates f5ce3f7), which changed the constants in the component instead.
+ */
+[data-slot="sidebar-wrapper"] {
+  --sidebar-width: calc(var(--spacing) * 64) !important; /* 16rem in compact */
+  --sidebar-width-icon: calc(var(--spacing) * 12) !important; /* 3rem in compact */
+}
+
+/* The mobile sheet sets its own width inline on the sheet content. */
+[data-slot="sidebar"][data-mobile="true"] {
+  --sidebar-width: calc(var(--spacing) * 72) !important; /* 18rem in compact */
+}

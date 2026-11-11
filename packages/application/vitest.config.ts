@@ -1,0 +1,14 @@
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    name: "application",
+    passWithNoTests: true,
+    include: ["src/**/*.test.ts"],
+    coverage: {
+      include: ["src/**/*.ts"],
+      exclude: ["src/**/*.test.ts", "src/index.ts", "src/ports/**"],
+      thresholds: { lines: 85, branches: 85, functions: 85, statements: 85 },
+    },
+  },
+});

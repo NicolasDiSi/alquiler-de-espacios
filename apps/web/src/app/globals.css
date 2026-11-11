@@ -1,0 +1,202 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "../styles/overlays.css";
+@import "../styles/sidebar.css";
+
+/*
+ * The default theme of the web app. Values are inspired by Ant Design 6 and picked at the shade that keeps
+ * every pair in the contrast matrix at WCAG 2.2 AA as shadcn/ui renders it. `theme-contrast.test.ts` reads this file,
+ * so the values here are the values that are checked. The theme sets values only: no component selector, no class
+ * override. Hex in the comments is for review; the OKLCH value is the source of truth.
+ */
+
+@custom-variant dark (&:is(.dark *));
+
+/* Tailwind theme variables: Ant Design's system font stacks and its shadows. */
+@theme {
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 1px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px 0 rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.5rem;
+  --background: oklch(0.9702 0 0); /* #f5f5f5 colorBgLayout */
+  --foreground: oklch(0.2393 0 0); /* #1f1f1f colorText */
+  --card: oklch(1 0 0); /* #ffffff colorBgContainer */
+  --card-foreground: oklch(0.2393 0 0); /* #1f1f1f */
+  --popover: oklch(1 0 0); /* #ffffff colorBgElevated */
+  --popover-foreground: oklch(0.2393 0 0); /* #1f1f1f */
+  --primary: oklch(0.4615 0.1555 258.494); /* #1554ad blue 7 of the dark palette */
+  --primary-foreground: oklch(1 0 0); /* #ffffff */
+  --secondary: oklch(0.96 0.021 241.348); /* #e6f4ff colorPrimaryBg */
+  --secondary-foreground: oklch(0.2393 0 0); /* #1f1f1f */
+  --muted: oklch(0.9702 0 0); /* #f5f5f5 colorFillTertiary */
+  --muted-foreground: oklch(0.464 0 0); /* #595959 colorTextSecondary */
+  --accent: oklch(0.96 0.021 241.348); /* #e6f4ff */
+  --accent-foreground: oklch(0.2393 0 0); /* #1f1f1f */
+  --destructive: oklch(0.4632 0.1845 25.234); /* #a8071a red 8 */
+  --success: oklch(0.4631 0.1466 139.988); /* #1f6b04 green 8, one step darker */
+  --warning: oklch(0.4784 0.1089 63.211); /* #874d00 gold 9 */
+  --info: oklch(0.4874 0.0831 203.688); /* #006d75 cyan 8 */
+  --border: oklch(0.9551 0 0); /* #f0f0f0 colorBorderSecondary, decorative dividers */
+  --input: oklch(0.6167 0 0); /* #858585 colorBorder darkened for 3:1 */
+  --ring: oklch(0.4615 0.1555 258.494); /* #1554ad */
+  --chart-1: oklch(0.5987 0.2194 259.04); /* #1677ff */
+  --chart-2: oklch(0.6154 0.1912 139.416); /* #389e0d */
+  --chart-3: oklch(0.5806 0.1293 65.931); /* #ad6800 */
+  --chart-4: oklch(0.4942 0.2284 295.583); /* #722ed1 */
+  --chart-5: oklch(0.6149 0.1034 199.002); /* #08979c */
+  --sidebar: oklch(1 0 0); /* #ffffff */
+  --sidebar-foreground: oklch(0.2393 0 0); /* #1f1f1f */
+  --sidebar-primary: oklch(0.4615 0.1555 258.494); /* #1554ad */
+  --sidebar-primary-foreground: oklch(1 0 0); /* #ffffff */
+  --sidebar-accent: oklch(0.96 0.021 241.348); /* #e6f4ff selected menu item */
+  --sidebar-accent-foreground: oklch(0.4615 0.1555 258.494); /* #1554ad */
+  --sidebar-border: oklch(0.9551 0 0); /* #f0f0f0 */
+  --sidebar-ring: oklch(0.4615 0.1555 258.494); /* #1554ad */
+}
+
+.dark {
+  --background: oklch(0 0 0); /* #000000 */
+  --foreground: oklch(0.8853 0 0); /* #d9d9d9 */
+  --card: oklch(0.1913 0 0); /* #141414 */
+  --card-foreground: oklch(0.8853 0 0); /* #d9d9d9 */
+  --popover: oklch(0.2393 0 0); /* #1f1f1f */
+  --popover-foreground: oklch(0.8853 0 0); /* #d9d9d9 */
+  --primary: oklch(0.6726 0.176 255.302); /* #4096ff colorPrimaryHover */
+  --primary-foreground: oklch(0 0 0); /* #000000 */
+  --secondary: oklch(0.3187 0.0812 257.501); /* #15325b */
+  --secondary-foreground: oklch(0.8853 0 0); /* #d9d9d9 */
+  --muted: oklch(0.2393 0 0); /* #1f1f1f */
+  --muted-foreground: oklch(0.7252 0 0); /* #a6a6a6 */
+  --accent: oklch(0.3187 0.0812 257.501); /* #15325b */
+  --accent-foreground: oklch(0.8853 0 0); /* #d9d9d9 */
+  --destructive: oklch(0.8373 0.0896 23.357); /* #ffb3ae between red 2 and red 3 */
+  --success: oklch(0.7739 0.2017 136.45); /* #73d13d green 5 */
+  --warning: oklch(0.8537 0.1572 84.13); /* #ffc53d gold 5 */
+  --info: oklch(0.777 0.1226 190.94); /* #36cfc9 cyan 5 */
+  --border: oklch(0.3092 0 0); /* #303030 */
+  --input: oklch(0.5382 0 0); /* #6e6e6e */
+  --ring: oklch(0.6726 0.176 255.302); /* #4096ff */
+  --chart-1: oklch(0.6726 0.176 255.302); /* #4096ff */
+  --chart-2: oklch(0.7739 0.2017 136.45); /* #73d13d */
+  --chart-3: oklch(0.8537 0.1572 84.13); /* #ffc53d */
+  --chart-4: oklch(0.5844 0.2024 300.994); /* #9254de */
+  --chart-5: oklch(0.777 0.1226 190.94); /* #36cfc9 */
+  --sidebar: oklch(0.1913 0 0); /* #141414 */
+  --sidebar-foreground: oklch(0.8853 0 0); /* #d9d9d9 */
+  --sidebar-primary: oklch(0.6726 0.176 255.302); /* #4096ff */
+  --sidebar-primary-foreground: oklch(0 0 0); /* #000000 */
+  --sidebar-accent: oklch(0.3187 0.0812 257.501); /* #15325b */
+  --sidebar-accent-foreground: oklch(1 0 0); /* #ffffff */
+  --sidebar-border: oklch(0.3092 0 0); /* #303030 */
+  --sidebar-ring: oklch(0.6726 0.176 255.302); /* #4096ff */
+}
+
+/* Density changes Tailwind's spacing unit and nothing else (compact is Tailwind's default 0.25rem). */
+html[data-density="comfortable"] {
+  --spacing: 0.3125rem;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  /* A visible focus ring for anything without its own (plain links, scroll containers). shadcn/ui components set
+     outline-none as a utility, which wins over this base rule, and keep their own ring. */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+
+  html {
+    overscroll-behavior: none;
+    /* The sticky header is h-12; focused elements scroll into view below it (WCAG 2.4.11). */
+    scroll-padding-top: calc(var(--spacing) * 12);
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground text-sm antialiased;
+  }
+
+  code,
+  kbd,
+  samp,
+  pre {
+    @apply font-mono tabular-nums;
+  }
+}
+
+/* Set for one frame while the mode switches, so colors change at once instead of animating. */
+.disable-transitions * {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Focus rings are box shadows, which forced colors removes; give every focused element a system colored outline. */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid CanvasText !important;
+    outline-offset: 2px;
+  }
+}

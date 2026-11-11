@@ -1,0 +1,32 @@
+{
+  "name": "@espacios/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate": "prisma generate --no-hints",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run --coverage --reporter=dot",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "catalog:",
+    "@prisma/client": "catalog:",
+    "@espacios/application": "workspace:*",
+    "@espacios/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "@espacios/config": "workspace:*",
+    "@testcontainers/postgresql": "catalog:",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "prisma": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

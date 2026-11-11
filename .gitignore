@@ -1,0 +1,43 @@
+# dependencies
+node_modules/
+
+# builds
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# testing
+coverage/
+playwright-report/
+test-results/
+
+# turbo
+.turbo/
+
+# env and secrets
+.env
+.env*.local
+*.pem
+
+# local data (docker volumes)
+.data/
+
+# the original challenge file and Windows download metadata
+challenge.pdf
+*:Zone.Identifier
+*:mshield
+
+# misc
+.DS_Store
+npm-debug.log*
+
+# Git worktrees that Claude Code agents create for isolated branches
+.claude/worktrees/
+.claude/settings.local.json
+
+# Next.js build output
+.next/
+
+# Generated Prisma client (run pnpm generate)
+packages/db/src/generated/

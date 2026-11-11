@@ -1,0 +1,27 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Dependencies may run install scripts only when listed as true here. Prisma downloads its schema engine (migrate).
+# The rest are optional native helpers pulled in by testcontainers, tooling and next-intl (@parcel/watcher, @swc/core
+# ship prebuilt binaries); they work without their scripts.
+allowBuilds:
+  "@prisma/engines": true
+  prisma: true
+  "@parcel/watcher": false
+  "@swc/core": false
+  cpu-features: false
+  esbuild: false
+  protobufjs: false
+  ssh2: false
+
+# Shared versions. Workspaces reference them with "catalog:" so one bump updates every package.
+catalog:
+  "@prisma/adapter-pg": 7.10.1
+  "@prisma/client": 7.10.1
+  "@testcontainers/postgresql": 12.2.1
+  "@types/node": ^24.0.0
+  "@vitest/coverage-v8": 5.0.5
+  prisma: 7.10.1
+  typescript: 6.0.3
+  vitest: 5.0.5

@@ -36,7 +36,7 @@ The ground every slice stands on: cluster roles in the infra init SQL and test g
 **Done when:** a migration run as the owner creates the schema, an integration test as `espacios_app` proves isolation and the overlap constraint, the seed runs twice without duplicates under `FORCE`, and the README notes `docker compose down -v`.
 - [x] Design it (spec): decided in spec 0001
 - [x] Build it: `/develop database foundation`
-- [ ] Verify it: `/check verify database foundation`
+- [x] Verify it: `/check verify database foundation`
 - [ ] Test it: `/test database foundation`
   Spec 0001 · code in `packages/db/`, `infra/`
 

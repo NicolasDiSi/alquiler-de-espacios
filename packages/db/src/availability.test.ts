@@ -12,7 +12,7 @@ afterAll(async () => {
   await Promise.all([owner.$disconnect(), runtime.$disconnect(), operator.$disconnect()]);
 });
 
-type Busy = { starts_at: Date; ends_at: Date };
+type Busy = { starts_at: Date; ends_at: Date; kind: string };
 
 /** What a company sees: the busy intervals of a room, asked from inside that company's tenant transaction. */
 function busyAsCompany(tenantId: string, roomId: string, from: Date, to: Date): Promise<Busy[]> {
@@ -40,8 +40,8 @@ describe("room availability (room_busy_intervals, spec 0001 P-4)", () => {
     );
     // ...but sees that the room is busy, with the times and nothing else.
     const busy = await busyAsCompany(b.tenantId, roomId, at(8), at(20));
-    expect(busy).toEqual([{ starts_at: at(10), ends_at: at(12) }]);
-    expect(Object.keys(busy[0] ?? {}).sort()).toEqual(["ends_at", "starts_at"]);
+    expect(busy).toEqual([{ starts_at: at(10), ends_at: at(12), kind: "booked" }]);
+    expect(Object.keys(busy[0] ?? {}).sort()).toEqual(["ends_at", "kind", "starts_at"]);
   });
 
   it("returns every confirmed booking of the room in order, from all companies", async () => {
@@ -87,7 +87,7 @@ describe("room availability (room_busy_intervals, spec 0001 P-4)", () => {
     await book(runtime, { ...a, roomId, startsAt: at(10), endsAt: at(11) });
 
     const busy = await operator.$queryRaw<Busy[]>`SELECT * FROM room_busy_intervals(${roomId}, ${at(8)}, ${at(20)})`;
-    expect(busy).toEqual([{ starts_at: at(10), ends_at: at(11) }]);
+    expect(busy).toEqual([{ starts_at: at(10), ends_at: at(11), kind: "booked" }]);
   });
 
   it("runs as the availability owner, not as the caller, and its search path is fixed", async () => {

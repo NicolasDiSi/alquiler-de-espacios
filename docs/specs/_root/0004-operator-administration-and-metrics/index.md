@@ -1,7 +1,7 @@
 # 0004. Operator administration, facilities and metrics (data model and API)
 
 **Date**: 2026-11-11
-**Status**: Proposed
+**Status**: In Progress
 
 ## Summary
 
@@ -54,12 +54,12 @@ Facility owns the zone and opening hours. Rooms and companies are switched off w
 
 **Data model** (changes over spec 0001; `booking` and `app_user` do not change):
 
-| Entity | Fields | Rules |
-| --- | --- | --- |
-| `facility` (new) | `id` PK, `name` unique, `address` nullable, `time_zone` text (IANA), `opens_at` int minutes, `closes_at` int minutes, `open_weekdays` smallint[] (0 Sunday to 6 Saturday, as `Date.getDay`), `created_at`, `deactivated_at` nullable | `CHECK (opens_at < closes_at AND opens_at >= 0 AND closes_at <= 1440)`, both multiples of 30, `open_weekdays` not empty and each value 0 to 6. No RLS, read only for companies. |
-| `room` (changed) | adds `facility_id` FK not null, `active_from` timestamptz not null, `deactivated_at` nullable | `name` unique per facility (`UNIQUE (facility_id, name)`, replaces the global unique). `deactivated_at` is set once and never cleared. Window = `[active_from, deactivated_at)`. |
-| `block` (new) | `id` PK, `facility_id` FK not null, `room_id` FK nullable (null = the whole facility), `starts_at`, `ends_at`, `reason` text (internal, never shown to companies), `created_by` FK `app_user` (an operator), `created_at`, `released_at` nullable | `CHECK (ends_at > starts_at)`. Never edited or deleted: release sets `released_at`. No RLS and no grant to the company login (reached only through the availability function). A block applies while `released_at IS NULL`. |
-| `company` (changed) | adds `deactivated_at` nullable, `kind` enum (`company` or `individual`, default `company`), `logo_url` text nullable | `slug` unique and immutable (it is the client's code). Also the tenant of an individual: a person is a client with one member. `kind` is immutable. |
+| Entity              | Fields                                                                                                                                                                                                                                            | Rules                                                                                                                                                                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `facility` (new)    | `id` PK, `name` unique, `address` nullable, `time_zone` text (IANA), `opens_at` int minutes, `closes_at` int minutes, `open_weekdays` smallint[] (0 Sunday to 6 Saturday, as `Date.getDay`), `created_at`, `deactivated_at` nullable              | `CHECK (opens_at < closes_at AND opens_at >= 0 AND closes_at <= 1440)`, both multiples of 30, `open_weekdays` not empty and each value 0 to 6. No RLS, read only for companies.                                             |
+| `room` (changed)    | adds `facility_id` FK not null, `active_from` timestamptz not null, `deactivated_at` nullable                                                                                                                                                     | `name` unique per facility (`UNIQUE (facility_id, name)`, replaces the global unique). `deactivated_at` is set once and never cleared. Window = `[active_from, deactivated_at)`.                                            |
+| `block` (new)       | `id` PK, `facility_id` FK not null, `room_id` FK nullable (null = the whole facility), `starts_at`, `ends_at`, `reason` text (internal, never shown to companies), `created_by` FK `app_user` (an operator), `created_at`, `released_at` nullable | `CHECK (ends_at > starts_at)`. Never edited or deleted: release sets `released_at`. No RLS and no grant to the company login (reached only through the availability function). A block applies while `released_at IS NULL`. |
+| `company` (changed) | adds `deactivated_at` nullable, `kind` enum (`company` or `individual`, default `company`), `logo_url` text nullable                                                                                                                              | `slug` unique and immutable (it is the client's code). Also the tenant of an individual: a person is a client with one member. `kind` is immutable.                                                                         |
 
 Relations: facility 1 to N room; facility 1 to N block; room 0 or 1 to N block; room 1 to N booking; company 1 to N booking and user; operator user 1 to N block.
 
@@ -154,7 +154,7 @@ Deliberately not modeled: restrictions that apply to one company only (a company
 Indexes: `room (facility_id)`, partial `room (id) WHERE deactivated_at IS NULL` is not needed at this size. Keep `booking (room_id, starts_at)` for metrics.
 
 **Database rules that need hand written SQL** (in one migration, appended after `prisma migrate dev --create-only`):
-- **Grants.** `espacios_operator` gets `INSERT, UPDATE` on `facility`, `room`, `company` and `block`, and `INSERT` on `app_user` (members only, the existing `CHECK` ties role to tenant and the use case never creates an operator). It gets nothing on `booking` and no `DELETE`. `espacios_availability` gets `SELECT` on the `block` columns the function uses; `espacios_runtime` gets nothing on `block`. This amends the "operator is read only" lines of spec 0001, ADR 0003 and `packages/db/AGENTS.md`: the operator is now read only on tenant data and may write catalog data. `espacios_runtime` gets `SELECT` on `facility` and `company`.
+- **Grants.** `espacios_operator` gets `INSERT, UPDATE` on `facility`, `room`, `company` and `block`, and `INSERT` on `app_user` (members only, the existing `CHECK` ties role to tenant and the use case never creates an operator). It gets nothing on `booking` and no `DELETE`. A grant cannot limit values, so a `BEFORE INSERT` trigger on `app_user` refuses an `operator` row coming from the operator login (SQLSTATE `42501`). `espacios_availability` gets `SELECT` on the `block` columns the function uses; `espacios_runtime` gets nothing on `block`. This amends the "operator is read only" lines of spec 0001, ADR 0003 and `packages/db/AGENTS.md`: the operator is now read only on tenant data and may write catalog data. `espacios_runtime` gets `SELECT` on `facility` and `company`.
 - **Booking guard trigger.** `BEFORE INSERT ON booking`, a `SECURITY DEFINER` function owned by `espacios_owner` with `search_path = pg_catalog, pg_temp`. It locks the room, its facility and the company rows with `FOR SHARE`, then raises a custom SQLSTATE if the room, facility or company is inactive, or if the booking falls outside the facility's opening window (weekday, hours, zone), or if an unreleased `block` of its room or of the whole facility overlaps it. The `FOR SHARE` locks make a deactivation or an hours change wait for in flight inserts. The use cases map the custom SQLSTATE to `room_inactive`, `company_inactive`, `outside_hours` or `room_blocked`. The use case still checks the same things first so the usual refusal is a clean returned result with no write.
 - **Availability function.** `room_busy_intervals` is rewritten to return confirmed bookings and the unreleased blocks that cover the room (its own and facility wide), each with a `kind` (`booked` or `blocked`) and nothing else. It stays `SECURITY DEFINER`, owned by `espacios_availability`.
 - **Creating a block** runs in one operator transaction: lock the facility row `FOR UPDATE` (waits for in flight inserts, whose trigger holds it `FOR SHARE`), list confirmed bookings overlapping the range, refuse with the list if any, otherwise insert. A booking arriving after sees the block in the trigger.
@@ -163,32 +163,32 @@ Indexes: `room (facility_id)`, partial `room (id) WHERE deactivated_at IS NULL` 
 
 **API surface** (cookie session, operator only unless noted; writes need the Origin check):
 
-| Endpoint | Method | Key inputs | Key outputs | Who | Key errors |
-| --- | --- | --- | --- | --- | --- |
-| `/api/v1/operator/facilities` | GET | `includeInactive` (default false) | facilities with room counts | operator | 401, 403 |
-| `/api/v1/operator/facilities` | POST | `name`, `address?`, `timeZone`, `opensAt`, `closesAt`, `openWeekdays` | facility, 201 + `Location` | operator | 400, 409 `already_exists` |
-| `/api/v1/operator/facilities/{id}` | GET, PATCH | PATCH: any field except `id` | facility | operator | 400, 404, 409 `has_future_bookings` (hours, zone or weekdays) |
-| `/api/v1/operator/facilities/{id}/deactivate` | POST | none | facility | operator | 404, 409 `facility_has_active_rooms` |
-| `/api/v1/operator/rooms` | GET | `facilityId?`, `includeInactive` | rooms with facility | operator | 401, 403 |
-| `/api/v1/operator/rooms` | POST | `facilityId`, `name`, `capacity`, `activeFrom?` | room, 201 | operator | 400, 404, 409 `already_exists`, `facility_inactive` |
-| `/api/v1/operator/rooms/{id}` | GET, PATCH | PATCH: `name`, `capacity` | room | operator | 400, 404, 409 |
-| `/api/v1/operator/rooms/{id}/deactivate` | POST | none | room | operator | 404, 409 `has_future_bookings` |
-| `/api/v1/operator/companies` | GET | `includeInactive` | companies | operator | 401, 403 |
-| `/api/v1/operator/companies` | POST | `name`, `slug`, `kind`, `logoUrl?`, `member.name?` | company with its first member, 201 | operator | 400, 409 `already_exists` |
-| `/api/v1/operator/companies/{id}/members` | GET, POST | POST: `name` | members, or the new member 201 | operator | 400, 404, 409 `individual_is_single` |
-| `/api/v1/operator/companies/{id}` | GET, PATCH | PATCH: `name`, `logoUrl` (null clears it) | company | operator | 400, 404 |
-| `/api/v1/operator/companies/{id}/deactivate`, `/reactivate` | POST | none | company | operator | 404 |
-| `/api/v1/operator/blocks` | GET | `facilityId`, `roomId`, `from`, `to`, `includeReleased`, `cursor`, `limit` | `{ blocks, nextCursor }` | operator | 400, 401, 403 |
-| `/api/v1/operator/blocks` | POST | `facilityId`, `roomId?`, `startsAt`, `endsAt` (with offset), `reason` (1 to 200 chars) | block, 201 | operator | 400, 404, 409 `block_has_bookings`, `facility_inactive`, `room_inactive`, 422 `invalid_range` |
-| `/api/v1/operator/blocks/{id}` | GET | none | block | operator | 404 |
-| `/api/v1/operator/blocks/{id}/release` | POST | none | block | operator | 404, 409 `already_released` |
-| `/api/v1/operator/bookings` | GET | `companyId`, `roomId`, `facilityId`, `status`, `from`, `to`, `cursor`, `limit` | `{ bookings, nextCursor }` with company name | operator | 400, 401, 403 |
-| `/api/v1/operator/metrics/rooms` | GET | `from`, `to` | rooms, facilities, overall | operator | 400, 422 `invalid_range` |
-| `/api/v1/operator/metrics/companies` | GET | `from`, `to` | companies | operator | 400, 422 |
-| `/api/v1/operator/metrics/heatmap` | GET | `from`, `to`, `facilityId?`, `roomId?` | cells | operator | 400, 404, 422 |
-| `/api/v1/operator/metrics/insights` | GET | `from`, `to`, `lowOccupancy?` | slots and candidates | operator | 400, 422 |
-| `/api/v1/rooms` (changed) | GET | none | active rooms with `facility` (id, name, hours, zone) | any signed in user | 401 |
-| `/api/v1/rooms/{id}/availability` (changed) | GET | `date` | uses the room's facility hours and zone; busy intervals carry `kind` (`booked` or `blocked`), never a reason | member, operator | 400, 401, 404 |
+| Endpoint                                                    | Method     | Key inputs                                                                             | Key outputs                                                                                                  | Who                | Key errors                                                                                    |
+| ----------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------ | --------------------------------------------------------------------------------------------- |
+| `/api/v1/operator/facilities`                               | GET        | `includeInactive` (default false)                                                      | facilities with room counts                                                                                  | operator           | 401, 403                                                                                      |
+| `/api/v1/operator/facilities`                               | POST       | `name`, `address?`, `timeZone`, `opensAt`, `closesAt`, `openWeekdays`                  | facility, 201 + `Location`                                                                                   | operator           | 400, 409 `already_exists`                                                                     |
+| `/api/v1/operator/facilities/{id}`                          | GET, PATCH | PATCH: any field except `id`                                                           | facility                                                                                                     | operator           | 400, 404, 409 `has_future_bookings` (hours, zone or weekdays)                                 |
+| `/api/v1/operator/facilities/{id}/deactivate`               | POST       | none                                                                                   | facility                                                                                                     | operator           | 404, 409 `facility_has_active_rooms`                                                          |
+| `/api/v1/operator/rooms`                                    | GET        | `facilityId?`, `includeInactive`                                                       | rooms with facility                                                                                          | operator           | 401, 403                                                                                      |
+| `/api/v1/operator/rooms`                                    | POST       | `facilityId`, `name`, `capacity`, `activeFrom?`                                        | room, 201                                                                                                    | operator           | 400, 404, 409 `already_exists`, `facility_inactive`                                           |
+| `/api/v1/operator/rooms/{id}`                               | GET, PATCH | PATCH: `name`, `capacity`                                                              | room                                                                                                         | operator           | 400, 404, 409                                                                                 |
+| `/api/v1/operator/rooms/{id}/deactivate`                    | POST       | none                                                                                   | room                                                                                                         | operator           | 404, 409 `has_future_bookings`                                                                |
+| `/api/v1/operator/companies`                                | GET        | `includeInactive`                                                                      | companies                                                                                                    | operator           | 401, 403                                                                                      |
+| `/api/v1/operator/companies`                                | POST       | `name`, `slug`, `kind`, `logoUrl?`, `member.name?`                                     | company with its first member, 201                                                                           | operator           | 400, 409 `already_exists`                                                                     |
+| `/api/v1/operator/companies/{id}/members`                   | GET, POST  | POST: `name`                                                                           | members, or the new member 201                                                                               | operator           | 400, 404, 409 `individual_is_single`                                                          |
+| `/api/v1/operator/companies/{id}`                           | GET, PATCH | PATCH: `name`, `logoUrl` (null clears it)                                              | company                                                                                                      | operator           | 400, 404                                                                                      |
+| `/api/v1/operator/companies/{id}/deactivate`, `/reactivate` | POST       | none                                                                                   | company                                                                                                      | operator           | 404                                                                                           |
+| `/api/v1/operator/blocks`                                   | GET        | `facilityId`, `roomId`, `from`, `to`, `includeReleased`, `cursor`, `limit`             | `{ blocks, nextCursor }`                                                                                     | operator           | 400, 401, 403                                                                                 |
+| `/api/v1/operator/blocks`                                   | POST       | `facilityId`, `roomId?`, `startsAt`, `endsAt` (with offset), `reason` (1 to 200 chars) | block, 201                                                                                                   | operator           | 400, 404, 409 `block_has_bookings`, `facility_inactive`, `room_inactive`, 422 `invalid_range` |
+| `/api/v1/operator/blocks/{id}`                              | GET        | none                                                                                   | block                                                                                                        | operator           | 404                                                                                           |
+| `/api/v1/operator/blocks/{id}/release`                      | POST       | none                                                                                   | block                                                                                                        | operator           | 404, 409 `already_released`                                                                   |
+| `/api/v1/operator/bookings`                                 | GET        | `companyId`, `roomId`, `facilityId`, `status`, `from`, `to`, `cursor`, `limit`         | `{ bookings, nextCursor }` with company name                                                                 | operator           | 400, 401, 403                                                                                 |
+| `/api/v1/operator/metrics/rooms`                            | GET        | `from`, `to`                                                                           | rooms, facilities, overall                                                                                   | operator           | 400, 422 `invalid_range`                                                                      |
+| `/api/v1/operator/metrics/companies`                        | GET        | `from`, `to`                                                                           | companies                                                                                                    | operator           | 400, 422                                                                                      |
+| `/api/v1/operator/metrics/heatmap`                          | GET        | `from`, `to`, `facilityId?`, `roomId?`                                                 | cells                                                                                                        | operator           | 400, 404, 422                                                                                 |
+| `/api/v1/operator/metrics/insights`                         | GET        | `from`, `to`, `lowOccupancy?`                                                          | slots and candidates                                                                                         | operator           | 400, 422                                                                                      |
+| `/api/v1/rooms` (changed)                                   | GET        | none                                                                                   | active rooms with `facility` (id, name, hours, zone)                                                         | any signed in user | 401                                                                                           |
+| `/api/v1/rooms/{id}/availability` (changed)                 | GET        | `date`                                                                                 | uses the room's facility hours and zone; busy intervals carry `kind` (`booked` or `blocked`), never a reason | member, operator   | 400, 401, 404                                                                                 |
 
 Notes: deactivate is a `POST` action, not a `DELETE`, because nothing is deleted. Rooms and facilities cannot be reactivated in v1 (their window is one interval); a company can, because no metric depends on its window.
 
@@ -204,21 +204,21 @@ Notes: deactivate is a `POST` action, not a `DELETE`, because nothing is deleted
 
 **Value sourcing**:
 
-| Action | Value | Source |
-| --- | --- | --- |
-| Validate a booking | opening hours, weekdays, zone | the room's facility row, read in the same transaction (decided here) |
-| Validate a booking | slot grid, min and max length, horizon | constants in `packages/domain` (spec 0001) |
-| Create a room | `activeFrom` | input if given, else the clock port at creation |
-| Create any record | `id` | the ids port (spec 0001) |
-| Deactivate | `deactivatedAt` and "now" for future bookings | the clock port |
-| Metrics | local day boundaries | each facility's `time_zone` (decided here) |
-| Metrics | rooms in scope and their window | `room.active_from`, `room.deactivated_at` |
-| Operator booking list | company name | join on `company`, operator edge only |
-| Insights | thresholds | `lowOccupancy` input, the rest domain constants |
-| Create a block | `created_by` | the operator in the session (decided here) |
-| Block, release | "now" and the future test | the clock port |
-| Availability | `kind` of an interval | `booking` row means `booked`, `block` row means `blocked` |
-| Admin writes | who did it | not recorded in v1 (see Follow-up) |
+| Action                | Value                                         | Source                                                               |
+| --------------------- | --------------------------------------------- | -------------------------------------------------------------------- |
+| Validate a booking    | opening hours, weekdays, zone                 | the room's facility row, read in the same transaction (decided here) |
+| Validate a booking    | slot grid, min and max length, horizon        | constants in `packages/domain` (spec 0001)                           |
+| Create a room         | `activeFrom`                                  | input if given, else the clock port at creation                      |
+| Create any record     | `id`                                          | the ids port (spec 0001)                                             |
+| Deactivate            | `deactivatedAt` and "now" for future bookings | the clock port                                                       |
+| Metrics               | local day boundaries                          | each facility's `time_zone` (decided here)                           |
+| Metrics               | rooms in scope and their window               | `room.active_from`, `room.deactivated_at`                            |
+| Operator booking list | company name                                  | join on `company`, operator edge only                                |
+| Insights              | thresholds                                    | `lowOccupancy` input, the rest domain constants                      |
+| Create a block        | `created_by`                                  | the operator in the session (decided here)                           |
+| Block, release        | "now" and the future test                     | the clock port                                                       |
+| Availability          | `kind` of an interval                         | `booking` row means `booked`, `block` row means `blocked`            |
+| Admin writes          | who did it                                    | not recorded in v1 (see Follow-up)                                   |
 
 **Key invariants**:
 - No two confirmed bookings of a room overlap (unchanged, exclusion constraint).
@@ -317,8 +317,8 @@ Build approach is Tracer Bullet: one thin thread first (a facility and a room cr
 2. Add `room.facility_id` nullable, `active_from` with a default, `deactivated_at`; backfill from the default facility and `created_at`; then set `NOT NULL` and swap the global name unique for `(facility_id, name)`.
 3. Add `company.deactivated_at`, the grants and the booking guard trigger.
 4. Move the code from constants to facility values (task 2 and 3 of the build plan) in the same feature branch.
-**Rollback**: revert the migration commit and run `docker compose down -v` locally; nothing here is deployed.
-**Risks**: the guard trigger can refuse existing seed bookings if a seed lies outside the facility hours (the seed test P-13 catches it); the code refactor can break the booking proofs (AC-16 covers it).
+   **Rollback**: revert the migration commit and run `docker compose down -v` locally; nothing here is deployed.
+   **Risks**: the guard trigger can refuse existing seed bookings if a seed lies outside the facility hours (the seed test P-13 catches it); the code refactor can break the booking proofs (AC-16 covers it).
 
 ## Rationale
 

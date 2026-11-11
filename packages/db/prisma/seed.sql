@@ -8,10 +8,12 @@
 -- company as the tenant, exactly like the app does. Opening hours, the 30 minute grid and the facility zone
 -- follow the booking rules in spec 0001: Monday to Friday, 08:00 to 20:00, America/Argentina/Buenos_Aires.
 
-INSERT INTO room (id, name, capacity) VALUES
-  ('room-sol', 'Sala Sol', 6),
-  ('room-luna', 'Sala Luna', 10),
-  ('room-mar', 'Sala Mar', 16)
+-- The default facility ('facility-central', Monday to Friday 08:00 to 20:00, Buenos Aires) is created by the
+-- migration. Rooms start their window well in the past so the seeded history counts in the metrics.
+INSERT INTO room (id, facility_id, name, capacity, active_from) VALUES
+  ('room-sol', 'facility-central', 'Sala Sol', 6, now() - interval '90 days'),
+  ('room-luna', 'facility-central', 'Sala Luna', 10, now() - interval '90 days'),
+  ('room-mar', 'facility-central', 'Sala Mar', 16, now() - interval '90 days')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO company (id, name, slug) VALUES

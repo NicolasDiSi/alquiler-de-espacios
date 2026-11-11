@@ -1,8 +1,9 @@
 import { afterAll, describe, expect, inject, it } from "vitest";
 
 import { createDatabaseClient } from "./client";
-import { asTenant, at, book, createMember, createRoom, createTenant } from "./testing/fixtures";
+import { asTenant, at, book, createMember, createRoom, createTenant, TEST_FACILITY_ID } from "./testing/fixtures";
 import { sqlStateOf } from "./testing/sql-state";
+import { randomUUID } from "node:crypto";
 
 const urls = inject("databaseUrls");
 const admin = createDatabaseClient(urls.adminUrl);
@@ -97,7 +98,7 @@ describe("the operator login (spec 0001, P-5)", () => {
     await expect(operator.appUser.count()).resolves.toBeGreaterThanOrEqual(2);
   });
 
-  it("cannot insert, update or delete anything", async () => {
+  it("cannot write bookings and cannot delete anything", async () => {
     const tenantId = await createTenant(owner, "opro");
     const roomId = await createRoom(owner);
     const bookedBy = await createMember(owner, tenantId);
@@ -109,7 +110,40 @@ describe("the operator login (spec 0001, P-5)", () => {
     expect(await sqlStateOf(insert)).toBe("42501");
     expect(await sqlStateOf(operator.booking.update({ where: { id }, data: { status: "cancelled" } }))).toBe("42501");
     expect(await sqlStateOf(operator.booking.delete({ where: { id } }))).toBe("42501");
-    expect(await sqlStateOf(operator.room.update({ where: { id: roomId }, data: { capacity: 1 } }))).toBe("42501");
+    expect(await sqlStateOf(operator.room.delete({ where: { id: roomId } }))).toBe("42501");
     expect(await sqlStateOf(operator.company.delete({ where: { id: tenantId } }))).toBe("42501");
+    expect(await sqlStateOf(operator.facility.delete({ where: { id: TEST_FACILITY_ID } }))).toBe("42501");
+    expect(await sqlStateOf(operator.appUser.update({ where: { id: bookedBy }, data: { name: "x" } }))).toBe("42501");
+  });
+
+  it("writes the catalog and inserts members, and only members (spec 0004)", async () => {
+    const facilityId = `facility-op-${randomUUID()}`;
+    await operator.facility.create({
+      data: { id: facilityId, name: facilityId, timeZone: "UTC", opensAt: 480, closesAt: 1200, openWeekdays: [1] },
+    });
+    const room = await operator.room.create({ data: { id: `room-${facilityId}`, facilityId, name: "R", capacity: 4 } });
+    await operator.room.update({ where: { id: room.id }, data: { capacity: 5 } });
+    const tenantId = await createTenant(owner, "opcat");
+    await operator.company.update({ where: { id: tenantId }, data: { logoUrl: "https://example.com/logo.png" } });
+    const member = await operator.appUser.create({
+      data: { id: `user-${facilityId}`, tenantId, name: `user-${facilityId}`, role: "member" },
+    });
+    const block = await operator.block.create({
+      data: {
+        id: `block-${facilityId}`,
+        facilityId,
+        startsAt: at(9),
+        endsAt: at(10),
+        reason: "obra",
+        createdBy: member.id,
+      },
+    });
+    expect(block.releasedAt).toBeNull();
+
+    // A grant cannot limit values, so a trigger refuses an operator row. The operator login never creates one.
+    const createOperator = operator.appUser.create({
+      data: { id: `user-op-${facilityId}`, name: "x", role: "operator" },
+    });
+    expect(await sqlStateOf(createOperator)).toBe("42501");
   });
 });

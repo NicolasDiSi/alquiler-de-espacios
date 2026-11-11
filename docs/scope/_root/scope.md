@@ -21,6 +21,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 6   | Room availability grid                                | Slice 2    | planned     |
 | 7   | Cancel a booking and free the slot                    | Slice 3    | planned     |
 | 8   | Operator metrics: queries and API                     | Slice 4    | planned     |
+| 15  | Operator administration: facilities, rooms, clients, blocks (data and API) | Slice 4 | in-progress |
 | 9   | Operator dashboard                                    | Slice 4    | planned     |
 | 10  | Operator global bookings view                         | Slice 4    | planned     |
 | 11  | End to end suite with accessibility checks            | Delivery   | planned     |
@@ -122,7 +123,29 @@ Occupancy per room and overall, usage per company (hours, bookings, cancellation
 - [ ] Build it: `/develop operator metrics`
 - [ ] Verify it: `/check verify operator metrics`
 - [ ] Test it: `/test operator metrics`
-  Spec 0001 · code in `packages/db/`, `packages/application/`, `packages/domain/`, `apps/web/`
+  Extended by feature 15 (spec 0004: per facility zone and hours, blocks, `insights`); build them together. Spec 0001 · code in `packages/db/`, `packages/application/`, `packages/domain/`, `apps/web/`
+
+### 15. Operator administration: facilities, rooms, clients, blocks (data and API) · in-progress
+
+Backend only, from [spec 0004](../../specs/_root/0004-operator-administration-and-metrics/index.md). The operator adds and retires facilities, rooms and clients through `/api/v1/operator/*`, blocks rooms or a whole facility, and reads the global bookings list and the metrics (rooms, companies, heatmap, insights). A person who works alone is a client of kind `individual` with one member. Facility owns the time zone and opening hours. It extends features 8 and 10 and replaces the constants of the booking rules. The screens come later.
+**Done when:** the 21 acceptance criteria of spec 0004 hold, the booking proofs of specs 0001 and 0003 still pass on the default facility, and the guard trigger refuses a direct insert into an inactive room, outside the opening window or over a block.
+- [x] Design it (spec): `/architect operator administration` (spec 0004)
+- [ ] Build it: `/develop operator administration`
+  - [ ] Migration: `facility`, `block`, room and company columns (`kind`, `logo_url`, `deactivated_at`, `active_from`), backfill, grants, booking guard trigger, seeds · AC-2, AC-3, AC-8, AC-9, AC-16, AC-19
+  - [ ] Domain and member path: facility rules replace the constants, new reasons, inactive rooms and companies refused · AC-7, AC-8, AC-9, AC-15, AC-16
+  - [ ] Operator edge: facilities, rooms, clients with members, deactivation, hours change with the affected bookings list · AC-1 to AC-7, AC-21
+  - [ ] Blocks and the availability `kind` · AC-17, AC-18, AC-19, AC-20
+  - [ ] Bookings list, metrics and insights · AC-10 to AC-14
+- [ ] Verify it: `/check verify operator administration`
+- [ ] Test it: `/test operator administration`. Must cover, as agreed on 2026-11-11:
+  - `company.kind` (`company` or `individual`, immutable, default `company`) and `logo_url` (https only, 2048 max, `null` clears it)
+  - creating a client creates its first member in the same transaction; an `individual` member name defaults to the client name; a second member of an `individual` is `individual_is_single` (409); a `company` accepts more members; another client never sees the person's bookings
+  - `GET` and `POST /operator/companies/{id}/members`, and no way to create an operator through the API
+  - company usage metric returns `kind` and filters by it
+  - the operator login can insert into `app_user` (members only) and `facility`, `room`, `company`, `block`, but never `booking`, and has no `DELETE` (the widest permission change of the spec)
+  - races P-16, P-17, P-18: book against deactivate, hours change and block
+  - metrics on a known dataset: a room created mid range, a deactivated room, two zones, a blocked day leaving the denominator, a released block, an idle client, an empty range as `null`
+  Spec 0004 · code in `packages/domain/`, `packages/application/`, `packages/db/`, `apps/web/`
 
 ### 9. Operator dashboard · needs a decision
 
@@ -138,7 +161,7 @@ A filterable, paginated list of every booking with its company, for the operator
 - [ ] Build it: `/develop operator global bookings view`
 - [ ] Verify it: `/check verify operator global bookings view`
 - [ ] Test it: `/test operator global bookings view`
-  Spec 0001 · code in `apps/web/`
+  The API side is in feature 15 (spec 0004, `GET /operator/bookings`); this feature is the screen. Spec 0001 · code in `apps/web/`
 
 ## Delivery
 
@@ -160,9 +183,9 @@ The README the brief requires: run and test instructions, the architecture summa
 Out of scope for this build pass, kept so the plan stays honest. All are also listed in spec 0001 for the README "next version" section.
 - **Idempotency keys** (Postgres backed): for retrying external clients · needs a decision
 - **Separate Hono service, admin app, PgBouncer, Valkey**: only when a second client or real scale appears · needs a decision
-- **Cancellation window and per room opening hours**: extra business rules · needs a decision
-- **Holidays and several facilities**: calendar and facility model · needs a decision
-- **Rule based insights list** (idle clients, off peak hints): extra on top of the heatmap · needs a decision
+- **Cancellation window and per room opening hours**: extra business rules (per facility hours are now in spec 0004) · needs a decision
+- **Holiday calendar**: facilities, closures and blocks are in feature 15 (spec 0004); an automatic or recurring calendar stays here · needs a decision
+- ~~**Rule based insights list**~~ moved into feature 15 (the `insights` endpoint of spec 0004)
 - **Subject per booking, "solo las mías" filter, busy times in the booking form** (from spec 0003): next version ideas for the README; the grid of feature 6 covers busy times · needs a decision
 - **Operator detail view per company** (one company's bookings, hours and cancellations over time): in v1 the feature 9 dashboard table covers "analyze each client company"; list it in the README limitations · needs a decision
 

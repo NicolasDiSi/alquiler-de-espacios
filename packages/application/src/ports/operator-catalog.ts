@@ -1,4 +1,4 @@
-import type { FacilityRules } from "@espacios/domain";
+import type { AffectedBooking, FacilityRules } from "@espacios/domain";
 
 /**
  * The operator's catalog (spec 0004): facilities, rooms, clients with their members, and blocks. Plain records, no
@@ -72,7 +72,34 @@ export type NewBlock = Pick<
 >;
 export type BlockFilter = { readonly facilityId?: string; readonly roomId?: string; readonly includeReleased: boolean };
 
+/** Where to look for future confirmed bookings: one room, or every room of a facility. */
+export type BookingScope = { readonly roomId: string } | { readonly facilityId: string };
+
+/**
+ * The same catalog inside one database transaction, with what a change that races with bookings needs (spec 0004,
+ * P-16 to P-18). The lock calls take `FOR UPDATE` on the row, so an insert in flight (its guard trigger holds the row
+ * `FOR SHARE`) finishes first and the reads that follow see it; a later insert waits and is refused by the trigger.
+ * Take the lock before reading the bookings, and read before writing.
+ */
+export interface OperatorCatalogTransaction extends Omit<OperatorCatalog, "transaction"> {
+  lockFacility(id: string): Promise<FacilityRecord | null>;
+  lockRoom(id: string): Promise<RoomRecord | null>;
+  lockClient(id: string): Promise<ClientRecord | null>;
+  /** Confirmed bookings that start after `after`, soonest first, with room and company names. */
+  futureBookings(scope: BookingScope, after: Date): Promise<readonly AffectedBooking[]>;
+  /** Confirmed bookings of the scope that overlap `[startsAt, endsAt)`, soonest first. */
+  overlappingBookings(scope: BookingScope, startsAt: Date, endsAt: Date): Promise<readonly AffectedBooking[]>;
+  countActiveRooms(facilityId: string): Promise<number>;
+  /** Sets `deactivatedAt` (or clears it with `null`, only meant for clients). `null` result: no such row. */
+  setFacilityDeactivation(id: string, at: Date | null): Promise<FacilityRecord | null>;
+  setRoomDeactivation(id: string, at: Date): Promise<RoomRecord | null>;
+  setClientDeactivation(id: string, at: Date | null): Promise<ClientRecord | null>;
+}
+
 export interface OperatorCatalog {
+  /** Runs `work` in one transaction. A thrown error rolls it back; a returned value commits it. */
+  transaction<T>(work: (tx: OperatorCatalogTransaction) => Promise<T>): Promise<T>;
+
   listFacilities(includeInactive: boolean): Promise<readonly FacilityRecord[]>;
   findFacility(id: string): Promise<FacilityRecord | null>;
   insertFacility(facility: NewFacility): Promise<FacilityRecord>;

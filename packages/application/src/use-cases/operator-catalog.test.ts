@@ -1,21 +1,27 @@
-import type { Actor, UserId } from "@espacios/domain";
+import type { Actor, AffectedBooking, UserId } from "@espacios/domain";
 import { describe, expect, it } from "vitest";
 
 import type {
   BlockRecord,
+  BookingScope,
   ClientRecord,
   FacilityRecord,
   MemberRecord,
   OperatorCatalog,
+  OperatorCatalogTransaction,
   RoomRecord,
 } from "../ports/operator-catalog";
 import { UniqueViolationError } from "../ports/ports";
 import {
+  AFFECTED_BOOKINGS_LIMIT,
   addMember,
   createBlock,
   createClient,
   createFacility,
   createRoom,
+  deactivateClient,
+  deactivateFacility,
+  deactivateRoom,
   getBlock,
   getClient,
   getFacility,
@@ -25,6 +31,7 @@ import {
   listFacilities,
   listMembers,
   listRooms,
+  reactivateClient,
   releaseBlock,
   updateClient,
   updateFacility,
@@ -49,7 +56,11 @@ function setup() {
     if (taken.has(key)) throw new UniqueViolationError();
     taken.add(key);
   };
-  const catalog: OperatorCatalog = {
+  /** Confirmed bookings the tests plant; the real queries are proven against Postgres in `packages/db`. */
+  const bookings: AffectedBooking[] = [];
+  const inScope = (scope: BookingScope) => (b: AffectedBooking) =>
+    "roomId" in scope ? b.roomId === scope.roomId : rooms.get(b.roomId)?.facilityId === scope.facilityId;
+  const base: Omit<OperatorCatalog, "transaction"> = {
     listFacilities: async () => [...facilities.values()],
     findFacility: async (id) => facilities.get(id) ?? null,
     insertFacility: async (f) => {
@@ -108,8 +119,47 @@ function setup() {
       return next;
     },
   };
+  const tx: OperatorCatalogTransaction = {
+    ...base,
+    lockFacility: async (id) => facilities.get(id) ?? null,
+    lockRoom: async (id) => rooms.get(id) ?? null,
+    lockClient: async (id) => clients.get(id) ?? null,
+    futureBookings: async (scope, after) => bookings.filter(inScope(scope)).filter((b) => b.startsAt > after),
+    overlappingBookings: async (scope, startsAt, endsAt) =>
+      bookings.filter(inScope(scope)).filter((b) => b.startsAt < endsAt && b.endsAt > startsAt),
+    countActiveRooms: async (facilityId) =>
+      [...rooms.values()].filter((r) => r.facilityId === facilityId && !r.deactivatedAt).length,
+    setFacilityDeactivation: async (id, at) => {
+      const row = facilities.get(id);
+      if (!row) return null;
+      const next = { ...row, deactivatedAt: at };
+      facilities.set(id, next);
+      return next;
+    },
+    setRoomDeactivation: async (id, at) => {
+      const row = rooms.get(id);
+      if (!row) return null;
+      const next = { ...row, deactivatedAt: at };
+      rooms.set(id, next);
+      return next;
+    },
+    setClientDeactivation: async (id, at) => {
+      const row = clients.get(id);
+      if (!row) return null;
+      const next = { ...row, deactivatedAt: at };
+      clients.set(id, next);
+      return next;
+    },
+  };
+  const catalog: OperatorCatalog = { ...base, transaction: (work) => work(tx) };
   let sequence = 0;
-  return { deps: { catalog, clock: { now: () => NOW }, ids: { next: () => `id-${++sequence}` } }, facilities };
+  return {
+    deps: { catalog, clock: { now: () => NOW }, ids: { next: () => `id-${++sequence}` } },
+    facilities,
+    rooms,
+    clients,
+    bookings,
+  };
 }
 
 const facilityInput = { name: "Sede Norte", address: null, ...hours };
@@ -281,5 +331,151 @@ describe("operator use cases (spec 0004)", () => {
     ]) {
       expect(result).toEqual({ ok: false, reason: "not_found" });
     }
+  });
+});
+
+describe("deactivation, hours change and block refusals (spec 0004, AC-5, AC-6, AC-7, AC-18)", () => {
+  const monday = (hour: number, minute = 0) => new Date(Date.UTC(2030, 0, 14, hour, minute)); // a Monday, UTC
+  const booking = (roomId: string, startsAt: Date, endsAt: Date, id = `b-${startsAt.getTime()}`): AffectedBooking => ({
+    id,
+    roomId,
+    roomName: "Sala 1",
+    companyName: "Acme",
+    startsAt,
+    endsAt,
+  });
+
+  async function site() {
+    const world = setup();
+    const facility = await createFacility(world.deps, operator, facilityInput);
+    const facilityId = facility.ok ? facility.value.id : "";
+    const room = await createRoom(world.deps, operator, { facilityId, name: "Sala 1", capacity: 4 });
+    const roomId = room.ok ? room.value.id : "";
+    return { ...world, facilityId, roomId };
+  }
+
+  it("deactivates a room with no future booking at the clock's now, and says the same the second time", async () => {
+    const { deps, roomId, bookings } = await site();
+    bookings.push(booking(roomId, new Date("2030-01-07T09:00:00Z"), new Date("2030-01-07T10:00:00Z"))); // already started
+    const first = await deactivateRoom(deps, operator, roomId);
+    expect(first).toMatchObject({ ok: true, value: { id: roomId, deactivatedAt: NOW } });
+    await expect(deactivateRoom(deps, operator, roomId)).resolves.toEqual(first);
+    await expect(deactivateRoom(deps, operator, "nope")).resolves.toEqual({ ok: false, reason: "not_found" });
+    await expect(deactivateRoom(deps, member, roomId)).resolves.toEqual({ ok: false, reason: "forbidden" });
+  });
+
+  it("refuses to deactivate a room with future bookings and lists them, and works once they are gone (AC-5)", async () => {
+    const { deps, roomId, rooms, bookings } = await site();
+    const future = booking(roomId, monday(9), monday(10));
+    bookings.push(future);
+    const refused = await deactivateRoom(deps, operator, roomId);
+    expect(refused).toEqual({ ok: false, reason: "has_future_bookings", details: { total: 1, bookings: [future] } });
+    expect(rooms.get(roomId)?.deactivatedAt).toBeNull();
+
+    bookings.length = 0;
+    await expect(deactivateRoom(deps, operator, roomId)).resolves.toMatchObject({ ok: true });
+  });
+
+  it("lists at most 50 bookings and counts all of them", async () => {
+    const { deps, roomId, bookings } = await site();
+    for (let i = 0; i < AFFECTED_BOOKINGS_LIMIT + 5; i++) {
+      bookings.push(
+        booking(
+          roomId,
+          new Date(monday(9).getTime() + i * 86_400_000),
+          new Date(monday(10).getTime() + i * 86_400_000),
+        ),
+      );
+    }
+    const refused = await deactivateRoom(deps, operator, roomId);
+    expect(refused.ok === false && refused.details?.total).toBe(AFFECTED_BOOKINGS_LIMIT + 5);
+    expect(refused.ok === false && refused.details?.bookings).toHaveLength(AFFECTED_BOOKINGS_LIMIT);
+  });
+
+  it("deactivates a facility only when none of its rooms is active (AC-5)", async () => {
+    const { deps, facilityId, roomId } = await site();
+    await expect(deactivateFacility(deps, operator, facilityId)).resolves.toEqual({
+      ok: false,
+      reason: "facility_has_active_rooms",
+    });
+    await deactivateRoom(deps, operator, roomId);
+    const done = await deactivateFacility(deps, operator, facilityId);
+    expect(done).toMatchObject({ ok: true, value: { deactivatedAt: NOW } });
+    await expect(deactivateFacility(deps, operator, facilityId)).resolves.toEqual(done);
+    await expect(deactivateFacility(deps, operator, "nope")).resolves.toEqual({ ok: false, reason: "not_found" });
+  });
+
+  it("deactivates and reactivates a client without touching what it owns (AC-7)", async () => {
+    const { deps, clients } = setup();
+    const created = await createClient(deps, operator, {
+      name: "Acme",
+      slug: "acme",
+      kind: "company",
+      logoUrl: null,
+      memberName: "Ana",
+    });
+    const id = created.ok ? created.value.client.id : "";
+    await expect(reactivateClient(deps, operator, id)).resolves.toMatchObject({
+      ok: true,
+      value: { deactivatedAt: null },
+    });
+    const off = await deactivateClient(deps, operator, id);
+    expect(off).toMatchObject({ ok: true, value: { deactivatedAt: NOW } });
+    await expect(deactivateClient(deps, operator, id)).resolves.toEqual(off);
+    expect(clients.get(id)?.deactivatedAt).toEqual(NOW);
+    await expect(reactivateClient(deps, operator, id)).resolves.toMatchObject({
+      ok: true,
+      value: { deactivatedAt: null },
+    });
+    await expect(deactivateClient(deps, operator, "nope")).resolves.toEqual({ ok: false, reason: "not_found" });
+    await expect(reactivateClient(deps, operator, "nope")).resolves.toEqual({ ok: false, reason: "not_found" });
+  });
+
+  it("refuses an hours change that strands a future booking, listing only those, and lets the rest through (AC-6)", async () => {
+    const { deps, facilityId, roomId, facilities, bookings } = await site();
+    const late = booking(roomId, monday(18), monday(19), "late");
+    bookings.push(booking(roomId, monday(9), monday(10), "morning"), late);
+
+    const refused = await updateFacility(deps, operator, facilityId, { closesAt: 17 * 60 });
+    expect(refused).toEqual({ ok: false, reason: "has_future_bookings", details: { total: 1, bookings: [late] } });
+    expect(facilities.get(facilityId)?.closesAt).toBe(1200);
+
+    // Weekdays too: Monday is booked, so closing Mondays is refused; opening Fridays as well is fine.
+    await expect(updateFacility(deps, operator, facilityId, { openWeekdays: [2, 3] })).resolves.toMatchObject({
+      ok: false,
+      reason: "has_future_bookings",
+    });
+    await expect(updateFacility(deps, operator, facilityId, { openWeekdays: [1, 2, 3, 5] })).resolves.toMatchObject({
+      ok: true,
+    });
+    // A change that is not about booking rules never looks at bookings.
+    await expect(updateFacility(deps, operator, facilityId, { address: "Calle 1" })).resolves.toMatchObject({
+      ok: true,
+    });
+  });
+
+  it("refuses a block over confirmed bookings and lists them; a room scope ignores other rooms (AC-18)", async () => {
+    const { deps, facilityId, roomId, bookings } = await site();
+    const other = await createRoom(deps, operator, { facilityId, name: "Sala 2", capacity: 2 });
+    const otherId = other.ok ? other.value.id : "";
+    const inRoom = booking(roomId, monday(9), monday(10), "in-room");
+    const inOther = booking(otherId, monday(11), monday(12), "in-other");
+    bookings.push(inRoom, inOther);
+    const range = { startsAt: monday(8), endsAt: monday(13), reason: "obra" };
+
+    await expect(createBlock(deps, operator, { facilityId, roomId, ...range })).resolves.toEqual({
+      ok: false,
+      reason: "block_has_bookings",
+      details: { total: 1, bookings: [inRoom] },
+    });
+    await expect(createBlock(deps, operator, { facilityId, roomId: null, ...range })).resolves.toMatchObject({
+      ok: false,
+      reason: "block_has_bookings",
+      details: { total: 2 },
+    });
+    // Touching ends do not overlap: a block that starts when the booking ends is fine.
+    await expect(
+      createBlock(deps, operator, { facilityId, roomId, startsAt: monday(10), endsAt: monday(12), reason: "obra" }),
+    ).resolves.toMatchObject({ ok: true });
   });
 });

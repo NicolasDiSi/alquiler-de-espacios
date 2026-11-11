@@ -1,10 +1,14 @@
 import {
   type Actor,
+  type AffectedBooking,
   authorizeOperator,
+  changesBookingRules,
   type FacilityRules,
   fail,
+  fitsFacilityRules,
   type OperatorActor,
   ok,
+  type RefusalDetails,
   type Result,
   validateFacilityRules,
 } from "@espacios/domain";
@@ -49,6 +53,13 @@ async function asOperator<T>(actor: Actor, work: (operator: OperatorActor) => Pr
   }
 }
 
+/** How many affected bookings a refusal lists (spec 0004, AC-5). The total always counts them all. */
+export const AFFECTED_BOOKINGS_LIMIT = 50;
+
+function detailsOf(bookings: readonly AffectedBooking[]): RefusalDetails {
+  return { total: bookings.length, bookings: bookings.slice(0, AFFECTED_BOOKINGS_LIMIT) };
+}
+
 const found = <T>(record: T | null): Result<T> => (record ? ok(record) : fail("not_found"));
 
 // Facilities ---------------------------------------------------------------------------------------------------------
@@ -72,13 +83,39 @@ export function getFacility(deps: OperatorDependencies, actor: Actor, id: string
 }
 
 export function updateFacility(deps: OperatorDependencies, actor: Actor, id: string, patch: FacilityPatch) {
-  return asOperator(actor, async (): Promise<Result<FacilityRecord>> => {
-    const current = await deps.catalog.findFacility(id);
-    if (!current) return fail("not_found");
-    const rules = validateFacilityRules({ ...current, ...patch });
-    if (!rules.ok) return rules;
-    return found(await deps.catalog.updateFacility(id, patch));
-  });
+  return asOperator(actor, () =>
+    deps.catalog.transaction(async (tx): Promise<Result<FacilityRecord>> => {
+      const current = await tx.lockFacility(id);
+      if (!current) return fail("not_found");
+      const next = { ...current, ...patch };
+      const rules = validateFacilityRules(next);
+      if (!rules.ok) return rules;
+      // A change of zone, hours or open days must not strand a booking that is already confirmed (AC-6).
+      if (changesBookingRules(current, next)) {
+        const stranded = (await tx.futureBookings({ facilityId: id }, deps.clock.now())).filter(
+          (booking) => !fitsFacilityRules(booking, next),
+        );
+        if (stranded.length > 0) return fail("has_future_bookings", detailsOf(stranded));
+      }
+      return found(await tx.updateFacility(id, patch));
+    }),
+  );
+}
+
+/**
+ * Switches a facility off. It must have no active room (deactivate them first), and it never reopens. Doing it twice
+ * is not an error: it answers the facility as it is.
+ */
+export function deactivateFacility(deps: OperatorDependencies, actor: Actor, id: string) {
+  return asOperator(actor, () =>
+    deps.catalog.transaction(async (tx): Promise<Result<FacilityRecord>> => {
+      const facility = await tx.lockFacility(id);
+      if (!facility) return fail("not_found");
+      if (facility.deactivatedAt) return ok(facility);
+      if ((await tx.countActiveRooms(id)) > 0) return fail("facility_has_active_rooms");
+      return found(await tx.setFacilityDeactivation(id, deps.clock.now()));
+    }),
+  );
 }
 
 // Rooms --------------------------------------------------------------------------------------------------------------
@@ -92,14 +129,17 @@ export type CreateRoomInput = {
 };
 
 export function createRoom(deps: OperatorDependencies, actor: Actor, input: CreateRoomInput) {
-  return asOperator(actor, async (): Promise<Result<RoomRecord>> => {
-    const facility = await deps.catalog.findFacility(input.facilityId);
-    if (!facility) return fail("not_found");
-    if (facility.deactivatedAt) return fail("facility_inactive");
-    if (!Number.isInteger(input.capacity) || input.capacity < 1) return fail("invalid_input");
-    const { activeFrom = deps.clock.now(), ...rest } = input;
-    return ok(await deps.catalog.insertRoom({ id: deps.ids.next(), ...rest, activeFrom }));
-  });
+  return asOperator(actor, () =>
+    deps.catalog.transaction(async (tx): Promise<Result<RoomRecord>> => {
+      // The lock makes a facility deactivation that is racing with this insert go first or wait for it.
+      const facility = await tx.lockFacility(input.facilityId);
+      if (!facility) return fail("not_found");
+      if (facility.deactivatedAt) return fail("facility_inactive");
+      if (!Number.isInteger(input.capacity) || input.capacity < 1) return fail("invalid_input");
+      const { activeFrom = deps.clock.now(), ...rest } = input;
+      return ok(await tx.insertRoom({ id: deps.ids.next(), ...rest, activeFrom }));
+    }),
+  );
 }
 
 export function listRooms(
@@ -121,6 +161,24 @@ export function updateRoom(deps: OperatorDependencies, actor: Actor, id: string,
     }
     return found(await deps.catalog.updateRoom(id, patch));
   });
+}
+
+/**
+ * Switches a room off for good: its window ends now and nobody can book it. Refused while confirmed bookings start
+ * later, and the refusal lists them (AC-5). Doing it twice answers the room as it is.
+ */
+export function deactivateRoom(deps: OperatorDependencies, actor: Actor, id: string) {
+  return asOperator(actor, () =>
+    deps.catalog.transaction(async (tx): Promise<Result<RoomRecord>> => {
+      const room = await tx.lockRoom(id);
+      if (!room) return fail("not_found");
+      if (room.deactivatedAt) return ok(room);
+      const now = deps.clock.now();
+      const future = await tx.futureBookings({ roomId: id }, now);
+      if (future.length > 0) return fail("has_future_bookings", detailsOf(future));
+      return found(await tx.setRoomDeactivation(id, now));
+    }),
+  );
 }
 
 // Clients and their members ------------------------------------------------------------------------------------------
@@ -176,6 +234,30 @@ export function addMember(deps: OperatorDependencies, actor: Actor, clientId: st
   });
 }
 
+/** Its members can no longer book (`company_inactive`) but keep their history and can still cancel (AC-7). */
+export function deactivateClient(deps: OperatorDependencies, actor: Actor, id: string) {
+  return asOperator(actor, () =>
+    deps.catalog.transaction(async (tx): Promise<Result<ClientRecord>> => {
+      const client = await tx.lockClient(id);
+      if (!client) return fail("not_found");
+      if (client.deactivatedAt) return ok(client);
+      return found(await tx.setClientDeactivation(id, deps.clock.now()));
+    }),
+  );
+}
+
+/** Unlike rooms, a client can come back: no metric depends on its window. */
+export function reactivateClient(deps: OperatorDependencies, actor: Actor, id: string) {
+  return asOperator(actor, () =>
+    deps.catalog.transaction(async (tx): Promise<Result<ClientRecord>> => {
+      const client = await tx.lockClient(id);
+      if (!client) return fail("not_found");
+      if (!client.deactivatedAt) return ok(client);
+      return found(await tx.setClientDeactivation(id, null));
+    }),
+  );
+}
+
 // Blocks -------------------------------------------------------------------------------------------------------------
 
 export type CreateBlockInput = {
@@ -187,20 +269,26 @@ export type CreateBlockInput = {
 };
 
 export function createBlock(deps: OperatorDependencies, actor: Actor, input: CreateBlockInput) {
-  return asOperator(actor, async (operator): Promise<Result<BlockRecord>> => {
+  return asOperator(actor, async (operator) => {
     if (input.endsAt.getTime() <= input.startsAt.getTime()) return fail("invalid_range");
     if (input.endsAt.getTime() <= deps.clock.now().getTime()) return fail("past_date");
 
-    const facility = await deps.catalog.findFacility(input.facilityId);
-    if (!facility) return fail("not_found");
-    if (facility.deactivatedAt) return fail("facility_inactive");
-    if (input.roomId !== null) {
-      const room = await deps.catalog.findRoom(input.roomId);
-      if (!room) return fail("not_found");
-      if (room.facilityId !== facility.id) return fail("invalid_input");
-      if (room.deactivatedAt) return fail("room_inactive");
-    }
-    return ok(await deps.catalog.insertBlock({ id: deps.ids.next(), ...input, createdBy: operator.userId }));
+    return deps.catalog.transaction(async (tx): Promise<Result<BlockRecord>> => {
+      // The facility lock waits for bookings in flight, so the list below is complete (AC-18, P-18).
+      const facility = await tx.lockFacility(input.facilityId);
+      if (!facility) return fail("not_found");
+      if (facility.deactivatedAt) return fail("facility_inactive");
+      if (input.roomId !== null) {
+        const room = await tx.findRoom(input.roomId);
+        if (!room) return fail("not_found");
+        if (room.facilityId !== facility.id) return fail("invalid_input");
+        if (room.deactivatedAt) return fail("room_inactive");
+      }
+      const scope = input.roomId === null ? { facilityId: facility.id } : { roomId: input.roomId };
+      const covered = await tx.overlappingBookings(scope, input.startsAt, input.endsAt);
+      if (covered.length > 0) return fail("block_has_bookings", detailsOf(covered));
+      return ok(await tx.insertBlock({ id: deps.ids.next(), ...input, createdBy: operator.userId }));
+    });
   });
 }
 

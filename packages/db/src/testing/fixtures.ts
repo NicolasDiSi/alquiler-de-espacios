@@ -18,18 +18,11 @@ export async function createTenant(owner: DatabaseClient, name: string): Promise
 export const TEST_FACILITY_ID = "facility-test-always-open";
 
 async function ensureTestFacility(owner: DatabaseClient): Promise<string> {
-  await owner.facility.upsert({
-    where: { id: TEST_FACILITY_ID },
-    update: {},
-    create: {
-      id: TEST_FACILITY_ID,
-      name: "Test facility (always open)",
-      timeZone: "UTC",
-      opensAt: 0,
-      closesAt: 1440,
-      openWeekdays: [0, 1, 2, 3, 4, 5, 6],
-    },
-  });
+  // Test files run in parallel against one database, so this must be atomic: a find then create would race.
+  await owner.$executeRaw`
+    INSERT INTO facility (id, name, time_zone, opens_at, closes_at, open_weekdays)
+    VALUES (${TEST_FACILITY_ID}, 'Test facility (always open)', 'UTC', 0, 1440, ARRAY[0, 1, 2, 3, 4, 5, 6]::smallint[])
+    ON CONFLICT DO NOTHING`;
   return TEST_FACILITY_ID;
 }
 

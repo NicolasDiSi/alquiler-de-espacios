@@ -1,0 +1,34 @@
+name: Release
+
+# Pushing a version tag that sits on main publishes a GitHub Release. There is no deploy: the brief asks for none.
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: The tag must be on main and match the package.json version
+        run: |
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "::error::$GITHUB_REF_NAME is not on main"; exit 1; }
+          version="$(node -p "require('./package.json').version")"
+          [ "v$version" = "$GITHUB_REF_NAME" ] || { echo "::error::$GITHUB_REF_NAME does not match package.json version $version"; exit 1; }
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @espacios/web exec playwright install --with-deps chromium
+      - run: pnpm check:ai --lines=60
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes --verify-tag

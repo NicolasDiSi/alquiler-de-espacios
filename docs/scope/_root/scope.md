@@ -9,20 +9,20 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 ## At a glance
 
-| #   | Feature                                               | Phase      | Status   |
-| --- | ----------------------------------------------------- | ---------- | -------- |
-| 1   | Repo foundation: tooling, layer packages, web shell   | Foundation | existing |
-| 2   | Database foundation: roles, FORCE RLS, schema, seeds  | Foundation | planned  |
-| 3   | Company identity: seeded users, signed cookie, picker | Foundation | planned  |
-| 4   | Result and error contract                             | Foundation | planned  |
-| 5   | Book a room and see it in my bookings                 | Slice 1    | planned  |
-| 6   | Room availability grid                                | Slice 2    | planned  |
-| 7   | Cancel a booking and free the slot                    | Slice 3    | planned  |
-| 8   | Operator metrics: queries and API                     | Slice 4    | planned  |
-| 9   | Operator dashboard                                    | Slice 4    | planned  |
-| 10  | Operator global bookings view                         | Slice 4    | planned  |
-| 11  | End to end suite with accessibility checks            | Delivery   | planned  |
-| 12  | README, assumptions and AI usage                      | Delivery   | planned  |
+| #   | Feature                                               | Phase      | Status      |
+| --- | ----------------------------------------------------- | ---------- | ----------- |
+| 1   | Repo foundation: tooling, layer packages, web shell   | Foundation | existing    |
+| 2   | Database foundation: roles, FORCE RLS, schema, seeds  | Foundation | in-progress |
+| 3   | Company identity: seeded users, signed cookie, picker | Foundation | planned     |
+| 4   | Result and error contract                             | Foundation | planned     |
+| 5   | Book a room and see it in my bookings                 | Slice 1    | planned     |
+| 6   | Room availability grid                                | Slice 2    | planned     |
+| 7   | Cancel a booking and free the slot                    | Slice 3    | planned     |
+| 8   | Operator metrics: queries and API                     | Slice 4    | planned     |
+| 9   | Operator dashboard                                    | Slice 4    | planned     |
+| 10  | Operator global bookings view                         | Slice 4    | planned     |
+| 11  | End to end suite with accessibility checks            | Delivery   | planned     |
+| 12  | README, assumptions and AI usage                      | Delivery   | planned     |
 
 ## Foundations
 
@@ -30,13 +30,13 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 Monorepo, quality gates, hooks, `domain` / `application` / `db` packages, a database adapter skeleton and the web app shell. Predates this scope. code in `./`
 
-### 2. Database foundation: roles, FORCE RLS, schema, seeds
+### 2. Database foundation: roles, FORCE RLS, schema, seeds · in-progress
 
 The ground every slice stands on: cluster roles in the infra init SQL and test global setup, a non superuser owner, the `bookings`, `room` and user tables, the exclusion constraint, row level security with `FORCE`, the availability function, grants, and `pnpm db:seed`. Also amends ADR 0003 and `packages/db/AGENTS.md`.
 **Done when:** a migration run as the owner creates the schema, an integration test as `espacios_app` proves isolation and the overlap constraint, the seed runs twice without duplicates under `FORCE`, and the README notes `docker compose down -v`.
 - [x] Design it (spec): decided in spec 0001
-- [ ] Build it: `/develop database foundation`
-- [ ] Verify it: `/check verify database foundation`
+- [x] Build it: `/develop database foundation`
+- [x] Verify it: `/check verify database foundation`
 - [ ] Test it: `/test database foundation`
   Spec 0001 · code in `packages/db/`, `infra/`
 

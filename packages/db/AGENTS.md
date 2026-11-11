@@ -8,12 +8,16 @@ The PostgreSQL adapter: the Prisma 7 schema and migrations, row level security, 
 
 | File                          | Owns                                                                                                             |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `prisma/schema.prisma`        | Tables (snake_case through `@map`)                                                                               |
-| `prisma/migrations/`          | Generated migrations plus hand written SQL: grants, RLS policies, exclusion and CHECK constraints                |
+| `prisma/schema.prisma`        | Tables (snake_case through `@map`): `company`, `app_user`, `room`, `booking`                                     |
+| `prisma/migrations/`          | Generated migrations plus hand written SQL: grants, RLS with `FORCE`, exclusion and CHECK constraints, functions |
+| `prisma/seed.sql`             | Idempotent demo data for `pnpm db:seed` (fixed ids, `ON CONFLICT DO NOTHING`, tenant set per company)            |
 | `prisma.config.ts`            | CLI config: schema, migrations, owner connection                                                                 |
 | `src/unit-of-work.ts`         | `createPrismaUnitOfWork`: one transaction per run, `set_config('app.tenant_id', ..., true)`, scoped repositories |
-| `src/testing/global-setup.ts` | One throwaway Postgres per test run, migrated, with the runtime login                                            |
-| `src/testing/fixtures.ts`     | Test companies written through the owner connection                                                              |
+| `../../infra/local/postgres/` | Cluster roles, created once by the superuser (compose init and the test global setup), never in a migration      |
+| `src/testing/global-setup.ts` | One throwaway Postgres per test run: runs the roles SQL, migrates as the owner, hands out the login URLs         |
+| `src/testing/fixtures.ts`     | Test companies, rooms, members and bookings, written as the owner with the tenant set (`asTenant`)               |
+| `src/testing/prisma-cli.ts`   | Runs the real Prisma CLI in tests (seed, deploy, drift check)                                                    |
+| `src/testing/sql-state.ts`    | Test only SQLSTATE unwrapping until the error contract feature adds the real `sqlState(err)`                     |
 
 ## Commands
 
@@ -21,16 +25,23 @@ The PostgreSQL adapter: the Prisma 7 schema and migrations, row level security, 
 pnpm services:up                               # local Postgres from compose.yaml
 pnpm --filter @espacios/db generate            # Prisma client into src/generated (turbo runs it before typecheck and test)
 pnpm db:migrate --name <change>                # new migration against the local database
-pnpm db:deploy                                 # apply migrations
-pnpm db:studio                                 # data panel on http://localhost:5555 (owner connection, sees every company)
+pnpm db:deploy                                 # apply migrations (as espacios_owner)
+pnpm db:seed                                   # demo data, safe to run twice
+pnpm db:studio                                 # data panel on http://localhost:5555 (owner: FORCE hides bookings)
+DATABASE_OWNER_URL=$DATABASE_OPERATOR_URL pnpm db:studio   # browse every company, read only
+docker compose down -v                         # once, after a change to infra/local/postgres (init SQL runs only on a new volume)
 pnpm --filter @espacios/db test                # needs Docker running (testcontainers)
 ```
 
 ## Conventions
 
-- **Two connections.** `DATABASE_URL` is the `espacios_app` login in `espacios_runtime`: the apps use it, and RLS applies. `DATABASE_OWNER_URL` is the schema owner: migrations, seed, Studio and operator-wide reads.
+- **Three logins (spec 0001, ADR 0003).** `DATABASE_URL` is `espacios_app` in `espacios_runtime`: the company edge, RLS applies, owns nothing. `DATABASE_OWNER_URL` is `espacios_owner`, a non superuser that owns the schema: migrations, seed, Studio, never the app. `DATABASE_OPERATOR_URL` is `espacios_operator`, `BYPASSRLS` with `SELECT` only: operator reads, wired only in `apps/web/src/composition`. The docker superuser `espacios` only creates roles.
+- **Roles live outside migrations.** `CREATE ROLE` goes only in `infra/local/postgres/01-roles.sql`, which compose and `src/testing/global-setup.ts` both run, so tests use the real roles. Migrations only `GRANT`.
+- **`FORCE ROW LEVEL SECURITY` is on `booking`,** so the owner is filtered too. Seeds and fixtures set `app.tenant_id` per company before writing bookings.
 - **Two barriers.** Every repository filters by tenant, and RLS filters again. Keep both.
-- **No overlapping bookings is a database constraint** (for example `EXCLUDE USING gist (room_id WITH =, period WITH &&)` on active bookings), so concurrent requests cannot both win. Map its violation to a `conflict` result.
+- **No overlapping bookings is a database constraint:** `EXCLUDE USING gist (room_id WITH =, tstzrange(starts_at, ends_at, '[)') WITH &&) WHERE (status = 'confirmed')`, so concurrent requests cannot both win. Map its violation (`23P01`) to a `conflict` result.
+- **Other companies' bookings are visible only as busy intervals,** through `room_busy_intervals(room_id, from, to)`: `SECURITY DEFINER`, owned by `espacios_availability`, returning start and end only.
+- **Raw SQL needs a drift check.** Constraints, policies, `FORCE` and functions are appended by hand to a `prisma migrate dev --create-only` migration; `schema-drift.test.ts` keeps the schema and migrations equal.
 - **Every `DateTime` is `@db.Timestamptz(3)`.**
 - **New tenant tables follow the `multi-tenant-safety` skill:** grants, an RLS policy, and tests.
 

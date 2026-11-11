@@ -133,9 +133,10 @@ Backend only, from [spec 0004](../../specs/_root/0004-operator-administration-an
 - [ ] Build it: `/develop operator administration`
   - [x] Migration: `facility`, `block`, room and company columns (`kind`, `logo_url`, `deactivated_at`, `active_from`), backfill, grants, booking guard trigger, seeds · AC-2, AC-3, AC-8, AC-9, AC-16, AC-19
   - [x] Domain and member path: facility rules replace the constants, new reasons, inactive rooms and companies refused · AC-7, AC-8, AC-9, AC-15, AC-16
-  - [ ] Operator edge: facilities, rooms, clients with members, deactivation, hours change with the affected bookings list · AC-1 to AC-7, AC-21
-    - Thin CRUD done (create, list, get, edit for facilities, rooms, clients, members, blocks, with release). Still to deepen: deactivation, the hours change check, `has_future_bookings` and `block_has_bookings` with their lists and locks, company reactivation.
+  - [x] Operator edge: facilities, rooms, clients with members, deactivation, hours change with the affected bookings list · AC-1 to AC-7, AC-21
+    - Done: thin CRUD, deactivation of rooms, facilities and clients (with company reactivation), the hours change check (`has_future_bookings` with its list) and the block creation refusal (`block_has_bookings` with its list), all in one operator transaction with the row locks. Proven against Postgres, including the race with a booking in flight (P-16).
   - [ ] Blocks and the availability `kind` · AC-17, AC-18, AC-19, AC-20
+    - Block create and release with the bookings list are done; still to build: the availability function with `kind`, the `room_blocked` refusal in `bookRoom`, and the P-18 proof through the use case.
   - [ ] Bookings list, metrics and insights · AC-10 to AC-14
 - [ ] Verify it: `/check verify operator administration`
 - [ ] Test it: `/test operator administration`. Must cover, as agreed on 2026-11-11:

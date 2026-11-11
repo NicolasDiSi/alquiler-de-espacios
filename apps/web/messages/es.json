@@ -7,6 +7,16 @@
     "close": "Cerrar",
     "notifications": "Notificaciones"
   },
+  "errors": {
+    "invalid_input": "La solicitud no tiene el formato esperado. Revisá los datos y probá de nuevo.",
+    "unauthenticated": "Tu sesión no es válida o venció. Elegí de nuevo con qué usuario entrar.",
+    "forbidden": "Tu usuario no tiene acceso a esta sección."
+  },
+  "session": {
+    "label": "Sesión actual",
+    "operator": "Operador",
+    "switchUser": "Cambiar de usuario"
+  },
   "shell": {
     "skipToContent": "Saltar al contenido",
     "sidebar": {
@@ -70,6 +80,22 @@
       }
     }
   },
+  "signIn": {
+    "metaTitle": "Ingresar",
+    "title": "¿Con qué usuario querés entrar?",
+    "description": "Esta demo no usa contraseñas: elegí un usuario de ejemplo. Las empresas reservan salas y el operador ve cómo se usan.",
+    "companies": "Empresas clientes",
+    "operator": {
+      "title": "Operador",
+      "description": "Ve la ocupación de las salas y el uso de todas las empresas."
+    },
+    "enterAs": "Entrar como {name}",
+    "unknownUser": "Ese usuario ya no existe. Elegí otro de la lista.",
+    "empty": {
+      "title": "No hay usuarios cargados",
+      "description": "Cargá los datos de ejemplo con pnpm db:seed y volvé a abrir esta página."
+    }
+  },
   "home": {
     "title": "Mis reservas",
     "description": "Las reservas de salas de tu empresa.",
@@ -78,10 +104,24 @@
       "description": "Cuando reserves una sala, la reserva va a aparecer acá con su fecha y horario."
     }
   },
+  "operator": {
+    "title": "Panel del operador",
+    "description": "La ocupación de las salas y el uso de cada empresa.",
+    "empty": {
+      "title": "Las métricas todavía no están disponibles",
+      "description": "Acá vas a ver la ocupación por sala, el uso por empresa y los horarios con poca demanda."
+    }
+  },
   "notFound": {
     "title": "No encontramos esta página",
     "description": "Puede que la dirección esté mal escrita o que la página ya no exista.",
     "back": "Volver al inicio"
+  },
+  "forbidden": {
+    "title": "No tenés acceso a esta sección",
+    "description": "Esta sección es para otro tipo de usuario. Volvé a tu inicio o entrá con otro usuario.",
+    "home": "Ir a mi inicio",
+    "switchUser": "Cambiar de usuario"
   },
   "designSystem": {
     "title": "Sistema de diseño",

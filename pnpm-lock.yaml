@@ -232,6 +232,15 @@ importers:
 
   apps/web:
     dependencies:
+      '@espacios/application':
+        specifier: workspace:*
+        version: link:../../packages/application
+      '@espacios/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@espacios/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       class-variance-authority:
         specifier: 0.7.1
         version: 0.7.1
@@ -278,6 +287,9 @@ importers:
       '@tailwindcss/postcss':
         specifier: 4.3.4
         version: 4.3.4
+      '@testcontainers/postgresql':
+        specifier: 'catalog:'
+        version: 12.2.1(supports-color@7.2.0)
       '@types/culori':
         specifier: 4.0.1
         version: 4.0.1

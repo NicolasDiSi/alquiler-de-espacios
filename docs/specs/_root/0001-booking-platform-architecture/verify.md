@@ -30,3 +30,40 @@ _Steps derived from spec 0001 ("Required proofs" and the scope's "Done when" for
 
 - Migration as the owner: deploy step · Isolation as `espacios_app`: P-3 steps · Overlap: P-1, P-2 steps · Seed twice under `FORCE`: P-13 step · README note: last command step
 - Not covered here (later features): P-6, P-7, P-9 (error contract, domain rules), P-4 endpoint and `mine` flag (feature 6), P-8 (feature 8), P-10 (feature 11), P-11 and P-12 (features 5 and 7), P-14 (feature 3)
+
+## Company identity (feature 3)
+
+_Also covers spec 0002 (the picker screen, assumed). AC numbers are spec 0002's; P-14 is spec 0001's cookie proof. Setup: `.env.local` at the repo root with `SESSION_SECRET` (`openssl rand -hex 32`), `pnpm services:up && pnpm db:deploy && pnpm db:seed`, then `pnpm dev`._
+
+### UI / manual
+
+- [x] Signed out, open `http://localhost:3000/` → redirected to `/ingresar`, which lists Acme SA, Globex SRL and Initech SA with their users, and the operator in its own card → AC-2, AC-1
+- [x] Click "Entrar como Ana (Acme)" → lands on `/` ("Mis reservas"), header shows "Ana (Acme)" and "Acme SA"; devtools shows `espacios_session` as httpOnly, SameSite Lax, not Secure over http, value `user-acme-ana.<expiresAt>.<signature>` → AC-1, P-14
+- [x] As Ana, open `/operador` → 403 page; "Ir a mi inicio" goes back to `/` → AC-3
+- [x] "Cambiar de usuario" → back on `/ingresar`, cookie gone; opening `/` redirects again → AC-1
+- [x] Click "Entrar como Operador" → lands on `/operador`; opening `/` gives the 403 page and "Ir a mi inicio" goes to `/operador` → AC-3
+- [x] As Ana, edit the cookie value in devtools (change `acme-ana` to `globex-carla`) and reload → redirected to `/ingresar`, never signed in as Carla → AC-2, AC-4
+- [x] Sign in as Carla (Globex) → header shows Globex SRL: the company follows the picked user's row, nothing else → AC-4
+
+### Commands
+
+- [x] `curl -i http://localhost:3000/api/v1/rooms` → `401` with `{"code":"unauthenticated","message":"…"}` → AC-2, P-14
+- [x] `curl -i -b "espacios_session=user-acme-ana.9999999999.forged" http://localhost:3000/api/v1/rooms` → `401` (bad signature) → AC-2, P-14
+- [x] Copy a real cookie from the browser and `curl -b "espacios_session=<value>" …/api/v1/rooms` → `200` with the three rooms (id, name, capacity only) → AC-1
+- [ ] `SESSION_SECRET=short pnpm dev`, open `/` → fails with "SESSION_SECRET must be at least 32 bytes"; the `.env.example` placeholder is refused the same way → P-14 _(verify 2026-11-11: the key is refused with that message, but only when a cookie is first read or set (500); the server boots and `/` without a cookie still redirects to the picker. Left unticked: the expected result above does not match.)_
+- [x] `pnpm --filter @espacios/web test` → token (expired, tampered, swapped user, pushed expiry, other key), Origin (absent allowed, other port refused) and edge access (401, 403) unit tests pass → AC-2, AC-3, P-14
+- [x] `pnpm --filter @espacios/db test` → `user-directory.test.ts` and `room-catalog.test.ts` pass as `espacios_app` with no tenant set → AC-4
+- [x] `pnpm check:ai --gate=e2e` → `identity.spec.ts` (picker, 4 bad cookie cases, both 403s, switch user) and the axe checks on `/ingresar`, `/operador` and the 403 page pass → AC-1 to AC-4
+
+### Value sourcing
+
+- [x] Current company id: sign in as Ana then as Carla and compare the header company; tamper the user inside the cookie and confirm it is refused, not switched → the company comes from `app_user.tenant_id` of the cookie's user (spec 0001 Value sourcing, "Any company action")
+- [x] Session cookie value: an expired value (expiry in the past, correctly signed) gets 401 even though the browser still sends it → `userId.expiresAt.signature` (spec 0001 Value sourcing, "Session")
+
+### Acceptance criteria coverage
+
+- AC-1 picker sets a signed cookie and lands on the role's home: manual 1, 2, 4, 5 · curl 3 · e2e
+- AC-2 tampered, expired or unknown cookie is signed out: manual 1, 6 · curl 1, 2 · unit token tests · e2e bad cookie cases
+- AC-3 member blocked from operator routes and the reverse (403): manual 3, 5 · unit access tests · e2e
+- AC-4 company comes from the cookie's user: manual 6, 7 · db directory tests · value sourcing step 1
+- P-14 (spec 0001): bad signature, expired, unknown user 401; mismatched Origin refused and absent Origin allowed (unit, `origin.test.ts` and `access.test.ts`; no POST Route Handler exists yet); `Secure` only over https (manual 2 shows it off over http; the https case is not exercised yet)

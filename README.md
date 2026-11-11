@@ -13,10 +13,19 @@ Requires Docker, Node 24 and pnpm.
 ```bash
 pnpm install
 cp .env.example .env.local
+# In .env.local, replace SESSION_SECRET with your own key: openssl rand -hex 32
 pnpm services:up   # PostgreSQL 17 on localhost:5432; creates the database roles on first start
 pnpm db:deploy     # apply migrations as the schema owner
 pnpm db:seed       # 3 rooms, 3 companies, their users, one operator and about 40 bookings (safe to run twice)
 ```
+
+## Run the app
+
+```bash
+pnpm dev           # http://localhost:3000
+```
+
+Open the app and pick a seeded user on `/ingresar` ("sign in as"). There are no passwords: this stands in for authentication, it is not authentication. Members of a company land on their bookings, the operator on `/operador`. The app refuses to sign anyone in while `SESSION_SECRET` is missing, shorter than 32 bytes or still the `.env.example` placeholder.
 
 > **After pulling a change to the database roles** (`infra/local/postgres/`), recreate the local database once with `docker compose down -v`, then run the steps above again. Postgres runs those init scripts only when its volume is new. This deletes your local data.
 

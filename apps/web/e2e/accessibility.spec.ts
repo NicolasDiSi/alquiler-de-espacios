@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 
 import { DENSITIES, MODES, setPreferences, waitForHydration } from "./fixtures";
+import { sessionCookieState, USERS } from "./session";
 
 const WCAG_22_AA = ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"];
 
@@ -74,4 +75,39 @@ for (const mode of MODES) {
       });
     });
   }
+}
+
+for (const mode of MODES) {
+  test.describe(`axe on the identity screens, ${mode}`, () => {
+    test.beforeEach(async ({ context, page }) => {
+      await setPreferences(context, { mode });
+      await page.emulateMedia({ reducedMotion: "reduce" });
+    });
+
+    test.describe("signed out", () => {
+      test.use({ storageState: { cookies: [], origins: [] } });
+
+      test("the picker at /ingresar has no violations", async ({ page }) => {
+        await page.goto("/ingresar");
+        await waitForHydration(page);
+        await expectNoViolations(page);
+      });
+    });
+
+    test("the 403 page has no violations", async ({ page }) => {
+      await page.goto("/operador");
+      await waitForHydration(page);
+      await expectNoViolations(page);
+    });
+
+    test.describe("as the operator", () => {
+      test.use({ storageState: { cookies: [sessionCookieState(USERS.operador.id)], origins: [] } });
+
+      test("the operator home has no violations", async ({ page }) => {
+        await page.goto("/operador");
+        await waitForHydration(page);
+        await expectNoViolations(page);
+      });
+    });
+  });
 }

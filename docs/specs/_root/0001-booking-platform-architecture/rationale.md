@@ -75,17 +75,17 @@ Option 1 follows the forces in Context. The brief's three hard rules are all dat
 
 ## Alternatives weighed on sub decisions
 
-| Decision | Chosen | Runner up | Why not the runner up |
-|---|---|---|---|
-| Company identity | Seeded users and a signed cookie picker | Company switcher with no users | Loses "who booked", which the operator and audit need later. |
-| Operator reads | Dedicated read only `BYPASSRLS` login | Owner role behind a port (ADR 0003 today) | The owner can also write and alter the schema. |
-| Owner login | Non superuser `espacios_owner` with `FORCE` | Keep the docker superuser and drop `FORCE` | Simpler local setup, but then RLS protects only the app login and the README must say the owner bypasses it. |
-| Double submit by one company | `ON CONFLICT DO NOTHING` then an RLS scoped lookup returns 200 | Lookup first, then insert | Two identical simultaneous requests both miss the lookup, and the loser gets `conflict`. |
-| Who cancels | Any member of the company | Only the booker | Stuck booking when the booker is away, and a second ownership rule. |
-| Roles creation | Infra init SQL and test global setup | Inside a migration | `BYPASSRLS` needs a superuser and Prisma's shadow database replays migrations in the same cluster. |
-| Users and companies | No RLS, names listed as non private | RLS plus a definer sign in lookup | More machinery for demo seed data. |
-| Open minutes in metrics | `domain` TypeScript | SQL | Keeps the opening hours constant in one place. |
-| Availability | `SECURITY DEFINER` function with column grant | A trigger fed `room_busy` table | Duplicates data and can drift from the real bookings. |
-| Overlap | Exclusion constraint | Unique index on slots, or `SELECT ... FOR UPDATE` | The unique index misses partial overlaps. Row locks cannot lock a row that does not exist yet. |
-| Metrics scope | Occupancy per room, usage per company, weekday by hour heatmap | Add a rule based insights list | Cut first if time is short; the three kept already answer the brief's four questions. |
-| Error body | `{ code, message }` | RFC 9457 problem details | Same information; can be adopted later with no breaking change to the reason codes. |
+| Decision                     | Chosen                                                         | Runner up                                         | Why not the runner up                                                                                        |
+| ---------------------------- | -------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Company identity             | Seeded users and a signed cookie picker                        | Company switcher with no users                    | Loses "who booked", which the operator and audit need later.                                                 |
+| Operator reads               | Dedicated read only `BYPASSRLS` login                          | Owner role behind a port (ADR 0003 today)         | The owner can also write and alter the schema.                                                               |
+| Owner login                  | Non superuser `espacios_owner` with `FORCE`                    | Keep the docker superuser and drop `FORCE`        | Simpler local setup, but then RLS protects only the app login and the README must say the owner bypasses it. |
+| Double submit by one company | `ON CONFLICT DO NOTHING` then an RLS scoped lookup returns 200 | Lookup first, then insert                         | Two identical simultaneous requests both miss the lookup, and the loser gets `conflict`.                     |
+| Who cancels                  | Any member of the company                                      | Only the booker                                   | Stuck booking when the booker is away, and a second ownership rule.                                          |
+| Roles creation               | Infra init SQL and test global setup                           | Inside a migration                                | `BYPASSRLS` needs a superuser and Prisma's shadow database replays migrations in the same cluster.           |
+| Users and companies          | No RLS, names listed as non private                            | RLS plus a definer sign in lookup                 | More machinery for demo seed data.                                                                           |
+| Open minutes in metrics      | `domain` TypeScript                                            | SQL                                               | Keeps the opening hours constant in one place.                                                               |
+| Availability                 | `SECURITY DEFINER` function with column grant                  | A trigger fed `room_busy` table                   | Duplicates data and can drift from the real bookings.                                                        |
+| Overlap                      | Exclusion constraint                                           | Unique index on slots, or `SELECT ... FOR UPDATE` | The unique index misses partial overlaps. Row locks cannot lock a row that does not exist yet.               |
+| Metrics scope                | Occupancy per room, usage per company, weekday by hour heatmap | Add a rule based insights list                    | Cut first if time is short; the three kept already answer the brief's four questions.                        |
+| Error body                   | `{ code, message }`                                            | RFC 9457 problem details                          | Same information; can be adopted later with no breaking change to the reason codes.                          |

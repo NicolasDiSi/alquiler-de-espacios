@@ -25,17 +25,17 @@ Decisions taken, each detailed below:
 
 ## Proposed stack
 
-| Layer | Choice | Reason |
-|---|---|---|
-| Application shape | Modular monolith, ports and adapters (ADR 0002) | Already enforced by dependency cruiser; one process runs from the README. |
-| Web and API | Next.js 16: Server Actions for the UI, Route Handlers at `/api/v1` for the documented API | The brief grades API design; both share the same use cases and result type. |
-| Language | TypeScript 6 on Node 24 | Already in place (ADR 0004). |
-| Primary database | PostgreSQL 17 with Prisma 7; constraints, policies, roles grants and functions as raw SQL in migrations | Exclusion constraints and row level security are Postgres features Prisma does not model. |
-| Tenant isolation | Row level security with `FORCE`, plus a tenant filter in every repository | Two barriers (ADR 0003, pattern "Tenant isolation twice"). |
-| Operator reads | Separate port on a dedicated read only `BYPASSRLS` login | Smallest privilege that still sees all companies. |
-| Identity | Seeded users, HMAC signed httpOnly cookie, picker screen | The brief asks for no full authentication, yet a server side identity is still needed. |
-| Cache | None | Three rooms; availability must be real time. |
-| Messages | next-intl catalog, es-AR | Already in the stack. |
+| Layer             | Choice                                                                                                  | Reason                                                                                    |
+| ----------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Application shape | Modular monolith, ports and adapters (ADR 0002)                                                         | Already enforced by dependency cruiser; one process runs from the README.                 |
+| Web and API       | Next.js 16: Server Actions for the UI, Route Handlers at `/api/v1` for the documented API               | The brief grades API design; both share the same use cases and result type.               |
+| Language          | TypeScript 6 on Node 24                                                                                 | Already in place (ADR 0004).                                                              |
+| Primary database  | PostgreSQL 17 with Prisma 7; constraints, policies, roles grants and functions as raw SQL in migrations | Exclusion constraints and row level security are Postgres features Prisma does not model. |
+| Tenant isolation  | Row level security with `FORCE`, plus a tenant filter in every repository                               | Two barriers (ADR 0003, pattern "Tenant isolation twice").                                |
+| Operator reads    | Separate port on a dedicated read only `BYPASSRLS` login                                                | Smallest privilege that still sees all companies.                                         |
+| Identity          | Seeded users, HMAC signed httpOnly cookie, picker screen                                                | The brief asks for no full authentication, yet a server side identity is still needed.    |
+| Cache             | None                                                                                                    | Three rooms; availability must be real time.                                              |
+| Messages          | next-intl catalog, es-AR                                                                                | Already in the stack.                                                                     |
 
 ## Feature design
 
@@ -43,13 +43,13 @@ Decisions taken, each detailed below:
 
 The repo today has `espacios_app` (login, in role `espacios_runtime`) and `espacios`, the docker superuser used as owner. That owner is a superuser, and superusers bypass RLS even with `FORCE`. So this spec changes the owner.
 
-| Role | Used by | Privileges |
-|---|---|---|
-| `espacios` (docker superuser) | Infra init SQL and the test `global-setup.ts` only | Creates the roles below. Never used by the app, migrations or seeds. |
-| `espacios_owner` | `DATABASE_OWNER_URL`: `pnpm db:deploy`, `pnpm db:seed`, Prisma Studio | Non superuser, `LOGIN CREATEDB` (Prisma's shadow database needs it). Owns the tables. `FORCE` applies to it, so seeds and fixtures set the tenant per company. |
-| `espacios_app` in `espacios_runtime` | `DATABASE_URL`: company edge (`UnitOfWork`) | `SELECT`, `INSERT`, `UPDATE` on `bookings`; `SELECT` on `room`, `company`, `app_user`. Owns nothing. RLS applies. |
-| `espacios_operator` | `DATABASE_OPERATOR_URL`: operator query port and the availability port for operators | `LOGIN BYPASSRLS`, `SELECT` only on `bookings`, `room`, `company`, `app_user`, and `EXECUTE` on the availability function. No writes. |
-| `espacios_availability` | Owner of the availability function | `NOLOGIN BYPASSRLS`, `USAGE` on the schema, `SELECT` on `bookings (room_id, starts_at, ends_at, status)` (column grant). |
+| Role                                 | Used by                                                                              | Privileges                                                                                                                                                     |
+| ------------------------------------ | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `espacios` (docker superuser)        | Infra init SQL and the test `global-setup.ts` only                                   | Creates the roles below. Never used by the app, migrations or seeds.                                                                                           |
+| `espacios_owner`                     | `DATABASE_OWNER_URL`: `pnpm db:deploy`, `pnpm db:seed`, Prisma Studio                | Non superuser, `LOGIN CREATEDB` (Prisma's shadow database needs it). Owns the tables. `FORCE` applies to it, so seeds and fixtures set the tenant per company. |
+| `espacios_app` in `espacios_runtime` | `DATABASE_URL`: company edge (`UnitOfWork`)                                          | `SELECT`, `INSERT`, `UPDATE` on `bookings`; `SELECT` on `room`, `company`, `app_user`. Owns nothing. RLS applies.                                              |
+| `espacios_operator`                  | `DATABASE_OPERATOR_URL`: operator query port and the availability port for operators | `LOGIN BYPASSRLS`, `SELECT` only on `bookings`, `room`, `company`, `app_user`, and `EXECUTE` on the availability function. No writes.                          |
+| `espacios_availability`              | Owner of the availability function                                                   | `NOLOGIN BYPASSRLS`, `USAGE` on the schema, `SELECT` on `bookings (room_id, starts_at, ends_at, status)` (column grant).                                       |
 
 - **Where roles are created:** cluster wide roles with `BYPASSRLS` need a superuser, and Prisma's shadow database replays migrations in the same cluster, so `CREATE ROLE` cannot live in a migration. They go in `infra/local/postgres/` init SQL and in `global-setup.ts`. Migrations only `GRANT`, and set `ALTER DEFAULT PRIVILEGES` for new tables. Existing docker volumes run init scripts once, so the README tells people to run `docker compose down -v` after pulling this change.
 - **Function ownership:** init SQL makes `espacios_owner` a member of `espacios_availability` so a migration run by the owner can `ALTER FUNCTION ... OWNER TO espacios_availability`, and gives that role `CREATE` on the schema for the change.
@@ -60,12 +60,12 @@ The repo today has `espacios_app` (login, in role `espacios_runtime`) and `espac
 
 All ids are TEXT generated through the existing ids port, as in the current `company` table.
 
-| Entity | Fields | Rules |
-|---|---|---|
-| `company` (exists) | `id` PK, `name`, `slug` unique, `created_at` | The tenant. No RLS. Read only for the runtime role. |
-| `app_user` | `id` PK, `tenant_id` FK nullable, `name`, `role` (`member` or `operator`), `created_at` | Seeded. No RLS (user names are not private, see Security). |
-| `room` | `id` PK, `name` unique, `capacity` int, `created_at` | Operator owned and shared. No `tenant_id`, no RLS. |
-| `bookings` | `id` PK, `tenant_id` FK, `room_id` FK, `booked_by` FK `app_user`, `starts_at` timestamptz, `ends_at` timestamptz, `status` (`confirmed` or `cancelled`), `cancelled_at` nullable, `created_at` | RLS and `FORCE` on `tenant_id`. |
+| Entity             | Fields                                                                                                                                                                                         | Rules                                                      |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `company` (exists) | `id` PK, `name`, `slug` unique, `created_at`                                                                                                                                                   | The tenant. No RLS. Read only for the runtime role.        |
+| `app_user`         | `id` PK, `tenant_id` FK nullable, `name`, `role` (`member` or `operator`), `created_at`                                                                                                        | Seeded. No RLS (user names are not private, see Security). |
+| `room`             | `id` PK, `name` unique, `capacity` int, `created_at`                                                                                                                                           | Operator owned and shared. No `tenant_id`, no RLS.         |
+| `bookings`         | `id` PK, `tenant_id` FK, `room_id` FK, `booked_by` FK `app_user`, `starts_at` timestamptz, `ends_at` timestamptz, `status` (`confirmed` or `cancelled`), `cancelled_at` nullable, `created_at` | RLS and `FORCE` on `tenant_id`.                            |
 
 (`app_user` avoids the reserved word `user`. The repo's `company` table is singular, so the migration may name `bookings` and `room` in the same style. Pick one style when writing the migration and keep it everywhere; the names above are the spec's working names.)
 
@@ -82,36 +82,36 @@ Opening hours are a constant in `packages/domain`, not a table.
 
 ### Booking rules (assumptions for the README "Supuestos")
 
-| Rule | Value | Failure reason |
-|---|---|---|
-| Time zone | One facility zone, `America/Argentina/Buenos_Aires`. Stored as UTC `timestamptz`, validated and shown in that zone. Zone math in `domain` uses `Intl.DateTimeFormat` only (no library), with a fixed IANA name, not a fixed offset. | n/a |
-| Input format | The API requires RFC 3339 with an offset. The form sends date plus `HH:mm` and the server builds the instant in the facility zone. Output is ISO with `-03:00`. | `invalid_input` |
-| Grid | Start and end on 30 minute marks. | `not_on_grid` |
-| Opening hours | Monday to Friday, 08:00 to 20:00 local. The booking must fit inside. Holidays are ignored (a limitation). | `outside_hours` |
-| Same day | Start and end fall on the same local day. | `invalid_range` |
-| Length | Minimum 30 minutes, maximum 4 hours. | `too_short`, `too_long` |
-| Order | `ends_at` after `starts_at`. | `invalid_range` |
-| Not in the past | `starts_at` must be in the future (clock port). | `past_date` |
-| Horizon | At most 60 days ahead. | `beyond_horizon` |
-| Who cancels | Any member of the booking's company. `booked_by` is kept for display and audit. | `not_found` for other companies |
-| Cancellation | Allowed any time before `starts_at`. After it starts: refused. Already cancelled: refused. | `cancel_not_allowed`, `already_cancelled` |
-| Overlap | No two `confirmed` bookings of the same room overlap, across all companies. | `conflict` |
-| Facilities | One facility and one zone in v1. More facilities would add a facility entity (a limitation). | n/a |
+| Rule            | Value                                                                                                                                                                                                                               | Failure reason                            |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Time zone       | One facility zone, `America/Argentina/Buenos_Aires`. Stored as UTC `timestamptz`, validated and shown in that zone. Zone math in `domain` uses `Intl.DateTimeFormat` only (no library), with a fixed IANA name, not a fixed offset. | n/a                                       |
+| Input format    | The API requires RFC 3339 with an offset. The form sends date plus `HH:mm` and the server builds the instant in the facility zone. Output is ISO with `-03:00`.                                                                     | `invalid_input`                           |
+| Grid            | Start and end on 30 minute marks.                                                                                                                                                                                                   | `not_on_grid`                             |
+| Opening hours   | Monday to Friday, 08:00 to 20:00 local. The booking must fit inside. Holidays are ignored (a limitation).                                                                                                                           | `outside_hours`                           |
+| Same day        | Start and end fall on the same local day.                                                                                                                                                                                           | `invalid_range`                           |
+| Length          | Minimum 30 minutes, maximum 4 hours.                                                                                                                                                                                                | `too_short`, `too_long`                   |
+| Order           | `ends_at` after `starts_at`.                                                                                                                                                                                                        | `invalid_range`                           |
+| Not in the past | `starts_at` must be in the future (clock port).                                                                                                                                                                                     | `past_date`                               |
+| Horizon         | At most 60 days ahead.                                                                                                                                                                                                              | `beyond_horizon`                          |
+| Who cancels     | Any member of the booking's company. `booked_by` is kept for display and audit.                                                                                                                                                     | `not_found` for other companies           |
+| Cancellation    | Allowed any time before `starts_at`. After it starts: refused. Already cancelled: refused.                                                                                                                                          | `cancel_not_allowed`, `already_cancelled` |
+| Overlap         | No two `confirmed` bookings of the same room overlap, across all companies.                                                                                                                                                         | `conflict`                                |
+| Facilities      | One facility and one zone in v1. More facilities would add a facility entity (a limitation).                                                                                                                                        | n/a                                       |
 
 ### Typed result and error contract
 
 Every use case returns `{ ok: true, value, message }` or `{ ok: false, reason, message }`. Only a thrown error rolls a transaction back, so every refusal is returned before any write (see `packages/application/AGENTS.md`). The brief asks the user to know the result of each operation, so successes carry a message too: "Reserva confirmada" and "Reserva cancelada" (catalog keys under `success.*`).
 
-| Reason | HTTP | Meaning shown to the user (es-AR key under `errors.*`) |
-|---|---|---|
-| `invalid_input` | 400 | Malformed request (Zod), including a time without an offset. |
-| `not_on_grid`, `outside_hours`, `invalid_range`, `too_short`, `too_long`, `past_date`, `beyond_horizon`, `cancel_not_allowed` | 422 | The specific rule that failed. `invalid_range` also covers metrics ranges where `from` is after `to` or the span exceeds 366 days. |
-| `conflict` | 409 | The room was just booked for that time. Pick another slot. |
-| `already_cancelled` | 409 | This booking was already cancelled. |
-| `not_found` | 404 | Also covers "not yours" (RLS hides it) and an unknown room, so existence is never confirmed. |
-| `unauthenticated` | 401 | No valid session cookie, or the user in the cookie no longer exists. |
-| `forbidden` | 403 | A member calls an operator endpoint, or an operator calls a member endpoint. |
-| `busy` | 503 with `Retry-After: 1` | Lock timeout, statement timeout, deadlock, serialization failure, or Prisma `P2028` (transaction timeout or no free connection). Retry. |
+| Reason                                                                                                                        | HTTP                      | Meaning shown to the user (es-AR key under `errors.*`)                                                                                  |
+| ----------------------------------------------------------------------------------------------------------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `invalid_input`                                                                                                               | 400                       | Malformed request (Zod), including a time without an offset.                                                                            |
+| `not_on_grid`, `outside_hours`, `invalid_range`, `too_short`, `too_long`, `past_date`, `beyond_horizon`, `cancel_not_allowed` | 422                       | The specific rule that failed. `invalid_range` also covers metrics ranges where `from` is after `to` or the span exceeds 366 days.      |
+| `conflict`                                                                                                                    | 409                       | The room was just booked for that time. Pick another slot.                                                                              |
+| `already_cancelled`                                                                                                           | 409                       | This booking was already cancelled.                                                                                                     |
+| `not_found`                                                                                                                   | 404                       | Also covers "not yours" (RLS hides it) and an unknown room, so existence is never confirmed.                                            |
+| `unauthenticated`                                                                                                             | 401                       | No valid session cookie, or the user in the cookie no longer exists.                                                                    |
+| `forbidden`                                                                                                                   | 403                       | A member calls an operator endpoint, or an operator calls a member endpoint.                                                            |
+| `busy`                                                                                                                        | 503 with `Retry-After: 1` | Lock timeout, statement timeout, deadlock, serialization failure, or Prisma `P2028` (transaction timeout or no free connection). Retry. |
 
 - One function `reasonToHttp(reason)` maps reason to status. One catalog key per reason gives the message. A test iterates every reason (nothing unmapped).
 - JSON body for the API: `{ "code": "<reason>", "message": "<es-AR text>" }`. RFC 9457 is a possible later change, not v1.
@@ -123,17 +123,17 @@ Every use case returns `{ ok: true, value, message }` or `{ ok: false, reason, m
 
 Cookie session on every route. Server Actions for the UI call the same use cases as these handlers.
 
-| Endpoint | Method | Key inputs | Key outputs | Who | Key errors |
-|---|---|---|---|---|---|
-| `/api/v1/rooms` | GET | none | rooms (id, name, capacity) | any signed in user | 401 |
-| `/api/v1/rooms/{id}/availability` | GET | `date` (local day, `YYYY-MM-DD`) | open hours (or closed), busy intervals (start, end, `mine`), free slots | member, operator | 400, 401, 404 |
-| `/api/v1/bookings` | POST | `roomId`, `startsAt`, `endsAt` | booking; 201 with `Location` when new, 200 when the same company already holds that exact booking | member | 400, 401, 403, 409, 422, 503 |
-| `/api/v1/bookings` | GET | `status` (`confirmed`, `cancelled`, `all`, default `confirmed`), `from`, `to`, `cursor`, `limit` | own bookings, upcoming first, with `nextCursor` | member | 400, 401, 403 |
-| `/api/v1/bookings/{id}/cancel` | POST | none | cancelled booking | member | 401, 403, 404, 409, 422 |
-| `/api/v1/operator/bookings` | GET | `tenantId`, `roomId`, `from`, `to`, `cursor`, `limit` | all bookings with company names | operator | 401, 403 |
-| `/api/v1/operator/metrics/rooms` | GET | `from`, `to` (inclusive local days) | occupancy per room and overall | operator | 401, 403, 422 |
-| `/api/v1/operator/metrics/companies` | GET | `from`, `to` | usage per company | operator | 401, 403, 422 |
-| `/api/v1/operator/metrics/heatmap` | GET | `from`, `to`, optional `roomId` | weekday by hour occupancy | operator | 401, 403, 422 |
+| Endpoint                             | Method | Key inputs                                                                                       | Key outputs                                                                                       | Who                | Key errors                   |
+| ------------------------------------ | ------ | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | ------------------ | ---------------------------- |
+| `/api/v1/rooms`                      | GET    | none                                                                                             | rooms (id, name, capacity)                                                                        | any signed in user | 401                          |
+| `/api/v1/rooms/{id}/availability`    | GET    | `date` (local day, `YYYY-MM-DD`)                                                                 | open hours (or closed), busy intervals (start, end, `mine`), free slots                           | member, operator   | 400, 401, 404                |
+| `/api/v1/bookings`                   | POST   | `roomId`, `startsAt`, `endsAt`                                                                   | booking; 201 with `Location` when new, 200 when the same company already holds that exact booking | member             | 400, 401, 403, 409, 422, 503 |
+| `/api/v1/bookings`                   | GET    | `status` (`confirmed`, `cancelled`, `all`, default `confirmed`), `from`, `to`, `cursor`, `limit` | own bookings, upcoming first, with `nextCursor`                                                   | member             | 400, 401, 403                |
+| `/api/v1/bookings/{id}/cancel`       | POST   | none                                                                                             | cancelled booking                                                                                 | member             | 401, 403, 404, 409, 422      |
+| `/api/v1/operator/bookings`          | GET    | `tenantId`, `roomId`, `from`, `to`, `cursor`, `limit`                                            | all bookings with company names                                                                   | operator           | 401, 403                     |
+| `/api/v1/operator/metrics/rooms`     | GET    | `from`, `to` (inclusive local days)                                                              | occupancy per room and overall                                                                    | operator           | 401, 403, 422                |
+| `/api/v1/operator/metrics/companies` | GET    | `from`, `to`                                                                                     | usage per company                                                                                 | operator           | 401, 403, 422                |
+| `/api/v1/operator/metrics/heatmap`   | GET    | `from`, `to`, optional `roomId`                                                                  | weekday by hour occupancy                                                                         | operator           | 401, 403, 422                |
 
 - **Booking view** (the same DTO everywhere): `id`, `room` (id, name), `startsAt`, `endsAt`, `status`, `bookedBy` (name), `cancelledAt`. The operator view adds the company name. A company never receives another company's name or booking id.
 - **Pagination:** keyset on `(starts_at, id)`, opaque base64 cursor, `limit` default 50, maximum 100, upcoming first.
@@ -146,24 +146,24 @@ Cookie session on every route. Server Actions for the UI call the same use cases
 
 ### Value sourcing
 
-| Action | Value | Source |
-|---|---|---|
-| Any company action | current company id | `app_user.tenant_id` of the user in the signed cookie, resolved server side. Never from the request body or header. |
-| Book | `booked_by` | user id from the signed cookie |
-| Book | `status`, `created_at`, ids | `confirmed`; clock port; ids port |
-| Book, cancel | "now" for the past and horizon checks, `cancelled_at` | clock port (injected, testable) |
-| Book | opening hours, grid, min and max length, horizon, facility zone | constants in `packages/domain` |
-| Book (form) | `startsAt`, `endsAt` instants | form date plus `HH:mm`, built server side in the facility zone |
-| Book | 200 for the exact same booking | the `ON CONFLICT` miss plus an RLS scoped lookup (above) |
-| Availability | busy intervals | `room_busy_intervals(room_id, from, to)` (below) |
-| Availability | `mine` flag | the edge merges the caller's own bookings list into the busy intervals |
-| Availability | free slots | a `domain` function: opening hours minus busy intervals minus the past |
-| Availability | 404 | a separate room existence check in the use case (the function returns an empty set for an unknown room) |
-| Metrics | open minutes per room | `domain` TypeScript: weekdays in the range × 720 minutes. Not computed in SQL. |
-| Metrics | booked minutes | SQL sum over `confirmed` bookings with `starts_at` in the range |
-| Metrics | range | `from` and `to` inclusive local days, default last 30 days ending today, maximum 366 days |
-| Session | cookie value | `userId.signature`, HMAC with `SESSION_SECRET` |
-| Seeds | rooms, companies, users, demo bookings | `pnpm db:seed` (below) |
+| Action             | Value                                                           | Source                                                                                                              |
+| ------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Any company action | current company id                                              | `app_user.tenant_id` of the user in the signed cookie, resolved server side. Never from the request body or header. |
+| Book               | `booked_by`                                                     | user id from the signed cookie                                                                                      |
+| Book               | `status`, `created_at`, ids                                     | `confirmed`; clock port; ids port                                                                                   |
+| Book, cancel       | "now" for the past and horizon checks, `cancelled_at`           | clock port (injected, testable)                                                                                     |
+| Book               | opening hours, grid, min and max length, horizon, facility zone | constants in `packages/domain`                                                                                      |
+| Book (form)        | `startsAt`, `endsAt` instants                                   | form date plus `HH:mm`, built server side in the facility zone                                                      |
+| Book               | 200 for the exact same booking                                  | the `ON CONFLICT` miss plus an RLS scoped lookup (above)                                                            |
+| Availability       | busy intervals                                                  | `room_busy_intervals(room_id, from, to)` (below)                                                                    |
+| Availability       | `mine` flag                                                     | the edge merges the caller's own bookings list into the busy intervals                                              |
+| Availability       | free slots                                                      | a `domain` function: opening hours minus busy intervals minus the past                                              |
+| Availability       | 404                                                             | a separate room existence check in the use case (the function returns an empty set for an unknown room)             |
+| Metrics            | open minutes per room                                           | `domain` TypeScript: weekdays in the range × 720 minutes. Not computed in SQL.                                      |
+| Metrics            | booked minutes                                                  | SQL sum over `confirmed` bookings with `starts_at` in the range                                                     |
+| Metrics            | range                                                           | `from` and `to` inclusive local days, default last 30 days ending today, maximum 366 days                           |
+| Session            | cookie value                                                    | `userId.signature`, HMAC with `SESSION_SECRET`                                                                      |
+| Seeds              | rooms, companies, users, demo bookings                          | `pnpm db:seed` (below)                                                                                              |
 
 ### Availability read path
 

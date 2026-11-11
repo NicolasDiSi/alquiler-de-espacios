@@ -7,6 +7,7 @@
  *   pnpm check:ai                  all gates, whole repo
  *   pnpm check:ai --affected       only workspaces changed against the base branch (pre-push uses this)
  *   pnpm check:ai --gate=test      a single gate (biome, strings, typecheck, boundaries, knip, test, e2e)
+ *   pnpm check:ai --gate=e2e --suite=bookings   only one area's Playwright specs (see the scoped-verification skill)
  *   pnpm check:ai --lines=40       more failure lines per gate (default 20)
  */
 import { spawnSync } from "node:child_process";
@@ -22,6 +23,13 @@ const args = new Map(
 const maxLines = Number(args.get("lines") ?? 20);
 const onlyGate = args.get("gate");
 const affected = args.has("affected");
+// Scoped end to end suites, so a change to one area does not run the whole Playwright set. Each maps to a turbo task.
+const E2E_SUITES = { bookings: "e2e:bookings", shell: "e2e:shell" };
+const e2eSuite = args.get("suite");
+if (e2eSuite !== undefined && !Object.hasOwn(E2E_SUITES, e2eSuite)) {
+  console.log(`Unknown suite "${e2eSuite}". Suites: ${Object.keys(E2E_SUITES).join(", ")}`);
+  process.exit(2);
+}
 
 const env = { ...process.env, FORCE_COLOR: "0", NO_COLOR: "1", CI: "1", TURBO_NO_UPDATE_NOTIFIER: "1" };
 
@@ -60,7 +68,7 @@ const gates = [
     // Builds and runs the Playwright suites (apps/web). With --affected it runs only when a suite's workspace changed.
     name: "e2e",
     command: "pnpm",
-    args: ["exec", "turbo", "run", "e2e", "--output-logs=errors-only", ...turboFilter],
+    args: ["exec", "turbo", "run", E2E_SUITES[e2eSuite] ?? "e2e", "--output-logs=errors-only", ...turboFilter],
   },
 ];
 

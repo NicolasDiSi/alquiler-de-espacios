@@ -9,8 +9,24 @@
   },
   "errors": {
     "invalid_input": "La solicitud no tiene el formato esperado. Revisá los datos y probá de nuevo.",
+    "not_on_grid": "Los horarios van de media hora en media hora: elegí un inicio y un fin en punto o y media, por ejemplo 10:00 o 10:30.",
+    "outside_hours": "Las salas se reservan de lunes a viernes, de 8:00 a 20:00. Elegí un horario dentro de ese rango.",
+    "invalid_range": "El rango no es válido. El fin tiene que ser posterior al inicio: una reserva empieza y termina el mismo día, y un período de métricas abarca hasta 366 días.",
+    "too_short": "Una reserva dura como mínimo 30 minutos. Elegí un horario más largo.",
+    "too_long": "Una reserva dura como máximo 4 horas. Elegí un horario más corto o hacé dos reservas.",
+    "past_date": "Ese horario ya pasó. Elegí un horario que todavía no haya empezado.",
+    "beyond_horizon": "Se puede reservar hasta 60 días hacia adelante. Elegí una fecha más cercana.",
+    "cancel_not_allowed": "Esta reserva ya empezó, así que no se puede cancelar.",
+    "conflict": "La sala ya está reservada en ese horario. Elegí otro horario u otra sala.",
+    "already_cancelled": "Esta reserva ya estaba cancelada.",
+    "not_found": "No encontramos lo que buscás. Puede que no exista o que no esté disponible para tu usuario.",
     "unauthenticated": "Tu sesión no es válida o venció. Elegí de nuevo con qué usuario entrar.",
-    "forbidden": "Tu usuario no tiene acceso a esta sección."
+    "forbidden": "Tu usuario no tiene acceso a esta sección.",
+    "busy": "El sistema está ocupado en este momento. Esperá unos segundos y probá de nuevo."
+  },
+  "success": {
+    "bookingConfirmed": "Reserva confirmada",
+    "bookingCancelled": "Reserva cancelada"
   },
   "session": {
     "label": "Sesión actual",

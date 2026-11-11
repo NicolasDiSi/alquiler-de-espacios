@@ -14,7 +14,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 1   | Repo foundation: tooling, layer packages, web shell   | Foundation | existing    |
 | 2   | Database foundation: roles, FORCE RLS, schema, seeds  | Foundation | done        |
 | 3   | Company identity: seeded users, signed cookie, picker | Foundation | done        |
-| 4   | Result and error contract                             | Foundation | planned     |
+| 4   | Result and error contract                             | Foundation | in-progress |
 | 5   | Book a room and see it in my bookings                 | Slice 1    | planned     |
 | 13  | Role based navigation in the sidebar                  | Slice 1    | planned     |
 | 14  | Rooms list: every room, pick one to see it            | Slice 2    | planned     |
@@ -52,13 +52,13 @@ A "sign in as" picker that sets an HMAC signed cookie; the server resolves the c
 - [ ] Test it: `/test company identity` (skipped 2026-11-11 by the engineer: the build shipped 14 identity e2e tests and the session unit tests)
   Spec 0001, picker screen in spec 0002 (assumed decision, owes `/architect` ratification) · code in `apps/web/src/lib/session/`, `apps/web/src/app/ingresar/`, `packages/domain/src/identity/`, `packages/db/src/user-directory.ts`
 
-### 4. Result and error contract
+### 4. Result and error contract · in-progress
 
 The typed `Result` with reason codes, `reasonToHttp`, the es-AR message catalog, the `sqlState(err)` helper and the `busy` mapping, so every later slice reports failures the same way.
 **Done when:** every reason has one HTTP status and one Spanish message (a test iterates them), and a real `23P01`, `55P03` and `57014` coming out of Prisma map to `conflict` and `busy`.
 - [x] Design it (spec): decided in spec 0001
-- [ ] Build it: `/develop result and error contract`
-- [ ] Verify it: `/check verify result and error contract`
+- [x] Build it: `/develop result and error contract`
+- [x] Verify it: `/check verify result and error contract`
 - [ ] Test it: `/test result and error contract`
   Spec 0001 · code in `packages/application/`, `packages/db/`, `apps/web/`
 

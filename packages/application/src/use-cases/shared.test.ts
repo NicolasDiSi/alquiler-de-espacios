@@ -1,27 +1,32 @@
 import { ok } from "@espacios/domain";
 import { describe, expect, it } from "vitest";
 
-import { ConcurrencyError } from "../ports/ports";
-import { withConflictHandling } from "./shared";
+import { BusyError, ConcurrencyError } from "../ports/ports";
+import { withRaceHandling } from "./shared";
 
-describe("withConflictHandling", () => {
+describe("withRaceHandling", () => {
   it("returns the work's result", async () => {
-    await expect(withConflictHandling(async () => ok("done"))).resolves.toEqual({ ok: true, value: "done" });
+    await expect(withRaceHandling(async () => ok("done"))).resolves.toEqual({ ok: true, value: "done" });
   });
 
-  it("turns a lost race into a conflict", async () => {
-    const result = await withConflictHandling(async () => {
-      throw new ConcurrencyError("Booking", "b-1");
+  it("turns a lost race into conflict, without the driver's details", async () => {
+    const driverError = new Error('conflicting key value violates exclusion constraint "booking_no_overlap"');
+    const result = await withRaceHandling(async () => {
+      throw new ConcurrencyError({ cause: driverError });
     });
-    expect(result).toEqual({
-      ok: false,
-      error: { code: "conflict", message: "Booking b-1 was changed by someone else." },
+    expect(result).toEqual({ ok: false, reason: "conflict" });
+  });
+
+  it("turns a timeout into busy", async () => {
+    const result = await withRaceHandling(async () => {
+      throw new BusyError();
     });
+    expect(result).toEqual({ ok: false, reason: "busy" });
   });
 
   it("rethrows other errors", async () => {
     await expect(
-      withConflictHandling(async () => {
+      withRaceHandling(async () => {
         throw new Error("boom");
       }),
     ).rejects.toThrow("boom");

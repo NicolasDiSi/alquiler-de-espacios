@@ -4,6 +4,7 @@ import type { Session } from "@espacios/application";
 import { getTranslations } from "next-intl/server";
 
 import { LOCALE } from "@/i18n/config";
+import { failureResponse } from "@/lib/result/http";
 
 import { checkAccess, checkStateChange, type Edge, type Refusal } from "./access";
 import { SESSION_COOKIE, sessionFromCookie } from "./session";
@@ -28,8 +29,5 @@ export async function authenticateRequest(
 
 async function refusalResponse(refusal: Refusal): Promise<Response> {
   const t = await getTranslations({ locale: LOCALE, namespace: "errors" });
-  return Response.json(
-    { code: refusal.code, message: t(refusal.code) },
-    { status: refusal.status, headers: { "Cache-Control": "no-store" } },
-  );
+  return failureResponse(refusal, t(refusal));
 }

@@ -11,13 +11,9 @@ describe("authorizeMember", () => {
     expect(authorizeMember(member)).toEqual({ ok: true, value: member });
   });
 
-  it("refuses the operator with forbidden and a reason", () => {
+  it("refuses the operator with forbidden", () => {
     const result = authorizeMember(operator);
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error.code).toBe("forbidden");
-      expect(result.error.message).not.toBe("");
-    }
+    expect(result).toEqual({ ok: false, reason: "forbidden" });
   });
 });
 
@@ -26,12 +22,8 @@ describe("authorizeOperator", () => {
     expect(authorizeOperator(operator)).toEqual({ ok: true, value: operator });
   });
 
-  it("refuses a member with forbidden and a reason", () => {
+  it("refuses a member with forbidden", () => {
     const result = authorizeOperator(member);
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error.code).toBe("forbidden");
-      expect(result.error.message).not.toBe("");
-    }
+    expect(result).toEqual({ ok: false, reason: "forbidden" });
   });
 });

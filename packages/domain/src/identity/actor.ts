@@ -26,11 +26,11 @@ export type Actor = MemberActor | OperatorActor;
 /** The company edge (book, cancel, my bookings) is for members only. */
 export function authorizeMember(actor: Actor): Result<MemberActor> {
   if (actor.role === "member") return ok(actor);
-  return fail("forbidden", "Esta sección es para las empresas clientes. El operador no reserva salas.");
+  return fail("forbidden");
 }
 
 /** The operator edge (metrics, every company's bookings) is for the operator only. */
 export function authorizeOperator(actor: Actor): Result<OperatorActor> {
   if (actor.role === "operator") return ok(actor);
-  return fail("forbidden", "Esta sección es solo para el operador.");
+  return fail("forbidden");
 }

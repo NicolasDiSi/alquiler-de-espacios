@@ -46,8 +46,15 @@ export function createPrismaOperatorCatalog(db: DatabaseClient): OperatorCatalog
     listFacilities: (includeInactive) =>
       db.facility.findMany({ where: active(includeInactive), orderBy: [{ name: "asc" }, { id: "asc" }] }),
     findFacility: (id) => db.facility.findUnique({ where: { id } }),
-    insertFacility: (data) => db.facility.create({ data }) as Promise<FacilityRecord>,
-    updateFacility: (id, data) => orNull(db.facility.update({ where: { id }, data })),
+    insertFacility: (data) =>
+      db.facility.create({ data: { ...data, openWeekdays: [...data.openWeekdays] } }) as Promise<FacilityRecord>,
+    updateFacility: (id, { openWeekdays, ...rest }) =>
+      orNull(
+        db.facility.update({
+          where: { id },
+          data: { ...rest, ...(openWeekdays ? { openWeekdays: [...openWeekdays] } : {}) },
+        }),
+      ),
 
     listRooms: ({ facilityId, includeInactive }) =>
       db.room.findMany({

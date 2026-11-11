@@ -5,3 +5,19 @@ Meeting room booking platform for client companies, with utilization metrics for
 > **Notice:** © 2026 Nicolas Disi. All rights reserved. This repository is shared only so the recipient can evaluate my application. No use, copying or derivative works without my written permission. See [LICENSE](LICENSE).
 
 The run instructions, architecture decisions, assumptions and the AI usage section will be added here as the project is built. The brief is transcribed in [docs/challenge.md](docs/challenge.md).
+
+## Local database
+
+Requires Docker, Node 24 and pnpm.
+
+```bash
+pnpm install
+cp .env.example .env.local
+pnpm services:up   # PostgreSQL 17 on localhost:5432; creates the database roles on first start
+pnpm db:deploy     # apply migrations as the schema owner
+pnpm db:seed       # 3 rooms, 3 companies, their users, one operator and about 40 bookings (safe to run twice)
+```
+
+> **After pulling a change to the database roles** (`infra/local/postgres/`), recreate the local database once with `docker compose down -v`, then run the steps above again. Postgres runs those init scripts only when its volume is new. This deletes your local data.
+
+Prisma Studio (`pnpm db:studio`) connects as the schema owner, and row level security applies to it too, so it shows no bookings. To browse every company, read only: `DATABASE_OWNER_URL=postgresql://espacios_operator:espacios_operator@localhost:5432/espacios pnpm db:studio`.

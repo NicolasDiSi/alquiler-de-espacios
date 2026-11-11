@@ -14,16 +14,24 @@ Requires Docker, Node 24 and pnpm.
 pnpm install
 cp .env.example .env.local
 # In .env.local, replace SESSION_SECRET with your own key: openssl rand -hex 32
-pnpm services:up   # PostgreSQL 17 on localhost:5432; creates the database roles on first start
-pnpm db:deploy     # apply migrations as the schema owner
-pnpm db:seed       # 3 rooms, 3 companies, their users, one operator and about 40 bookings (safe to run twice)
 ```
 
 ## Run the app
 
 ```bash
-pnpm dev           # http://localhost:3000
+pnpm dev           # starts everything, then http://localhost:3000
 ```
+
+`pnpm dev` runs these steps in order, so one command is enough every time (Docker must be running):
+
+```bash
+pnpm services:up   # PostgreSQL 17 on localhost:5432; creates the database roles on first start
+pnpm db:deploy     # apply migrations as the schema owner
+pnpm db:seed       # 3 rooms, 3 companies, their users, one operator and about 40 bookings (safe to run twice)
+pnpm dev:app       # only the web app, when the database is already up
+```
+
+`pnpm services:down` stops the database and keeps its data.
 
 Open the app and pick a seeded user on `/ingresar` ("sign in as"). There are no passwords: this stands in for authentication, it is not authentication. Members of a company land on their bookings, the operator on `/operador`. The app refuses to sign anyone in while `SESSION_SECRET` is missing, shorter than 32 bytes or still the `.env.example` placeholder.
 

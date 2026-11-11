@@ -37,3 +37,13 @@ pnpm check:ai --gate=strings             # no visible text written in code
 - Playwright suites in `e2e/` run against the production build (`next start`), with axe on WCAG 2.2 AA tags. `e2e/fixtures.ts` has the helpers: `setPreferences` stores preferences as cookies before load, `blockHydration` checks what paints before React, `waitForHydration` waits for the client.
 
 _Drafted by /sync from the introducing change, worth a quick human pass._
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

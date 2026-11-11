@@ -4,7 +4,7 @@
 
 alquiler-de-espacios is a technical challenge (Fontanella SRL, Senior Full Stack, 72 hours): a web app where client companies see meeting room availability, book rooms and cancel their own bookings, and the operator sees utilization metrics overall and per client company. The full brief is in [docs/challenge.md](docs/challenge.md); read it before planning.
 
-**Status:** the foundation is in place (tooling, layer packages, database adapter skeleton, web app shell). No booking feature exists yet. Next: `/scope` with the brief, then `/architect` to confirm the stack ADRs and decide the open questions below.
+**Status:** the repo foundation (tooling, layer packages, web app shell) and the database foundation (roles, FORCE row level security, the booking schema with the overlap constraint, demo seeds) are in place. No booking use case or screen exists yet. Spec 0001 made the architecture decisions and [docs/scope/_root/scope.md](docs/scope/_root/scope.md) holds the build order. Next: `/develop company identity` (feature 3).
 
 ## Non negotiables from the brief
 
@@ -15,15 +15,15 @@ alquiler-de-espacios is a technical challenge (Fontanella SRL, Senior Full Stack
 - Frontend React + TypeScript, backend Node.js + TypeScript. Runs locally from the README instructions.
 - No full authentication, cloud infrastructure or production deploy required.
 
-## Decisions owed to /architect
+## Decisions made in /architect
 
-Record each one in `docs/specs/` or `docs/adr/` with the alternatives and the reason, because the interview will ask about them:
+[Spec 0001](docs/specs/_root/0001-booking-platform-architecture/index.md) records each one, with the alternatives and the reasons in its `rationale.md`, because the interview will ask about them. A new load bearing decision gets its own spec or ADR the same way.
 
-- Confirm or change the proposed ADRs in `docs/adr/` (monorepo, ports and adapters, Prisma with RLS, TypeScript 6).
-- API style: Server Actions only, or also a documented REST API under `/api/v1` (the brief asks for a Node.js backend and evaluates API design).
-- How a company is represented without real authentication (seeded users, a company switcher, a signed cookie...).
-- Booking rules: time zone, granularity, opening hours, minimum and maximum length, cancellation window.
-- Which metrics, their exact definitions, and how they are computed.
+- ADRs in `docs/adr/` (monorepo, ports and adapters, Prisma with RLS, TypeScript 6): spec 0001 builds on all four and amends ADR 0003 with the database roles.
+- API style: Server Actions for the UI plus a documented REST API under `/api/v1`, both calling the same use cases and returning the same typed result.
+- Company identity without real authentication: seeded users and a "sign in as" picker that sets an HMAC signed cookie. The server reads the company from the cookie, never from client input.
+- Booking rules: one zone (`America/Argentina/Buenos_Aires`), a 30 minute grid, Monday to Friday 08:00 to 20:00, 30 minutes to 4 hours, up to 60 days ahead, cancel any time before the start. See "Booking rules" in the spec.
+- Metrics: occupancy per room and overall, usage per company and a weekday by hour heatmap, over confirmed bookings only. See "Metrics (definitions)" in the spec.
 
 ## Stack
 
@@ -50,6 +50,7 @@ pnpm depcruise         # architecture boundaries
 pnpm knip              # unused files, exports and dependencies
 pnpm services:up       # local Postgres from compose.yaml (copy .env.example to .env.local first)
 pnpm db:deploy         # apply migrations
+pnpm db:seed           # demo companies, rooms, users and bookings (safe to run twice)
 pnpm db:studio         # data panel on http://localhost:5555
 ```
 
@@ -148,5 +149,5 @@ The Prisma skills (`prisma/skills`) are listed in [packages/db/AGENTS.md](packag
 
 - [packages/domain/AGENTS.md](packages/domain/AGENTS.md): pure business rules and their conventions
 - [packages/application/AGENTS.md](packages/application/AGENTS.md): ports, use cases and the command order
-- [packages/db/AGENTS.md](packages/db/AGENTS.md): Prisma schema, migrations, row level security and the two database connections
+- [packages/db/AGENTS.md](packages/db/AGENTS.md): Prisma schema, migrations, row level security and the three database logins
 - [apps/web/AGENTS.md](apps/web/AGENTS.md): the web app shell, theme tokens, preferences before the first paint, the Spanish catalog and the Playwright suites

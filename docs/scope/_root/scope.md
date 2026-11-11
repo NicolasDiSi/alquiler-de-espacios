@@ -9,20 +9,22 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 ## At a glance
 
-| #   | Feature                                               | Phase      | Status   |
-| --- | ----------------------------------------------------- | ---------- | -------- |
-| 1   | Repo foundation: tooling, layer packages, web shell   | Foundation | existing |
-| 2   | Database foundation: roles, FORCE RLS, schema, seeds  | Foundation | done     |
-| 3   | Company identity: seeded users, signed cookie, picker | Foundation | planned  |
-| 4   | Result and error contract                             | Foundation | planned  |
-| 5   | Book a room and see it in my bookings                 | Slice 1    | planned  |
-| 6   | Room availability grid                                | Slice 2    | planned  |
-| 7   | Cancel a booking and free the slot                    | Slice 3    | planned  |
-| 8   | Operator metrics: queries and API                     | Slice 4    | planned  |
-| 9   | Operator dashboard                                    | Slice 4    | planned  |
-| 10  | Operator global bookings view                         | Slice 4    | planned  |
-| 11  | End to end suite with accessibility checks            | Delivery   | planned  |
-| 12  | README, assumptions and AI usage                      | Delivery   | planned  |
+| #   | Feature                                               | Phase      | Status      |
+| --- | ----------------------------------------------------- | ---------- | ----------- |
+| 1   | Repo foundation: tooling, layer packages, web shell   | Foundation | existing    |
+| 2   | Database foundation: roles, FORCE RLS, schema, seeds  | Foundation | done        |
+| 3   | Company identity: seeded users, signed cookie, picker | Foundation | in-progress |
+| 4   | Result and error contract                             | Foundation | planned     |
+| 5   | Book a room and see it in my bookings                 | Slice 1    | planned     |
+| 13  | Role based navigation in the sidebar                  | Slice 1    | planned     |
+| 14  | Rooms list: every room, pick one to see it            | Slice 2    | planned     |
+| 6   | Room availability grid                                | Slice 2    | planned     |
+| 7   | Cancel a booking and free the slot                    | Slice 3    | planned     |
+| 8   | Operator metrics: queries and API                     | Slice 4    | planned     |
+| 9   | Operator dashboard                                    | Slice 4    | planned     |
+| 10  | Operator global bookings view                         | Slice 4    | planned     |
+| 11  | End to end suite with accessibility checks            | Delivery   | planned     |
+| 12  | README, assumptions and AI usage                      | Delivery   | planned     |
 
 ## Foundations
 
@@ -40,15 +42,15 @@ The ground every slice stands on: cluster roles in the infra init SQL and test g
 - [x] Test it: `/test database foundation`
   Spec 0001 · code in `packages/db/`, `infra/`
 
-### 3. Company identity: seeded users, signed cookie, picker
+### 3. Company identity: seeded users, signed cookie, picker · in-progress
 
 A "sign in as" picker that sets an HMAC signed cookie; the server resolves the company from it, never from client input. Company and operator edges, 401 and 403 rules, Origin check.
 **Done when:** picking a seeded user sets a signed cookie, a tampered or expired cookie gets 401, a member cannot reach operator routes (403), and the company id used by every action comes from the cookie.
 - [x] Design it (spec): decided in spec 0001
-- [ ] Build it: `/develop company identity`
-- [ ] Verify it: `/check verify company identity`
+- [x] Build it: `/develop company identity`
+- [x] Verify it: `/check verify company identity`
 - [ ] Test it: `/test company identity`
-  Spec 0001 · code in `apps/web/`
+  Spec 0001, picker screen in spec 0002 (assumed decision, owes `/architect` ratification) · code in `apps/web/src/lib/session/`, `apps/web/src/app/ingresar/`, `packages/domain/src/identity/`, `packages/db/src/user-directory.ts`
 
 ### 4. Result and error contract
 
@@ -69,7 +71,20 @@ The walking skeleton. A signed in company member picks a room, a date and a time
 - [ ] Design it (spec): `/architect booking form and my bookings screens`
   Spec 0001 covers the rules and API; the spec for this feature covers the two screens.
 
+### 13. Role based navigation in the sidebar
+
+The sidebar shows only the sections the signed in role can use, and only those that exist: a member sees "Mis reservas" (and "Salas" once feature 14 lands), the operator sees "Panel" and "Reservas" once features 9 and 10 land.
+**Done when:** a member never sees an operator entry and the reverse, an entry appears only when its page exists, the current page is marked for screen readers, and the sidebar works with the keyboard in both densities.
+- [ ] Build it: `/develop role based navigation`
+  Spec 0001 (edges) and spec 0002 (landing per role) · code in `apps/web/src/navigation/`
+
 ## Slice 2: availability
+
+### 14. Rooms list: every room, pick one to see it · needs a decision
+
+What the brief calls "see the rooms and their availability": every room with its name and capacity, and a way into its availability. Feature 6 only covers one room's day; this decides how a company finds and chooses the room (a list, or all rooms side by side for one day).
+**Done when:** a member sees all rooms with name and capacity, picks one and reaches its availability, the operator sees the same list, and an empty list explains itself.
+- [ ] Design it (spec): `/architect rooms list and availability grid` (one spec with feature 6 is fine)
 
 ### 6. Room availability grid · needs a decision
 
@@ -141,6 +156,7 @@ Out of scope for this build pass, kept so the plan stays honest. All are also li
 - **Cancellation window and per room opening hours**: extra business rules · needs a decision
 - **Holidays and several facilities**: calendar and facility model · needs a decision
 - **Rule based insights list** (idle clients, off peak hints): extra on top of the heatmap · needs a decision
+- **Operator detail view per company** (one company's bookings, hours and cancellations over time): in v1 the feature 9 dashboard table covers "analyze each client company"; list it in the README limitations · needs a decision
 
 ## Legend
 

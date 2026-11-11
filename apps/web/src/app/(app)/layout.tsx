@@ -1,5 +1,5 @@
 // Adapted from Studio Admin (nextjs-templates, develop f19e0ef), src/app/(main)/dashboard/layout.tsx.
-import type { ReactNode } from "react";
+import { type ReactNode, Suspense } from "react";
 
 import { cn } from "cn";
 import { useTranslations } from "next-intl";
@@ -8,6 +8,7 @@ import { SidebarInset } from "@/components/ui/sidebar";
 
 import { AppSidebar } from "./_components/app-sidebar";
 import { AppSidebarTrigger } from "./_components/app-sidebar-trigger";
+import { CurrentUser } from "./_components/current-user";
 import { DashboardSidebarProvider } from "./_components/dashboard-sidebar-provider";
 import { DensitySwitch } from "./_components/density-switch";
 import { HeaderOverflowMenu } from "./_components/header-overflow-menu";
@@ -16,7 +17,8 @@ import { ModeSwitch } from "./_components/mode-switch";
 
 const MAIN_ID = "contenido";
 
-// Reads no cookies or headers, so every route prerenders. Preferences are restored on the client.
+// The layout reads no cookies itself: each page checks its own edge (requireMember, requireOperator), and only the
+// CurrentUser leaf reads the session, inside its own Suspense boundary. Preferences are restored on the client.
 export default function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
   const t = useTranslations("shell");
 
@@ -47,6 +49,9 @@ export default function AppLayout({ children }: Readonly<{ children: ReactNode }
           <div className="flex w-full items-center justify-between gap-2 px-4 lg:px-6">
             <AppSidebarTrigger className="-ml-1" />
             <div className="ml-auto flex items-center gap-2">
+              <Suspense fallback={null}>
+                <CurrentUser />
+              </Suspense>
               <DensitySwitch className="hidden md:flex" />
               <ModeSwitch className="hidden md:inline-flex" />
               <LayoutControls />

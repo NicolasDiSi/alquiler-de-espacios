@@ -1,10 +1,13 @@
 import { CalendarDays } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 
 import { EmptyState } from "@/components/empty-state";
+import { requireMember } from "@/lib/session/session";
 
-export default function HomePage() {
-  const t = useTranslations("home");
+/** The member's home (company edge). Without a session it redirects to the picker; the operator gets 403. */
+export default async function HomePage() {
+  await requireMember();
+  const t = await getTranslations("home");
 
   return (
     <div className="flex flex-col gap-6">

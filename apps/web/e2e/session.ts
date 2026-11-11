@@ -9,6 +9,7 @@ export const BASE_URL = "http://localhost:3100";
 export const USERS = {
   ana: { id: "user-acme-ana", name: "Ana (Acme)", company: "Acme SA" },
   carla: { id: "user-globex-carla", name: "Carla (Globex)", company: "Globex SRL" },
+  diego: { id: "user-initech-diego", name: "Diego (Initech)", company: "Initech SA" },
   operador: { id: "user-operador", name: "Operador" },
 } as const;
 

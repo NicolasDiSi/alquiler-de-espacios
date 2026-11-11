@@ -5,7 +5,7 @@ import { afterAll, describe, expect, inject, it } from "vitest";
 import { createDatabaseClient } from "./client";
 import { createUuidV7Generator } from "./ids";
 import { createPrismaRoomCatalog } from "./room-catalog";
-import { asTenant, book, createMember, createRoom, createTenant } from "./testing/fixtures";
+import { asTenant, book, createMember, createRoom, createTenant, TEST_FACILITY_ID } from "./testing/fixtures";
 import { createPrismaUnitOfWork } from "./unit-of-work";
 
 const urls = inject("databaseUrls");
@@ -18,7 +18,8 @@ afterAll(async () => {
   await Promise.all([owner.$disconnect(), runtime.$disconnect(), operator.$disconnect()]);
 });
 
-const at = (date: string, hours: number, minutes = 0) => zonedInstant(date as LocalDate, hours * 60 + minutes);
+const at = (date: string, hours: number, minutes = 0) =>
+  zonedInstant(date as LocalDate, hours * 60 + minutes, "America/Argentina/Buenos_Aires");
 
 // Monday 2030-01-07, 09:00 in Buenos Aires. Bookings go on Tuesday the 8th.
 const NOW = at("2030-01-07", 9);
@@ -226,5 +227,74 @@ describe("listMyBookings against Postgres", () => {
       for (const id of [...Object.values(idsA), byBeto]) expect(seen).not.toContain(id);
     }
     expect((await list(gus, "upcoming")).bookings.map((booking) => booking.id)).toEqual([ownOfB]);
+  });
+});
+
+describe("bookRoom and the booking guard (spec 0004, AC-7 to AC-9, AC-19)", () => {
+  it("refuses an inactive room with room_inactive before writing anything", async () => {
+    const ana = await member("guard-room");
+    const roomId = await createRoom(owner);
+    await operator.room.update({ where: { id: roomId }, data: { deactivatedAt: new Date() } });
+
+    await expect(bookRoom(deps, ana, slot(roomId, 10, 11))).resolves.toEqual({ ok: false, reason: "room_inactive" });
+    expect(await confirmedIn(roomId)).toEqual([]);
+  });
+
+  it("refuses a deactivated company with company_inactive, through the database guard", async () => {
+    const ana = await member("guard-company");
+    const roomId = await createRoom(owner);
+    await operator.company.update({ where: { id: ana.tenantId }, data: { deactivatedAt: new Date() } });
+
+    await expect(bookRoom(deps, ana, slot(roomId, 10, 11))).resolves.toEqual({ ok: false, reason: "company_inactive" });
+    expect(await confirmedIn(roomId)).toEqual([]);
+  });
+
+  it("refuses a booking over a block with room_blocked, whatever the company, and lets it through once released", async () => {
+    const ana = await member("guard-block");
+    const roomId = await createRoom(owner);
+    const block = await operator.block.create({
+      data: {
+        id: `block-${crypto.randomUUID()}`,
+        facilityId: TEST_FACILITY_ID,
+        roomId,
+        startsAt: at(DAY, 9),
+        endsAt: at(DAY, 12),
+        reason: "mantenimiento",
+        createdBy: ana.userId,
+      },
+    });
+
+    // The refusal carries the reason code only: nothing about the block (its reason, who made it, its times).
+    const refused = await bookRoom(deps, ana, slot(roomId, 10, 11));
+    expect(refused).toEqual({ ok: false, reason: "room_blocked" });
+
+    await operator.block.update({ where: { id: block.id }, data: { releasedAt: new Date() } });
+    await expect(bookRoom(deps, ana, slot(roomId, 10, 11))).resolves.toMatchObject({ ok: true });
+  });
+
+  it("books in the zone and hours of the room's facility", async () => {
+    const ana = await member("guard-zone");
+    const facilityId = `facility-tokyo-${crypto.randomUUID()}`;
+    await owner.facility.create({
+      data: {
+        id: facilityId,
+        name: facilityId,
+        timeZone: "Asia/Tokyo",
+        opensAt: 540,
+        closesAt: 780,
+        openWeekdays: [2],
+      },
+    });
+    const roomId = await createRoom(owner, facilityId);
+
+    // Tuesday 2030-01-08, 10:00 to 11:00 in Tokyo.
+    const tokyo = { roomId, startsAt: new Date("2030-01-08T01:00:00Z"), endsAt: new Date("2030-01-08T02:00:00Z") };
+    await expect(bookRoom(deps, ana, tokyo)).resolves.toMatchObject({
+      ok: true,
+      value: { booking: { startsAt: "2030-01-08T10:00:00+09:00" } },
+    });
+    // After that facility closes (13:00 Tokyo), even though it is inside Buenos Aires hours.
+    const late = { roomId, startsAt: new Date("2030-01-08T05:00:00Z"), endsAt: new Date("2030-01-08T06:00:00Z") };
+    await expect(bookRoom(deps, ana, late)).resolves.toEqual({ ok: false, reason: "outside_hours" });
   });
 });

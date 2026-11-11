@@ -1,6 +1,7 @@
-import { addDays, isOpenWeekday, type LocalDate, localDateOf, START_TIMES } from "@espacios/domain";
+import { addDays, isOpenWeekday, type LocalDate, localDateOf } from "@espacios/domain";
 import { expect, type Page, test } from "@playwright/test";
 
+import { CENTRAL, START_TIMES } from "./facility";
 import { waitForHydration } from "./fixtures";
 import { sessionCookie, USERS } from "./session";
 
@@ -9,9 +10,9 @@ const PAGE_SIZE = 50;
 /** The next `count` weekdays from 40 days ahead: inside the 60 day horizon and clear of the seed's two weeks. */
 function weekdaysFrom40(count: number): LocalDate[] {
   const days: LocalDate[] = [];
-  let day = addDays(localDateOf(new Date()), 40);
+  let day = addDays(localDateOf(new Date(), CENTRAL.timeZone), 40);
   while (days.length < count) {
-    if (isOpenWeekday(day)) days.push(day);
+    if (isOpenWeekday(day, CENTRAL)) days.push(day);
     day = addDays(day, 1);
   }
   return days;

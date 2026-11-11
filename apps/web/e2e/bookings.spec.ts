@@ -1,6 +1,7 @@
-import { addDays, isOpenWeekday, type LocalDate, localDateOf, START_TIMES } from "@espacios/domain";
+import { addDays, isOpenWeekday, type LocalDate, localDateOf } from "@espacios/domain";
 import { expect, type Page, test } from "@playwright/test";
 
+import { CENTRAL, START_TIMES } from "./facility";
 import { waitForHydration } from "./fixtures";
 import { sessionCookie, USERS } from "./session";
 
@@ -9,8 +10,8 @@ import { sessionCookie, USERS } from "./session";
  * previous and next weeks, and parallel tests must not take each other's slot.
  */
 function freeSlot(): { date: LocalDate; start: string; end: string } {
-  let date = addDays(localDateOf(new Date()), 30 + Math.floor(Math.random() * 25));
-  while (!isOpenWeekday(date)) date = addDays(date, 1);
+  let date = addDays(localDateOf(new Date(), CENTRAL.timeZone), 30 + Math.floor(Math.random() * 25));
+  while (!isOpenWeekday(date, CENTRAL)) date = addDays(date, 1);
   const index = Math.floor(Math.random() * (START_TIMES.length - 2));
   return { date, start: START_TIMES[index] ?? "08:00", end: START_TIMES[index + 1] ?? "08:30" };
 }

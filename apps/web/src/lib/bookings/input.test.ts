@@ -4,10 +4,12 @@ import { fieldsMarkedBy } from "./field-marks";
 import { listQuerySchema, parseBookingForm, parseBookingRequest } from "./input";
 
 const form = { roomId: "room-norte", date: "2026-11-12", start: "10:00", end: "11:30" };
+const ZONES: Record<string, string> = { "room-norte": "America/Argentina/Buenos_Aires", "room-tokio": "Asia/Tokyo" };
+const zoneOf = (roomId: string) => ZONES[roomId];
 
 describe("parseBookingForm", () => {
   it("builds the instants in Buenos Aires time", () => {
-    expect(parseBookingForm(form)).toEqual({
+    expect(parseBookingForm(form, zoneOf)).toEqual({
       ok: true,
       value: {
         roomId: "room-norte",
@@ -17,23 +19,34 @@ describe("parseBookingForm", () => {
     });
   });
 
+  it("builds the instants in the zone of the room's facility (spec 0004)", () => {
+    expect(parseBookingForm({ ...form, roomId: "room-tokio" }, zoneOf)).toMatchObject({
+      ok: true,
+      value: { startsAt: new Date("2026-11-12T01:00:00Z"), endsAt: new Date("2026-11-12T02:30:00Z") },
+    });
+  });
+
+  it("still builds instants for an unknown room, which the use case refuses as not_found", () => {
+    expect(parseBookingForm({ ...form, roomId: "room-nope" }, zoneOf).ok).toBe(true);
+  });
+
   it("lets a time off the marks through, so the use case answers not_on_grid", () => {
-    expect(parseBookingForm({ ...form, start: "10:15" }).ok).toBe(true);
+    expect(parseBookingForm({ ...form, start: "10:15" }, zoneOf).ok).toBe(true);
   });
 
   it("names the fields that cannot be read, in form order", () => {
-    expect(parseBookingForm({ roomId: "", date: "12/11/2026", start: "10:00", end: "25:00" })).toEqual({
+    expect(parseBookingForm({ roomId: "", date: "12/11/2026", start: "10:00", end: "25:00" }, zoneOf)).toEqual({
       ok: false,
       invalidFields: ["roomId", "date", "end"],
     });
   });
 
   it("refuses a day that does not exist", () => {
-    expect(parseBookingForm({ ...form, date: "2026-02-30" })).toEqual({ ok: false, invalidFields: ["date"] });
+    expect(parseBookingForm({ ...form, date: "2026-02-30" }, zoneOf)).toEqual({ ok: false, invalidFields: ["date"] });
   });
 
   it("refuses an empty date (typed text that could not be read)", () => {
-    expect(parseBookingForm({ ...form, date: "" })).toEqual({ ok: false, invalidFields: ["date"] });
+    expect(parseBookingForm({ ...form, date: "" }, zoneOf)).toEqual({ ok: false, invalidFields: ["date"] });
   });
 });
 

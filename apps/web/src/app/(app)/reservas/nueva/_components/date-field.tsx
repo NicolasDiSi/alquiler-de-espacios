@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 
 import {
+  type FacilityRules,
   isBookableDay,
   type LocalDate,
   lastBookableDay,
@@ -51,6 +52,8 @@ export type DateFieldProps = {
   readonly value: string;
   readonly onChange: (date: string) => void;
   readonly now: Date;
+  /** The facility of the chosen room (spec 0004): its zone and open days decide what the calendar enables. */
+  readonly facility: FacilityRules;
   readonly invalid: boolean;
   readonly errorId: string;
 };
@@ -61,7 +64,7 @@ export type DateFieldProps = {
  * `invalid_input` with Fecha marked. The calendar disables past days, weekends and days beyond 60 days with the domain
  * rule; the hint says why. Only display: the server checks the date again.
  */
-export function DateField({ value, onChange, now, invalid, errorId }: DateFieldProps) {
+export function DateField({ value, onChange, now, facility, invalid, errorId }: DateFieldProps) {
   const t = useTranslations("bookingForm");
   const format = useFormatter();
   const [typed, setTyped] = useState(() => toTyped(value));
@@ -70,10 +73,13 @@ export function DateField({ value, onChange, now, invalid, errorId }: DateFieldP
   const ruleHintId = useId();
 
   const selected = parseLocalDate(value);
-  const today = todayAt(now);
+  const { timeZone } = facility;
+  // The usual hint names the days; a facility with other open days gets a hint that does not.
+  const isMondayToFriday = [...facility.openWeekdays].sort().join() === "1,2,3,4,5";
+  const today = todayAt(now, timeZone);
   const describedBy = [invalid ? errorId : null, formatHintId, ruleHintId].filter(Boolean).join(" ");
   // Noon in the facility's zone, so the long date names the right day whatever the browser's zone.
-  const spoken = selected ? format.dateTime(zonedInstant(selected, 12 * 60), "long") : null;
+  const spoken = selected ? format.dateTime(zonedInstant(selected, 12 * 60, timeZone), "long") : null;
 
   const pick = (cell: Date | undefined) => {
     const date = cell ? cellToLocalDate(cell) : null;
@@ -121,10 +127,10 @@ export function DateField({ value, onChange, now, invalid, errorId }: DateFieldP
               selected={selected ? localDateToCell(selected) : undefined}
               defaultMonth={localDateToCell(selected ?? today)}
               startMonth={localDateToCell(today)}
-              endMonth={localDateToCell(lastBookableDay(now))}
+              endMonth={localDateToCell(lastBookableDay(now, timeZone))}
               disabled={(cell) => {
                 const date = cellToLocalDate(cell);
-                return !date || !isBookableDay(date, now);
+                return !date || !isBookableDay(date, now, facility);
               }}
               onSelect={pick}
             />
@@ -135,7 +141,7 @@ export function DateField({ value, onChange, now, invalid, errorId }: DateFieldP
         {t("dateFormat")}
       </p>
       <p id={ruleHintId} className="text-muted-foreground text-sm">
-        {t("dateHint")}
+        {isMondayToFriday ? t("dateHint") : t("dateHintOtherDays")}
       </p>
     </div>
   );

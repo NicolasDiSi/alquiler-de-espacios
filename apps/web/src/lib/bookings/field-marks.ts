@@ -16,6 +16,8 @@ const MARKS: Partial<Record<Reason, readonly BookingFormField[]>> = {
   too_short: ["end"],
   too_long: ["end"],
   conflict: ["start", "end"],
+  room_inactive: ["roomId"],
+  room_blocked: ["start", "end"],
 };
 
 export function fieldsMarkedBy(reason: Reason): readonly BookingFormField[] {

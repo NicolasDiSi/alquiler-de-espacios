@@ -1,6 +1,7 @@
-import type { IdGenerator, TenantTransaction, UnitOfWork } from "@espacios/application";
+import type { TenantTransaction, UnitOfWork } from "@espacios/application";
 import type { TenantId } from "@espacios/domain";
 
+import { createBookingRepository, createMyBookingsQuery } from "./bookings";
 import type { DatabaseClient, TransactionClient } from "./client";
 import { translateDatabaseError } from "./sql-state";
 
@@ -21,14 +22,10 @@ const DEFAULTS = { timeoutMs: 10_000, lockTimeoutMs: 3_000, statementTimeoutMs: 
  * that accepts parameters). Row-level security then limits every statement to that tenant, and every repository
  * also filters by tenant, so a forgotten filter or a wrong id cannot reach another tenant's rows.
  */
-export function createPrismaUnitOfWork(
-  db: DatabaseClient,
-  ids: IdGenerator,
-  options: PrismaUnitOfWorkOptions = {},
-): UnitOfWork {
+export function createPrismaUnitOfWork(db: DatabaseClient, options: PrismaUnitOfWorkOptions = {}): UnitOfWork {
   return {
     run: (tenantId, work) =>
-      runInTenantTransaction(db, tenantId, (tx) => work(tenantTransaction(tx, tenantId, ids)), options),
+      runInTenantTransaction(db, tenantId, (tx) => work(tenantTransaction(tx, tenantId)), options),
   };
 }
 
@@ -60,6 +57,6 @@ export async function runInTenantTransaction<T>(
 }
 
 /** Add each repository here as its slice is built; every query filters by `tenantId` as well as relying on RLS. */
-function tenantTransaction(_tx: TransactionClient, _tenantId: TenantId, _ids: IdGenerator): TenantTransaction {
-  return {};
+function tenantTransaction(tx: TransactionClient, tenantId: TenantId): TenantTransaction {
+  return { bookings: createBookingRepository(tx, tenantId), myBookings: createMyBookingsQuery(tx, tenantId) };
 }

@@ -22,4 +22,11 @@ describe("prisma room catalog (runtime role, no tenant set)", () => {
     expect(rooms).toContainEqual({ id: roomId, name: roomId, capacity: 6 });
     expect(Object.keys(rooms[0] ?? {}).sort()).toEqual(["capacity", "id", "name"]);
   });
+
+  it("finds one room by id, and null for an unknown id", async () => {
+    const roomId = await createRoom(owner);
+
+    await expect(catalog.findRoom(roomId)).resolves.toEqual({ id: roomId, name: roomId, capacity: 6 });
+    await expect(catalog.findRoom("room-that-does-not-exist")).resolves.toBeNull();
+  });
 });

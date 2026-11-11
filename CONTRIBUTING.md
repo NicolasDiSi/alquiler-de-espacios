@@ -1,5 +1,16 @@
 # Contributing
 
+## Branches and versions
+
+- **`main`** holds the initial setup and completed, tagged versions only. Nothing is developed on it directly.
+- **`develop`** is the integration branch, cut from `main`. Chores, fixes, docs and other small changes are committed on it directly, without a branch.
+- **Feature branches** are cut from `develop` when a new feature (a slice from the scope) starts, named `feat/<short-name>` (`feat/book-a-room`). One branch per feature, never one per commit.
+- **Merging:** a feature branch is merged into `develop` only when the maintainer says to, with `git merge --no-ff`, never squashed, so the history of each slice stays visible. The branch is deleted after the merge.
+- **Releases:** when a version is complete, bump `version` in the root `package.json` on `develop`, merge `develop` into `main` with `--no-ff` and tag the merge commit with the same version (`git tag v0.1.0`). The tag is the application version.
+- **Hotfixes:** a bug in a released version is fixed on a `hotfix/<short-name>` branch cut from `main`, merged into `main` and tagged, then merged into `develop` too.
+
+These are team conventions, not enforced by hooks. What enforces quality is the checks: Biome and commitlint on commit, the gates in `pnpm check:ai`, and CI.
+
 ## Workflow
 
 1. **Work in small slices.** Each slice goes end to end (domain, use case, database, API, UI, tests) and ends in one or more commits.

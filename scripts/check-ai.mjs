@@ -39,7 +39,7 @@ function findBaseRef() {
 
 const baseRef = affected ? findBaseRef() : null;
 const turboFilter = baseRef ? [`--filter=...[${baseRef}]`] : [];
-const biomeScope = baseRef ? ["--changed", `--since=${baseRef}`] : [];
+const biomeScope = baseRef ? ["--changed", `--since=${baseRef}`, "--no-errors-on-unmatched"] : [];
 
 const gates = [
   { name: "biome", command: "pnpm", args: ["exec", "biome", "check", "--reporter=summary", ...biomeScope] },

@@ -162,7 +162,7 @@ Cookie session on every route. Server Actions for the UI call the same use cases
 | Metrics            | open minutes per room                                           | `domain` TypeScript: weekdays in the range × 720 minutes. Not computed in SQL.                                      |
 | Metrics            | booked minutes                                                  | SQL sum over `confirmed` bookings with `starts_at` in the range                                                     |
 | Metrics            | range                                                           | `from` and `to` inclusive local days, default last 30 days ending today, maximum 366 days                           |
-| Session            | cookie value                                                    | `userId.signature`, HMAC with `SESSION_SECRET`                                                                      |
+| Session            | cookie value                                                    | `userId.expiresAt.signature`, HMAC with `SESSION_SECRET` (`expiresAt` in unix seconds)                              |
 | Seeds              | rooms, companies, users, demo bookings                          | `pnpm db:seed` (below)                                                                                              |
 
 ### Availability read path
@@ -211,7 +211,7 @@ All computed by the operator port over `confirmed` bookings whose `starts_at` is
 - Company users read and write only their own bookings; they read all rooms and the anonymous busy intervals.
 - The operator reads everything and writes nothing, through the operator port. Operator pages are guarded by role in the edge and by the read only database role.
 - **Names are not private.** `company` and `app_user` have no RLS, because the picker and the cookie resolve a user before any tenant is set. A member can therefore list other companies' user names. Seed names are demo data. State this in Supuestos.
-- Cookie: httpOnly, `SameSite=Lax`, `Secure` when the request protocol is https (not keyed on `NODE_ENV`, so `next start` over http still works), HMAC signed with a timing safe compare, `maxAge` 8 hours. If the user in the cookie no longer exists, respond 401.
+- Cookie: httpOnly, `SameSite=Lax`, `Secure` when the request protocol is https (not keyed on `NODE_ENV`, so `next start` over http still works), HMAC signed with a timing safe compare, `maxAge` 8 hours. The signed value carries the same expiry, so a copied cookie is refused after it (401) even though only the browser enforces `maxAge`. If the user in the cookie no longer exists, respond 401.
 - CSRF: `SameSite=Lax` treats other `localhost` ports as same site, so the Origin check is the real guard. Reject a state changing request when `Origin` is present and does not match the request host; allow it when absent (curl). POST Route Handlers also require `Content-Type: application/json`. Server Actions use Next.js origin checks.
 - This is a stand in for authentication, not authentication: anyone can pick any seeded user. State it in the README limits.
 - Raw database errors, stack traces and other companies' data never reach a response.

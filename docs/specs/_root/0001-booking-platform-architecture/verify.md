@@ -67,3 +67,36 @@ _Also covers spec 0002 (the picker screen, assumed). AC numbers are spec 0002's;
 - AC-3 member blocked from operator routes and the reverse (403): manual 3, 5 · unit access tests · e2e
 - AC-4 company comes from the cookie's user: manual 6, 7 · db directory tests · value sourcing step 1
 - P-14 (spec 0001): bad signature, expired, unknown user 401; mismatched Origin refused and absent Origin allowed (unit, `origin.test.ts` and `access.test.ts`; no POST Route Handler exists yet); `Secure` only over https (manual 2 shows it off over http; the https case is not exercised yet)
+
+## Result and error contract (feature 4)
+
+_Added 2026-11-11 by /develop. Steps derived from the "Typed result and error contract" section, P-6, P-9 and the scope's "Done when" for feature 4._
+
+### Commands
+
+- [x] `pnpm --filter @espacios/web exec vitest run src/lib/result` → every reason in `REASONS` has one HTTP status and one non empty es-AR message, the `errors` catalog has no extra key, the statuses match the spec table, `busy` answers 503 with `Retry-After: 1` → P-6
+- [x] `pnpm --filter @espacios/db exec vitest run src/sql-state.test.ts` → a real `23P01` out of Prisma becomes `ConcurrencyError` then `conflict`; a real `55P03` (behind an uncommitted conflicting insert), `57014` and Prisma `P2028` become `BusyError` then `busy`; nothing is written; a `23514` passes through untouched → P-9 (the `sqlState(err)` part)
+- [x] Same file, last test → inside a tenant transaction `lock_timeout` is `3s` and `statement_timeout` is `5s`, and outside it both are back to `0` → spec "SET LOCAL lock_timeout"
+- [x] Break `translateDatabaseError` (return the error unchanged) and rerun the db file → the five mapping tests fail; restore it → they pass (proves the tests check the mapping, done once on 2026-11-11)
+- [x] With `pnpm dev` running: `curl -i http://localhost:3000/api/v1/rooms` → `401`, `Cache-Control: no-store`, body `{ "code": "unauthenticated", "message": "Tu sesión no es válida o venció..." }` → status from `reasonToHttp`, message from the catalog
+
+### Value sourcing
+
+- [x] The message of a failure comes from `messages/es.json` `errors.<reason>` only: grep the domain and application packages for Spanish text in `fail(` → none (domain failures carry only the reason)
+- [x] The `conflict` body never names the other booking: in the db test, the `ConcurrencyError` message contains no company, user or time → spec "never forward a raw driver error"
+
+### Acceptance criteria coverage
+
+- Done when "every reason has one HTTP status and one Spanish message (a test iterates them)": `contract.test.ts`, command 1
+- Done when "a real `23P01`, `55P03` and `57014` coming out of Prisma map to `conflict` and `busy`": `sql-state.test.ts`, commands 2 to 4
+- Not covered here (owed by feature 5, needs the booking use case): P-9's "lock timeout returns 503 through the API and nothing is written" end to end, and the `success.*` messages reaching a Server Action
+- Moved to feature 5 on 2026-11-11: the 403 for a POST with a foreign Origin. `/api/v1/rooms` has only `GET`, so Next answers 405 before the Origin check runs; no POST route exists until feature 5.
+- Verified 2026-11-11 by `/check verify`: PASS. Seven steps ran and passed (contract tests, real database errors, timeouts, mutation check, live 401 on `next start`, both value sourcing checks).
+
+## Book a room and see it in my bookings (feature 5)
+
+_Seeded 2026-11-11 by `/check verify result and error contract`. Feature 5 adds its own steps here when it is built._
+
+### Commands
+
+- [ ] Signed in as a member (cookie from the picker), `curl -i -X POST -H 'Origin: https://evil.example' -H 'Content-Type: application/json' -b '<cookie>' -d '{}' http://localhost:3000/api/v1/bookings` → `403` with `{ "code": "forbidden", "message": ... }` and `Cache-Control: no-store`, before the body is read → the Origin check uses the same `failureResponse` as every other failure (carried over from feature 4)

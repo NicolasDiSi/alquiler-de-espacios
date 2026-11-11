@@ -41,3 +41,6 @@ npm-debug.log*
 
 # Generated Prisma client (run pnpm generate)
 packages/db/src/generated/
+
+# Cache the architect skill writes (web research, tool discovery)
+docs/.agent-cache/

@@ -2,11 +2,19 @@ import { type Actor, type BookingId, type LocalDate, type TenantId, type UserId,
 import { describe, expect, it } from "vitest";
 
 import type { BookingRecord, MyBookingsPageQuery, NewBooking } from "../ports/bookings";
-import { BusyError, ConcurrencyError, type TenantTransaction, type UnitOfWork } from "../ports/ports";
-import type { RoomCatalog, RoomView } from "../ports/queries/room-catalog";
+import {
+  BusyError,
+  ConcurrencyError,
+  RuleViolationError,
+  type TenantTransaction,
+  type UnitOfWork,
+} from "../ports/ports";
+import type { FacilityView, RoomCatalog, RoomView } from "../ports/queries/room-catalog";
 import { bookRoom, listMyBookings, toBookingView } from "./bookings";
 
-const at = (date: string, hours: number, minutes = 0) => zonedInstant(date as LocalDate, hours * 60 + minutes);
+const BUENOS_AIRES = "America/Argentina/Buenos_Aires";
+const at = (date: string, hours: number, minutes = 0) =>
+  zonedInstant(date as LocalDate, hours * 60 + minutes, BUENOS_AIRES);
 
 const ACME = "company-acme" as TenantId;
 const GLOBEX = "company-globex" as TenantId;
@@ -15,7 +23,26 @@ const beto: Actor = { role: "member", userId: "user-beto" as UserId, tenantId: A
 const gus: Actor = { role: "member", userId: "user-gus" as UserId, tenantId: GLOBEX };
 const operator: Actor = { role: "operator", userId: "user-operador" as UserId };
 
-const NORTE: RoomView = { id: "room-norte", name: "Sala Norte", capacity: 8 };
+const CENTRAL: FacilityView = {
+  id: "facility-central",
+  name: "Sede Central",
+  timeZone: BUENOS_AIRES,
+  opensAt: 8 * 60,
+  closesAt: 20 * 60,
+  openWeekdays: [1, 2, 3, 4, 5],
+};
+const NORTE: RoomView = { id: "room-norte", name: "Sala Norte", capacity: 8, active: true, facility: CENTRAL };
+// A facility that opens only Tuesday and Saturday, 09:00 to 13:00, in Tokyo.
+const TOKIO: FacilityView = {
+  id: "facility-tokio",
+  name: "Sede Tokio",
+  timeZone: "Asia/Tokyo",
+  opensAt: 9 * 60,
+  closesAt: 13 * 60,
+  openWeekdays: [2, 6],
+};
+const SALA_TOKIO: RoomView = { id: "room-tokio", name: "Sala Tokio", capacity: 4, active: true, facility: TOKIO };
+const SALA_CERRADA: RoomView = { ...NORTE, id: "room-cerrada", name: "Sala Cerrada", active: false };
 const USERS: Record<string, string> = { "user-ana": "Ana", "user-beto": "Beto", "user-gus": "Gus" };
 
 type Stored = BookingRecord & { readonly tenantId: TenantId };
@@ -40,7 +67,11 @@ function fakeDatabase() {
         const stored: Stored = {
           tenantId,
           id: booking.id,
-          room: { id: booking.roomId, name: NORTE.name },
+          room: {
+            id: booking.roomId,
+            name: NORTE.name,
+            timeZone: ALL_ROOMS.find((room) => room.id === booking.roomId)?.facility.timeZone ?? BUENOS_AIRES,
+          },
           bookedBy: { name: USERS[booking.bookedBy] ?? "?" },
           startsAt: booking.startsAt,
           endsAt: booking.endsAt,
@@ -88,9 +119,10 @@ function fakeDatabase() {
   };
 }
 
+const ALL_ROOMS = [NORTE, SALA_TOKIO, SALA_CERRADA];
 const rooms: RoomCatalog = {
-  listRooms: async () => [NORTE],
-  findRoom: async (id) => (id === NORTE.id ? NORTE : null),
+  listRooms: async () => ALL_ROOMS.filter((room) => room.active),
+  findRoom: async (id) => ALL_ROOMS.find((room) => room.id === id) ?? null,
 };
 
 // Monday 2026-11-09, 09:00 in Buenos Aires.
@@ -154,6 +186,48 @@ describe("bookRoom", () => {
     await expect(bookRoom(deps, ana, { roomId: NORTE.id, ...period })).resolves.toEqual({ ok: false, reason });
     expect(db.rows()).toEqual([]);
   });
+
+  it("refuses an inactive room with room_inactive and writes nothing (spec 0004, AC-8)", async () => {
+    const { db, deps } = setup();
+    const result = await bookRoom(deps, ana, { ...tuesday10to11, roomId: SALA_CERRADA.id });
+    expect(result).toEqual({ ok: false, reason: "room_inactive" });
+    expect(db.rows()).toEqual([]);
+  });
+
+  it("checks the rules against the facility of the room, in its zone (spec 0004, AC-9)", async () => {
+    const { db, deps } = setup();
+    // Tuesday 2026-11-10, 10:00 to 11:00 in Tokyo is inside that facility's hours, and outside Buenos Aires hours.
+    const tokioTuesday = {
+      roomId: SALA_TOKIO.id,
+      startsAt: new Date("2026-11-10T01:00:00Z"),
+      endsAt: new Date("2026-11-10T02:00:00Z"),
+    };
+    const stored = await bookRoom(deps, ana, tokioTuesday);
+    expect(stored).toMatchObject({ ok: true, value: { booking: { startsAt: "2026-11-10T10:00:00+09:00" } } });
+
+    // The same wall clock on Wednesday, a day that facility is closed.
+    const wednesday = {
+      ...tokioTuesday,
+      startsAt: new Date("2026-11-11T01:00:00Z"),
+      endsAt: new Date("2026-11-11T02:00:00Z"),
+    };
+    await expect(bookRoom(deps, ana, wednesday)).resolves.toEqual({ ok: false, reason: "outside_hours" });
+    expect(db.rows()).toHaveLength(1);
+  });
+
+  it.each(["room_inactive", "company_inactive", "outside_hours", "room_blocked"] as const)(
+    "returns %s when the database guard refuses a booking that raced a change (spec 0004, P-16 to P-18)",
+    async (reason) => {
+      const { db, deps } = setup();
+      const racing: UnitOfWork = {
+        run: async () => {
+          throw new RuleViolationError(reason);
+        },
+      };
+      await expect(bookRoom({ ...deps, uow: racing }, ana, tuesday10to11)).resolves.toEqual({ ok: false, reason });
+      expect(db.rows()).toEqual([]);
+    },
+  );
 
   it("returns not_found for an unknown room", async () => {
     const { db, deps } = setup();
@@ -222,7 +296,7 @@ function record(id: string, startsAt: Date, endsAt: Date): Stored {
   return {
     tenantId: ACME,
     id: id as BookingId,
-    room: { id: NORTE.id, name: NORTE.name },
+    room: { id: NORTE.id, name: NORTE.name, timeZone: BUENOS_AIRES },
     bookedBy: { name: "Ana" },
     startsAt,
     endsAt,

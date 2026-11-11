@@ -1,6 +1,6 @@
 export * from "./ports/bookings";
 export * from "./ports/ports";
-export type { RoomCatalog, RoomView } from "./ports/queries/room-catalog";
+export type { FacilityView, RoomCatalog, RoomView } from "./ports/queries/room-catalog";
 export type { DirectoryUser, SignInChoicesView, UserDirectory } from "./ports/queries/user-directory";
 export {
   type BookingView,

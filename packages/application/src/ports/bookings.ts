@@ -3,7 +3,8 @@ import type { BookingId, BookingStatus, UserId } from "@espacios/domain";
 /** A booking as the company edge reads it: with the room's name and who booked it, never the company. */
 export type BookingRecord = {
   readonly id: BookingId;
-  readonly room: { readonly id: string; readonly name: string };
+  /** `timeZone` is the room's facility zone, so the view writes its instants with the right offset (spec 0004). */
+  readonly room: { readonly id: string; readonly name: string; readonly timeZone: string };
   readonly bookedBy: { readonly name: string };
   readonly startsAt: Date;
   readonly endsAt: Date;

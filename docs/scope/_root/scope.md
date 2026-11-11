@@ -134,6 +134,7 @@ Backend only, from [spec 0004](../../specs/_root/0004-operator-administration-an
   - [x] Migration: `facility`, `block`, room and company columns (`kind`, `logo_url`, `deactivated_at`, `active_from`), backfill, grants, booking guard trigger, seeds · AC-2, AC-3, AC-8, AC-9, AC-16, AC-19
   - [x] Domain and member path: facility rules replace the constants, new reasons, inactive rooms and companies refused · AC-7, AC-8, AC-9, AC-15, AC-16
   - [ ] Operator edge: facilities, rooms, clients with members, deactivation, hours change with the affected bookings list · AC-1 to AC-7, AC-21
+    - Thin CRUD done (create, list, get, edit for facilities, rooms, clients, members, blocks, with release). Still to deepen: deactivation, the hours change check, `has_future_bookings` and `block_has_bookings` with their lists and locks, company reactivation.
   - [ ] Blocks and the availability `kind` · AC-17, AC-18, AC-19, AC-20
   - [ ] Bookings list, metrics and insights · AC-10 to AC-14
 - [ ] Verify it: `/check verify operator administration`

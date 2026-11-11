@@ -55,6 +55,22 @@ export class RuleViolationError extends Error {
   }
 }
 
+/** Thrown by the operator adapter when a unique value (a name, a slug) is already taken (`23505`). */
+export class UniqueViolationError extends Error {
+  constructor(options?: { cause?: unknown }) {
+    super("That value is already taken.", options);
+    this.name = "UniqueViolationError";
+  }
+}
+
+/** Thrown by the operator adapter when a record points at one that does not exist (`23503`). */
+export class MissingReferenceError extends Error {
+  constructor(options?: { cause?: unknown }) {
+    super("A referenced record does not exist.", options);
+    this.name = "MissingReferenceError";
+  }
+}
+
 /**
  * Thrown by the adapter when the database could not answer in time: lock or statement timeout, deadlock,
  * serialization failure, or no transaction available. Nothing was written; the use case turns it into `busy`.

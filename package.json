@@ -23,6 +23,7 @@
     "services:down": "docker compose down",
     "db:migrate": "pnpm --filter @espacios/db db:migrate",
     "db:deploy": "pnpm --filter @espacios/db db:deploy",
+    "db:seed": "pnpm --filter @espacios/db db:seed",
     "db:studio": "pnpm --filter @espacios/db db:studio",
     "prepare": "husky"
   },

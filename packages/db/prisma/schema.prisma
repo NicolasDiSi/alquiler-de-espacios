@@ -18,5 +18,72 @@ model Company {
   slug      String   @unique
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
+  users    AppUser[]
+  bookings Booking[]
+
   @@map("company")
+}
+
+enum UserRole {
+  member
+  operator
+
+  @@map("user_role")
+}
+
+enum BookingStatus {
+  confirmed
+  cancelled
+
+  @@map("booking_status")
+}
+
+// Seeded stand in for authentication (spec 0001). A member belongs to a company, the operator to none (CHECK in the
+// migration). No row level security: the picker and the session cookie read users before any tenant is set.
+model AppUser {
+  id        String   @id
+  tenantId  String?  @map("tenant_id")
+  name      String
+  role      UserRole
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  company  Company?  @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  bookings Booking[]
+
+  @@index([tenantId])
+  @@map("app_user")
+}
+
+// Owned by the operator and shared by every company: no tenant_id, no row level security, read only for companies.
+model Room {
+  id        String   @id
+  name      String   @unique
+  capacity  Int
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  bookings Booking[]
+
+  @@map("room")
+}
+
+// The tenant table. The exclusion constraint, CHECKs, row level security and grants are hand written SQL in the
+// migration (Prisma cannot model them); see docs/specs/_root/0001-booking-platform-architecture/index.md.
+model Booking {
+  id          String        @id
+  tenantId    String        @map("tenant_id")
+  roomId      String        @map("room_id")
+  bookedBy    String        @map("booked_by")
+  startsAt    DateTime      @map("starts_at") @db.Timestamptz(3)
+  endsAt      DateTime      @map("ends_at") @db.Timestamptz(3)
+  status      BookingStatus @default(confirmed)
+  cancelledAt DateTime?     @map("cancelled_at") @db.Timestamptz(3)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  company Company @relation(fields: [tenantId], references: [id])
+  room    Room    @relation(fields: [roomId], references: [id])
+  user    AppUser @relation(fields: [bookedBy], references: [id])
+
+  @@index([tenantId, startsAt, id])
+  @@index([roomId, startsAt])
+  @@map("booking")
 }

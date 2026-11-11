@@ -1,0 +1,64 @@
+import { CLIENT_KINDS } from "@espacios/application";
+import { z } from "zod";
+
+/**
+ * The operator API's inputs (spec 0004), each one Zod schema, with its type inferred. They check the shape only; the
+ * rules (a real zone, hours on the marks, one member for an individual) are the use cases'. Unknown keys are refused.
+ */
+
+const text = (max: number) => z.string().trim().min(1).max(max);
+const id = text(128);
+const instant = z.iso.datetime({ offset: true }).transform((value) => new Date(value));
+const httpsUrl = z
+  .url()
+  .max(2048)
+  .refine((value) => value.startsWith("https://"), "https only");
+
+export const facilityBody = z.strictObject({
+  name: text(100),
+  address: text(200).nullable().optional(),
+  timeZone: text(64),
+  opensAt: z.number().int(),
+  closesAt: z.number().int(),
+  openWeekdays: z.array(z.number().int()).max(7),
+});
+export const facilityPatch = facilityBody.partial();
+
+export const roomBody = z.strictObject({
+  facilityId: id,
+  name: text(100),
+  capacity: z.number().int(),
+  activeFrom: instant.optional(),
+});
+export const roomPatch = z.strictObject({ name: text(100).optional(), capacity: z.number().int().optional() });
+
+export const clientBody = z.strictObject({
+  name: text(100),
+  slug: z
+    .string()
+    .max(63)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  kind: z.enum(CLIENT_KINDS),
+  logoUrl: httpsUrl.nullable().optional(),
+  member: z.strictObject({ name: text(100) }).optional(),
+});
+export const clientPatch = z.strictObject({ name: text(100).optional(), logoUrl: httpsUrl.nullable().optional() });
+
+export const memberBody = z.strictObject({ name: text(100) });
+
+export const blockBody = z.strictObject({
+  facilityId: id,
+  roomId: id.nullable().optional(),
+  startsAt: instant,
+  endsAt: instant,
+  reason: text(200),
+});
+
+/** Query strings: `?includeInactive=true`, `?facilityId=`, `?includeReleased=true`. */
+const flag = z
+  .enum(["true", "false"])
+  .default("false")
+  .transform((value) => value === "true");
+export const inactiveQuery = z.object({ includeInactive: flag });
+export const roomsQuery = z.object({ includeInactive: flag, facilityId: id.optional() });
+export const blocksQuery = z.object({ includeReleased: flag, facilityId: id.optional(), roomId: id.optional() });

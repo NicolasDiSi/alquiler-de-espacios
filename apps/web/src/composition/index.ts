@@ -1,8 +1,9 @@
 // The composition root: the only place in the app that creates adapters (dependency cruiser rule
 // `only-composition-root-wires-adapters`). Everything is created on first use, so `next build` needs no database.
-import type { Dependencies, RoomCatalog, UserDirectory } from "@espacios/application";
+import type { Dependencies, OperatorDependencies, RoomCatalog, UserDirectory } from "@espacios/application";
 import {
   createDatabaseClient,
+  createPrismaOperatorCatalog,
   createPrismaRoomCatalog,
   createPrismaUnitOfWork,
   createPrismaUserDirectory,
@@ -13,7 +14,10 @@ import {
 import { MIN_SECRET_BYTES } from "@/lib/session/token";
 
 /** One client per process, kept across dev hot reloads so they do not open a new pool each time. */
-const cache = globalThis as typeof globalThis & { __espaciosRuntimeDb?: DatabaseClient };
+const cache = globalThis as typeof globalThis & {
+  __espaciosRuntimeDb?: DatabaseClient;
+  __espaciosOperatorDb?: DatabaseClient;
+};
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -27,6 +31,15 @@ function requireEnv(name: string): string {
 function runtimeDb(): DatabaseClient {
   cache.__espaciosRuntimeDb ??= createDatabaseClient(requireEnv("DATABASE_URL"));
   return cache.__espaciosRuntimeDb;
+}
+
+/**
+ * The operator edge login (`espacios_operator`): it bypasses row level security, reads every company and writes only the
+ * catalog (`facility`, `room`, `company`, `block`, members), never `booking` (spec 0004). Used only by operator routes.
+ */
+function operatorDb(): DatabaseClient {
+  cache.__espaciosOperatorDb ??= createDatabaseClient(requireEnv("DATABASE_OPERATOR_URL"));
+  return cache.__espaciosOperatorDb;
 }
 
 export function userDirectory(): UserDirectory {
@@ -49,6 +62,11 @@ export function companyEdge(): Dependencies & { readonly rooms: RoomCatalog } {
     ids: createUuidV7Generator(),
     rooms: createPrismaRoomCatalog(db),
   };
+}
+
+/** What the operator edge's use cases need: the catalog on the operator login, the clock and ids (spec 0004). */
+export function operatorEdge(): OperatorDependencies {
+  return { catalog: createPrismaOperatorCatalog(operatorDb()), clock: systemClock, ids: createUuidV7Generator() };
 }
 
 /** The HMAC key for the session cookie. A short key is refused rather than used. */

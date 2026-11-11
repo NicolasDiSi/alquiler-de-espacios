@@ -28,7 +28,16 @@ describe("the error contract (spec 0001, P-6)", () => {
       "401": ["unauthenticated"],
       "403": ["company_inactive", "forbidden"],
       "404": ["not_found"],
-      "409": ["conflict", "room_inactive", "room_blocked", "already_cancelled"],
+      "409": [
+        "conflict",
+        "already_exists",
+        "facility_inactive",
+        "individual_is_single",
+        "already_released",
+        "room_inactive",
+        "room_blocked",
+        "already_cancelled",
+      ],
       "422": [
         "not_on_grid",
         "outside_hours",

@@ -1,5 +1,6 @@
 export * from "./booking/booking";
 export * from "./booking/calendar";
+export * from "./booking/facility";
 export * from "./booking/rules";
 export * from "./booking/slots";
 export * from "./identity/actor";

@@ -6,8 +6,7 @@ import { getTranslations } from "next-intl/server";
 import { HEATMAP_STEPS, MatrixHeatmap } from "@/components/charts/matrix-heatmap";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { WEEKDAYS_MONDAY_FIRST, weekdayKey } from "@/lib/operator/format";
-
-import { formatWholePercent, pad } from "./format";
+import { formatWholePercent, pad } from "@/lib/operator/metric-format";
 
 /**
  * Weekday by hour occupancy of the period over every facility (spec 0004, AC-13), with its busiest and emptiest cell. A

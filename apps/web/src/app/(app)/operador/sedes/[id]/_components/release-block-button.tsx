@@ -5,8 +5,8 @@ import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 
+import { releaseBlockAction } from "../../../_actions/blocks";
 import { ConfirmDialog } from "../../../_components/form-dialog";
-import { releaseBlockAction } from "../_actions/blocks";
 
 /** Release a block: it stops blocking at once and stays in the history (never edited or deleted). */
 export function ReleaseBlockButton({

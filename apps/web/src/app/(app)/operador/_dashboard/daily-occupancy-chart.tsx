@@ -16,8 +16,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-
-import { formatDay, formatHours, formatMonth, formatPercent, formatWholePercent } from "./format";
+import { formatDay, formatHours, formatMonth, formatPercent, formatWholePercent } from "@/lib/operator/metric-format";
 
 type Point = {
   date: string;

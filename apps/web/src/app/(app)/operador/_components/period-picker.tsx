@@ -5,14 +5,14 @@ import { cn } from "cn";
 import { CalendarDays } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
-import { formatDateRange } from "./format";
-import { PERIODOS, type Periodo, periodoHref } from "./period";
+import { formatDateRange } from "@/lib/operator/metric-format";
+import { PERIODOS, type Periodo, periodoHref } from "@/lib/operator/period";
 
 /**
  * The period as links shaped like a segmented toggle (as the Mis reservas tabs): each one is a URL the server renders, so
  * only the active period is read. The dates it covers sit beside it.
  */
-export async function PeriodPicker({ current, range }: { current: Periodo; range: DayRange }) {
+export async function PeriodPicker({ path, current, range }: { path: string; current: Periodo; range: DayRange }) {
   const t = await getTranslations("operator.dashboard.period");
 
   return (
@@ -24,7 +24,7 @@ export async function PeriodPicker({ current, range }: { current: Periodo; range
             return (
               <li key={periodo} className="-ml-px first:ml-0">
                 <Link
-                  href={periodoHref(periodo)}
+                  href={periodoHref(path, periodo)}
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "focus-visible:ring-ring/50 relative inline-flex h-8 items-center border px-3 text-xs font-medium outline-none focus-visible:z-10 focus-visible:ring-3",

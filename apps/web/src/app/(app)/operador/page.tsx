@@ -4,14 +4,14 @@ import { getTranslations } from "next-intl/server";
 
 import { operatorReadEdge } from "@/composition";
 import { TIME_ZONE } from "@/i18n/config";
+import { PERIODOS, periodoOf } from "@/lib/operator/period";
 import { requireOperator } from "@/lib/session/session";
 
+import { PeriodPicker } from "./_components/period-picker";
 import { CompanyUsageList } from "./_dashboard/company-usage-list";
 import { DailyOccupancyChart } from "./_dashboard/daily-occupancy-chart";
 import { KpiStrip } from "./_dashboard/kpi-strip";
 import { OccupancyHeatmap } from "./_dashboard/occupancy-heatmap";
-import { PERIODOS, periodoOf } from "./_dashboard/period";
-import { PeriodPicker } from "./_dashboard/period-picker";
 import { Recommendations } from "./_dashboard/recommendations";
 import { RoomUsageChart } from "./_dashboard/room-usage-chart";
 
@@ -47,7 +47,7 @@ export default async function OperatorDashboardPage({ searchParams }: { searchPa
           <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
           <p className="text-muted-foreground">{t("description")}</p>
         </div>
-        <PeriodPicker current={periodo} range={dashboard.range} />
+        <PeriodPicker path="/operador" current={periodo} range={dashboard.range} />
       </div>
 
       <KpiStrip dashboard={dashboard}>

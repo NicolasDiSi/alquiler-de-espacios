@@ -17,8 +17,7 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { weekdayKey } from "@/lib/operator/format";
-
-import { formatHours, formatWholePercent, pad } from "./format";
+import { formatHours, formatWholePercent, pad } from "@/lib/operator/metric-format";
 
 type Kind = "idle" | "lowUse" | "cancellations";
 

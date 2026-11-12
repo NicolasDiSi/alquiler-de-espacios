@@ -17,9 +17,9 @@ import {
 } from "@/components/data-table/data-table";
 import { createAppColumnHelper, DATA_TABLE_PAGE_SIZE, useAppTable } from "@/components/data-table/table-hook";
 import { Progress } from "@/components/ui/progress";
+import { formatHours, formatInteger, formatPercent } from "@/lib/operator/metric-format";
 
 import { StatusDot } from "../_components/status";
-import { formatHours, formatInteger, formatPercent } from "./format";
 
 type CompanyRow = OperatorDashboard["companies"][number];
 

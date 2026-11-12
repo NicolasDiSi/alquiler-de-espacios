@@ -2,55 +2,23 @@ import type { ReactNode } from "react";
 
 import type { OperatorDashboard } from "@espacios/application";
 import { cn } from "cn";
-import {
-  CalendarCheck,
-  CalendarX,
-  ChartPie,
-  Clock,
-  type LucideIcon,
-  Minus,
-  TrendingDown,
-  TrendingUp,
-} from "lucide-react";
+import { CalendarCheck, CalendarX, ChartPie, Clock, type LucideIcon } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
-import { Badge } from "@/components/ui/badge";
 import { Card, CardAction, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import {
+  formatDecimal,
+  formatDecimalHours,
+  formatHours,
+  formatInteger,
+  formatPercent,
+  signOf,
+} from "@/lib/operator/metric-format";
 
-import { formatDecimal, formatDecimalHours, formatHours, formatInteger, formatPercent, signOf } from "./format";
+import { type Delta, DeltaBadge, delta } from "../_components/delta-badge";
 
-/** Changes smaller than this read as flat. */
-const FLAT = 0.001;
-
-type Delta = { text: string; trend: "up" | "down" | "flat"; favorable: boolean | null };
 type Detail = { label: string; value: string };
 type Kpi = { id: string; icon: LucideIcon; label: string; value: string; delta: Delta | null; details: Detail[] };
-
-const TREND_ICONS = { up: TrendingUp, down: TrendingDown, flat: Minus } as const;
-
-function delta(change: number | null, text: (change: number) => string, higherIsBetter: boolean): Delta | null {
-  if (change === null) return null;
-  let trend: Delta["trend"] = change > 0 ? "up" : "down";
-  if (Math.abs(change) < FLAT) trend = "flat";
-  return { text: text(change), trend, favorable: trend === "flat" ? null : (trend === "up") === higherIsBetter };
-}
-
-function DeltaBadge({ delta, none }: { delta: Delta | null; none: string }) {
-  if (!delta) return <Badge variant="outline">{none}</Badge>;
-  const Icon = TREND_ICONS[delta.trend];
-  return (
-    <Badge
-      variant="outline"
-      className={cn(
-        delta.favorable === true && "border-success/30 bg-success/10 text-success",
-        delta.favorable === false && "border-destructive/30 bg-destructive/10 text-destructive",
-      )}
-    >
-      <Icon aria-hidden />
-      {delta.text}
-    </Badge>
-  );
-}
 
 /**
  * The period's four indicators in a two by two grid, beside the daily occupancy chart (`children`), in one surface (the

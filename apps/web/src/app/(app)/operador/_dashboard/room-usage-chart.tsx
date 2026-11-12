@@ -6,8 +6,7 @@ import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-
-import { formatHours, formatPercent, formatWholePercent } from "./format";
+import { formatHours, formatPercent, formatWholePercent } from "@/lib/operator/metric-format";
 
 type Datum = DashboardRoom & {
   /** Percent, 0 to 100, so the bars and their labels share a scale. */

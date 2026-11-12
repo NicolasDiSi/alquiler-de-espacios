@@ -44,8 +44,11 @@ export const useFieldMark = (field: string): FieldMark => use(FieldMarks)(field)
 
 export type FormDialogProps = {
   readonly action: (previous: OperatorFormState, formData: FormData) => Promise<OperatorFormState>;
-  /** The button that opens it, as rendered (a `Button`). */
-  readonly trigger: ReactElement;
+  /** The button that opens it, as rendered (a `Button`). None when the dialog is opened from outside (`open`). */
+  readonly trigger?: ReactElement;
+  /** Controlled from outside (a calendar selection opens it); otherwise the trigger opens it. */
+  readonly open?: boolean;
+  readonly onOpenChange?: (open: boolean) => void;
   readonly title: string;
   readonly description: string;
   readonly submitLabel: string;
@@ -64,11 +67,13 @@ export type FormDialogProps = {
  * starts clean. A refusal keeps it open with the values typed, shows the reason in one focused alert, marks the fields
  * it names and lists the bookings in the way. A success closes it and shows a toast.
  */
-export function FormDialog({ trigger, ...props }: FormDialogProps) {
-  const [open, setOpen] = useState(false);
+export function FormDialog({ trigger, open: controlled, onOpenChange, ...props }: FormDialogProps) {
+  const [own, setOwn] = useState(false);
+  const open = controlled ?? own;
+  const setOpen = (next: boolean) => (onOpenChange ? onOpenChange(next) : setOwn(next));
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
       <DialogContent>
         <FormBody {...props} onClose={() => setOpen(false)} />
       </DialogContent>
@@ -92,7 +97,7 @@ function FormBody({
   hidden,
   children,
   onClose,
-}: Omit<FormDialogProps, "trigger"> & { readonly onClose: () => void }) {
+}: Omit<FormDialogProps, "trigger" | "open" | "onOpenChange"> & { readonly onClose: () => void }) {
   const t = useTranslations("operator.form");
   const common = useTranslations("common");
   const [state, formAction, pending] = useActionState<OperatorFormState, FormData>(action, null);

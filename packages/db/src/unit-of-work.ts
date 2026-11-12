@@ -1,6 +1,7 @@
 import type { TenantTransaction, UnitOfWork } from "@espacios/application";
 import type { TenantId } from "@espacios/domain";
 
+import { createAvailabilityQuery } from "./availability";
 import { createBookingRepository, createMyBookingsQuery } from "./bookings";
 import type { DatabaseClient, TransactionClient } from "./client";
 import { translateDatabaseError } from "./sql-state";
@@ -58,5 +59,9 @@ export async function runInTenantTransaction<T>(
 
 /** Add each repository here as its slice is built; every query filters by `tenantId` as well as relying on RLS. */
 function tenantTransaction(tx: TransactionClient, tenantId: TenantId): TenantTransaction {
-  return { bookings: createBookingRepository(tx, tenantId), myBookings: createMyBookingsQuery(tx, tenantId) };
+  return {
+    bookings: createBookingRepository(tx, tenantId),
+    myBookings: createMyBookingsQuery(tx, tenantId),
+    availability: createAvailabilityQuery(tx),
+  };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { type ReactNode, useId, useState } from "react";
 
 import { type LocalDate, parseLocalDate, zonedInstant } from "@espacios/domain";
 import { CalendarDays } from "lucide-react";
@@ -38,6 +38,68 @@ function fromTyped(text: string): LocalDate | null {
   const match = TYPED.exec(text.trim());
   if (!match) return null;
   return parseLocalDate(`${match[3]}-${pad(Number(match[2]))}-${pad(Number(match[1]))}`);
+}
+
+/**
+ * The calendar popover alone (the APG date picker dialog's grid, one tab stop): a trigger button and a month to pick a
+ * day from. `DatePickerField` puts it next to a typed input; a toolbar can use it on its own to jump to a day.
+ */
+export function DatePickerButton({
+  selected,
+  onPick,
+  label,
+  children,
+  isDisabled,
+  defaultMonth,
+  startMonth,
+  endMonth,
+}: {
+  readonly selected: LocalDate | null;
+  readonly onPick: (date: LocalDate) => void;
+  /** The trigger's accessible name. */
+  readonly label: string;
+  /** Visible text next to the icon; none for an icon only button. */
+  readonly children?: ReactNode;
+  readonly isDisabled?: (date: LocalDate) => boolean;
+  readonly defaultMonth: LocalDate;
+  readonly startMonth?: LocalDate | undefined;
+  readonly endMonth?: LocalDate | undefined;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const pick = (cell: Date | undefined) => {
+    const date = cell ? cellToLocalDate(cell) : null;
+    if (!date) return;
+    onPick(date);
+    setOpen(false);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button type="button" variant="outline" size={children ? "default" : "icon"} aria-label={label}>
+          <CalendarDays aria-hidden />
+          {children}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          locale={es}
+          autoFocus
+          selected={selected ? localDateToCell(selected) : undefined}
+          defaultMonth={localDateToCell(selected ?? defaultMonth)}
+          {...(startMonth ? { startMonth: localDateToCell(startMonth) } : {})}
+          {...(endMonth ? { endMonth: localDateToCell(endMonth) } : {})}
+          disabled={(cell) => {
+            const date = cellToLocalDate(cell);
+            return !date || (isDisabled?.(date) ?? false);
+          }}
+          onSelect={pick}
+        />
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 export type DatePickerFieldProps = {
@@ -84,7 +146,6 @@ export function DatePickerField({
   const t = useTranslations("datePicker");
   const format = useFormatter();
   const [typed, setTyped] = useState(() => toTyped(value));
-  const [open, setOpen] = useState(false);
   const formatHintId = useId();
   const ruleHintId = useId();
 
@@ -94,14 +155,6 @@ export function DatePickerField({
   const describedBy = [mark?.["aria-describedby"], formatHintId, hint ? ruleHintId : null].filter(Boolean).join(" ");
   // Noon in the zone, so the long date names the right day whatever the browser's zone.
   const spoken = selected ? format.dateTime(zonedInstant(selected, 12 * 60, timeZone), "long") : null;
-
-  const pick = (cell: Date | undefined) => {
-    const date = cell ? cellToLocalDate(cell) : null;
-    if (!date) return;
-    onChange(date);
-    setTyped(toTyped(date));
-    setOpen(false);
-  };
 
   return (
     <div className="flex flex-col gap-2">
@@ -122,34 +175,18 @@ export function DatePickerField({
           className="max-w-40"
         />
         <input type="hidden" name={name} value={value} />
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label={spoken ? t("changeTo", { date: spoken }) : t("choose")}
-            >
-              <CalendarDays aria-hidden />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              locale={es}
-              autoFocus
-              selected={selected ? localDateToCell(selected) : undefined}
-              defaultMonth={localDateToCell(selected ?? defaultMonth)}
-              {...(startMonth ? { startMonth: localDateToCell(startMonth) } : {})}
-              {...(endMonth ? { endMonth: localDateToCell(endMonth) } : {})}
-              disabled={(cell) => {
-                const date = cellToLocalDate(cell);
-                return !date || (isDisabled?.(date) ?? false);
-              }}
-              onSelect={pick}
-            />
-          </PopoverContent>
-        </Popover>
+        <DatePickerButton
+          selected={selected}
+          onPick={(date) => {
+            onChange(date);
+            setTyped(toTyped(date));
+          }}
+          label={spoken ? t("changeTo", { date: spoken }) : t("choose")}
+          {...(isDisabled ? { isDisabled } : {})}
+          defaultMonth={defaultMonth}
+          startMonth={startMonth}
+          endMonth={endMonth}
+        />
       </div>
       <p id={formatHintId} className="sr-only">
         {t("format")}

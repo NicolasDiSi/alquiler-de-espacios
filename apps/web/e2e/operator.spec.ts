@@ -149,6 +149,8 @@ test.describe("operator administration screens (spec 0005)", () => {
     await expect(page.getByText("Cliente creado")).toBeVisible();
     await page.getByRole("searchbox", { name: "Buscar por nombre o código" }).fill(persona);
     await page.getByRole("link", { name: persona }).first().click();
+    // Members live in their own tab of the client page (spec 0007).
+    await page.getByRole("tab", { name: /Miembros/ }).click();
     await expect(page.getByRole("row", { name: new RegExp(persona) })).toBeVisible();
     await expect(page.getByRole("button", { name: "Agregar miembro" })).toHaveCount(0);
 
@@ -161,6 +163,7 @@ test.describe("operator administration screens (spec 0005)", () => {
     await expect(page.getByText("Cliente creado")).toBeVisible();
     await page.getByRole("searchbox", { name: "Buscar por nombre o código" }).fill(empresa);
     await page.getByRole("link", { name: empresa }).first().click();
+    await page.getByRole("tab", { name: /Miembros/ }).click();
     await page.getByRole("button", { name: "Agregar miembro" }).click();
     await dialog(page).getByLabel("Nombre").fill("Luis");
     await dialog(page).getByRole("button", { name: "Agregar" }).click();

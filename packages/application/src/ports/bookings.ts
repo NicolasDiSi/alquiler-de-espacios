@@ -1,4 +1,4 @@
-import type { BookingId, BookingStatus, UserId } from "@espacios/domain";
+import type { BookingId, BookingStatus, BusyInterval, UserId } from "@espacios/domain";
 
 /** A booking as the company edge reads it: with the room's name and who booked it, never the company. */
 export type BookingRecord = {
@@ -66,4 +66,17 @@ export type MyBookingsPageQuery = {
 /** Reads of the company edge, from a `TenantTransaction`: the tenant filter plus row level security. */
 export interface MyBookingsQuery {
   list(query: MyBookingsPageQuery): Promise<readonly BookingRecord[]>;
+}
+
+/**
+ * Every room's busy time in a range (spec 0008), read inside the company's tenant transaction: `mine` marks the
+ * caller's own bookings, and nothing else about a booking or a block ever reaches a company.
+ */
+export interface AvailabilityQuery {
+  /** Confirmed bookings and unreleased blocks overlapping `[from, to)`, for every room or the one given. */
+  busyIntervals(
+    from: Date,
+    to: Date,
+    roomId?: string,
+  ): Promise<readonly (BusyInterval & { readonly roomId: string })[]>;
 }

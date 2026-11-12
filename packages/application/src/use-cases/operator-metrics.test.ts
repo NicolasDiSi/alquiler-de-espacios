@@ -59,6 +59,7 @@ function deps(data: {
       return data.companies ?? [];
     },
     heatmap: async () => data.cells ?? [],
+    clientActivity: async () => ({ rooms: [], weekdays: [], upcoming: 0 }),
     dailyUsage: async () => data.days ?? [],
     scopeExists: async () => data.exists ?? true,
   };

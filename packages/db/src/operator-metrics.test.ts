@@ -218,3 +218,32 @@ describe("daily usage (spec 0006)", () => {
     ]);
   });
 });
+
+describe("client activity (spec 0007)", () => {
+  // Tuesday 09:00 in Buenos Aires: X's Monday booking is past, Y's Tuesday 09:30 one is still to come.
+  const now = ba(8, 9);
+
+  it("groups one client's confirmed bookings by room and by weekday, each on its facility's local day", async () => {
+    const activity = await queries.clientActivity(range, y.tenantId, now);
+    expect(activity.rooms).toEqual([
+      expect.objectContaining({ roomId: id("room-b"), facilityId: FACILITY, bookedMinutes: 60, confirmed: 1 }),
+      expect.objectContaining({ roomId: id("room-tokyo"), facilityId: TOKYO, bookedMinutes: 60, confirmed: 1 }),
+    ]);
+    // Room B on Tuesday; Tokyo on Monday in Tokyo (still Sunday in Buenos Aires).
+    expect(activity.weekdays).toEqual([
+      { weekday: 1, bookedMinutes: 60, confirmed: 1 },
+      { weekday: 2, bookedMinutes: 60, confirmed: 1 },
+    ]);
+    expect(activity.upcoming).toBe(1);
+  });
+
+  it("never counts a cancelled booking, and an idle client has nothing", async () => {
+    const activity = await queries.clientActivity(range, x.tenantId, now);
+    expect(activity.rooms).toEqual([
+      expect.objectContaining({ roomId: id("room-a"), bookedMinutes: 120, confirmed: 1 }),
+    ]);
+    expect(activity.weekdays).toEqual([{ weekday: 1, bookedMinutes: 120, confirmed: 1 }]);
+    expect(activity.upcoming).toBe(0);
+    expect(await queries.clientActivity(range, idle, now)).toEqual({ rooms: [], weekdays: [], upcoming: 0 });
+  });
+});

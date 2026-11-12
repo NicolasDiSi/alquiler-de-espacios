@@ -63,7 +63,7 @@ Blocks are never edited: release one and create another. Companies never see a b
 
 ## Bookings
 
-`GET /bookings` takes `companyId`, `roomId`, `facilityId`, `status`, `from`, `to` (instants, bounding the start: `[from, to)`), `cursor` and `limit` (default 50, at most 100). It answers `{ bookings, nextCursor }`, upcoming first, then past. `nextCursor` is opaque; send it back as `cursor`. A malformed cursor or filter is 400.
+`GET /bookings` takes `companyId`, `roomId`, `facilityId`, `status`, `from`, `to` (instants, bounding the start: `[from, to)`), `cursor` and `limit` (default 50, at most 100). It answers `{ bookings, nextCursor }`, upcoming first, then past. `nextCursor` is opaque; send it back as `cursor`. A malformed cursor or filter is 400. Each booking's `room` carries its `facilityName` ([spec 0007](../specs/_root/0007-client-detail-activity/index.md)).
 
 ## Metrics
 

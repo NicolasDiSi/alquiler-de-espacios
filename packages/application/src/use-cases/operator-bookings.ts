@@ -22,7 +22,7 @@ import { withRaceHandling } from "./shared";
 export type OperatorBookingView = {
   readonly id: BookingId;
   readonly company: { readonly id: string; readonly name: string };
-  readonly room: { readonly id: string; readonly name: string };
+  readonly room: { readonly id: string; readonly name: string; readonly facilityName: string };
   readonly startsAt: string;
   readonly endsAt: string;
   readonly status: BookingStatus;
@@ -37,7 +37,7 @@ function toView(record: OperatorBookingRecord, now: Date): OperatorBookingView {
   return {
     id: record.id,
     company: record.company,
-    room: { id: record.room.id, name: record.room.name },
+    room: { id: record.room.id, name: record.room.name, facilityName: record.room.facilityName },
     startsAt: toFacilityIso(record.startsAt, zone),
     endsAt: toFacilityIso(record.endsAt, zone),
     status: record.status,

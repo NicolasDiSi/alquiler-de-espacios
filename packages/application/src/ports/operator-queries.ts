@@ -20,7 +20,12 @@ export type OperatorBookingRecord = {
   readonly id: BookingId;
   readonly company: { readonly id: string; readonly name: string };
   /** `timeZone` is the room's facility zone, so the view writes its instants with the right offset. */
-  readonly room: { readonly id: string; readonly name: string; readonly timeZone: string };
+  readonly room: {
+    readonly id: string;
+    readonly name: string;
+    readonly timeZone: string;
+    readonly facilityName: string;
+  };
   readonly bookedBy: { readonly name: string };
   readonly startsAt: Date;
   readonly endsAt: Date;
@@ -93,6 +98,29 @@ export type DailyUsageRow = {
   readonly bookedMinutes: number;
 };
 
+/**
+ * One client's use in a range (spec 0007): confirmed bookings by room and by weekday, each read on the local day of its
+ * facility, as in `roomUsage`. Cancelled bookings never count.
+ */
+export type ClientActivityRows = {
+  readonly rooms: readonly {
+    readonly roomId: string;
+    readonly roomName: string;
+    readonly facilityId: string;
+    readonly facilityName: string;
+    readonly bookedMinutes: number;
+    readonly confirmed: number;
+  }[];
+  /** 0 Sunday to 6 Saturday, only the weekdays with a booking. */
+  readonly weekdays: readonly {
+    readonly weekday: number;
+    readonly bookedMinutes: number;
+    readonly confirmed: number;
+  }[];
+  /** Confirmed bookings of the client starting after `now`, whatever the range. */
+  readonly upcoming: number;
+};
+
 export type HeatmapScope = { readonly facilityId?: string | undefined; readonly roomId?: string | undefined };
 
 export interface OperatorQueries {
@@ -102,6 +130,8 @@ export interface OperatorQueries {
   /** Every company, idle and inactive ones included. */
   companyUsage(range: MetricRange, kind?: "company" | "individual"): Promise<readonly CompanyUsageRow[]>;
   heatmap(range: MetricRange, scope: HeatmapScope): Promise<readonly HeatmapRow[]>;
+  /** Spec 0007: one client's bookings by room and weekday in the range, and how many are still to come. */
+  clientActivity(range: MetricRange, companyId: string, now: Date): Promise<ClientActivityRows>;
   /** One row per local day of the range, closed days included (zero open minutes). */
   dailyUsage(range: MetricRange, scope: HeatmapScope): Promise<readonly DailyUsageRow[]>;
   /** Whether the facility and the room of a scope exist (a heatmap of an unknown one is 404). */

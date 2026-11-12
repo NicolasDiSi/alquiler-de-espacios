@@ -13,7 +13,7 @@ import {
 } from "@espacios/domain";
 
 import type { MonthData } from "./month";
-import { timeOf } from "./search";
+import { fitsSize, type RoomSize, timeOf } from "./search";
 
 /**
  * The rooms matrix of `/salas` (spec 0009): one sede's day with a column per room. FullCalendar's free time grid only
@@ -39,10 +39,10 @@ export function cellOf(instant: Date): { readonly column: number; readonly minut
   return { column, minutes: Math.round((ms - column * DAY_MS) / 60_000) };
 }
 
-/** Rooms with room for `people`, smallest first, then by name: the columns, left to right. */
-export function matrixRooms(month: MonthData, people: number): FacilityMonthRoom[] {
+/** Rooms with room for `people` in `size`, smallest first, then by name: the columns, left to right. */
+export function matrixRooms(month: MonthData, people: number, size: RoomSize = "todas"): FacilityMonthRoom[] {
   return month.rooms
-    .filter((room) => room.capacity >= people)
+    .filter((room) => room.capacity >= people && fitsSize(room.capacity, size))
     .sort((a, b) => a.capacity - b.capacity || a.name.localeCompare(b.name));
 }
 
@@ -70,9 +70,13 @@ export function bookableFrom(month: MonthData, day: LocalDate, now: Date): numbe
   return Math.min(closesAt, Math.max(opensAt, Math.ceil(localMinutesOf(now, timeZone) / 30) * 30));
 }
 
-/** Free 30 minute slots of every room for `people` on each day of the week starting `monday`. */
-export function freeSlotsByDay(month: MonthData, people: number, monday: LocalDate, now: Date): Map<LocalDate, number> {
-  const rooms = matrixRooms(month, people);
+/** Free 30 minute slots of `rooms` (the columns the filters left) on each day of the week starting `monday`. */
+export function freeSlotsByDay(
+  month: MonthData,
+  rooms: readonly FacilityMonthRoom[],
+  monday: LocalDate,
+  now: Date,
+): Map<LocalDate, number> {
   const counts = new Map<LocalDate, number>();
   for (let index = 0; index < 7; index += 1) {
     const day = addDays(monday, index);
@@ -109,4 +113,41 @@ export function roomOptions(
       freeStarts(day, month.facility, busy, now, minutes).includes(start),
     ),
   };
+}
+
+/** Whether the 30 minute slot of `roomId` that starts at local `minutes` on `day` can be booked now. */
+export function isFreeSlot(month: MonthData, roomId: string, day: LocalDate, now: Date, minutes: number): boolean {
+  if (minutes < bookableFrom(month, day, now)) return false;
+  const slot = daySlots(day, month.facility, month.busyByRoom.get(roomId) ?? [], now).find(
+    (item) => item.start === minutes,
+  );
+  return slot?.state === "free";
+}
+
+/**
+ * Where a time grid of `day` should open: today, half an hour before now (the current time line); another day, half an
+ * hour before the first slot any of `roomIds` can still take, or the opening hour when none can.
+ */
+export function scrollTimeFor(month: MonthData, roomIds: readonly string[], day: LocalDate, now: Date): string {
+  const { opensAt, closesAt, timeZone } = month.facility;
+  // On the 30 minute grid, so a clock that moves every minute changes it only every half hour.
+  const at = (minutes: number) =>
+    `${timeOf(Math.min(closesAt, Math.max(opensAt, Math.floor((minutes - 30) / 30) * 30)))}:00`;
+  if (day === todayAt(now, timeZone)) return at(localMinutesOf(now, timeZone));
+  const from = bookableFrom(month, day, now);
+  const firsts = roomIds.flatMap((roomId) => {
+    const slot = daySlots(day, month.facility, month.busyByRoom.get(roomId) ?? [], now).find(
+      (item) => item.start >= from && item.state === "free",
+    );
+    return slot ? [slot.start] : [];
+  });
+  return at(firsts.length > 0 ? Math.min(...firsts) : opensAt + 30);
+}
+
+/** How many 30 minute slots `roomId` can still take on `day`. */
+export function freeSlotCount(month: MonthData, roomId: string, day: LocalDate, now: Date): number {
+  const from = bookableFrom(month, day, now);
+  return daySlots(day, month.facility, month.busyByRoom.get(roomId) ?? [], now).filter(
+    (slot) => slot.start >= from && slot.state === "free",
+  ).length;
 }

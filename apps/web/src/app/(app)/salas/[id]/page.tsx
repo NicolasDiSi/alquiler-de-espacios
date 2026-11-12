@@ -1,17 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { getRoomAgenda } from "@espacios/application";
-import { BOOKING_DURATIONS, isBookableDay, nextOpenDay, parseLocalDate, parseTime } from "@espacios/domain";
+import { getFacilityMonth } from "@espacios/application";
+import { formatTime, nextOpenDay, parseLocalDate } from "@espacios/domain";
 import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
+import { Facts } from "@/components/facts";
+import { WeekDays } from "@/components/week-days";
 import { companyEdge } from "@/composition";
-import { monthEnd, monthOf, offersStart, timeOf } from "@/lib/bookings/search";
+import { monthGrid, monthOf, readScheduleView } from "@/lib/bookings/search";
+import { zoneLabel } from "@/lib/operator/format";
 import { requireMember } from "@/lib/session/session";
 
-import { RoomAgendaView } from "./_components/room-agenda";
+import { RoomSchedule } from "./_components/room-schedule";
 import { RoomSwitcher } from "./_components/room-switcher";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -22,9 +25,10 @@ export async function generateMetadata(): Promise<Metadata> {
 const single = (value: string | string[] | undefined) => (typeof value === "string" ? value : "");
 
 /**
- * One room for a company (spec 0008, AC-2): `?fecha&mes&duracion&inicio`, each checked against the room's sede and the
- * booking rules (a value it would not offer falls back to its default). An unknown or retired room is 404; the operator
- * gets 403.
+ * One room for a company: its data under its name, then its bookings as a calendar by month, week or day
+ * (`?fecha&vista`). The server reads the six weeks the month of `fecha` draws (a malformed day falls back to the sede's
+ * next open day); a click in the calendar books through the same dialog as `/salas`. An unknown or retired room is
+ * 404; the operator gets 403.
  */
 export default async function RoomPage({
   params,
@@ -37,33 +41,22 @@ export default async function RoomPage({
   const [{ id }, query, t] = await Promise.all([params, searchParams, getTranslations("rooms")]);
   const edge = companyEdge();
   const now = edge.clock.now();
-  const [found, rooms] = await Promise.all([edge.rooms.findRoom(id), edge.rooms.listRooms()]);
-  if (!found?.active) notFound();
-  const rules = found.facility;
+  const [room, rooms] = await Promise.all([edge.rooms.findRoom(id), edge.rooms.listRooms()]);
+  if (!room?.active) notFound();
+  const { facility } = room;
 
-  const asked = parseLocalDate(single(query.fecha));
-  const date = asked && isBookableDay(asked, now, rules) ? asked : nextOpenDay(now, rules);
-  const month = parseLocalDate(`${single(query.mes)}-01`) ?? monthOf(date);
-  const duration = Number(single(query.duracion));
-  const minutes = (BOOKING_DURATIONS as readonly number[]).includes(duration) ? duration : 60;
-
-  const agenda = await getRoomAgenda(edge, actor, { roomId: id, from: month, to: monthEnd(month), minutes });
-  if (!agenda.ok) {
-    if (agenda.reason === "not_found") notFound();
-    throw new Error(`getRoomAgenda: ${agenda.reason}`);
+  const date = parseLocalDate(single(query.fecha)) ?? nextOpenDay(now, facility);
+  const range = monthGrid(monthOf(date));
+  const month = await getFacilityMonth(edge, actor, { facilityId: facility.id, ...range });
+  if (!month.ok) {
+    if (month.reason === "not_found") notFound();
+    throw new Error(`getFacilityMonth: ${month.reason}`);
   }
-  const startAsked = parseTime(single(query.inicio));
-  const offered = agenda.value.days.find((day) => day.date === date)?.starts ?? [];
-  const start =
-    startAsked !== null && offersStart(date, startAsked, minutes, rules, now) && offered.includes(startAsked)
-      ? startAsked
-      : null;
-  const choice =
-    start === null ? null : { room: agenda.value.room, date, start: timeOf(start), end: timeOf(start + minutes) };
+  if (!month.value.rooms.some((item) => item.id === id)) notFound();
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-3">
         <Link
           href="/salas"
           className="text-muted-foreground inline-flex min-h-11 w-fit items-center gap-1 text-sm hover:underline"
@@ -71,17 +64,37 @@ export default async function RoomPage({
           <ArrowLeft aria-hidden className="size-4" />
           {t("detail.back")}
         </Link>
-        <RoomSwitcher
-          current={id}
-          rooms={rooms.map((room) => ({ id: room.id, name: room.name, capacity: room.capacity }))}
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <h1 className="text-2xl font-semibold tracking-tight">{room.name}</h1>
+          <RoomSwitcher
+            current={id}
+            rooms={rooms.map((item) => ({ id: item.id, name: item.name, capacity: item.capacity }))}
+          />
+        </div>
+        <Facts
+          items={[
+            { term: t("detail.facts.facility"), value: facility.name },
+            { term: t("detail.facts.capacity"), value: t("detail.facts.people", { count: room.capacity }) },
+            {
+              term: t("detail.facts.hours"),
+              value: t("detail.facts.hoursValue", {
+                opens: formatTime(facility.opensAt),
+                closes: formatTime(facility.closesAt),
+              }),
+            },
+            { term: t("detail.facts.days"), value: <WeekDays open={facility.openWeekdays} /> },
+            { term: t("detail.facts.timeZone"), value: zoneLabel(facility.timeZone) },
+          ]}
         />
       </div>
-      <h1 className="sr-only">{agenda.value.room.name}</h1>
-      <RoomAgendaView
-        room={agenda.value.room}
-        agenda={agenda.value}
-        state={{ date, month, minutes, start }}
-        choice={choice}
+      <RoomSchedule
+        roomId={id}
+        month={month.value}
+        initialDate={date}
+        initialView={readScheduleView(query.vista)}
+        now={now}
+        // The calendar keeps the screen: its grid scrolls inside this height, never the page.
+        className="h-[min(48rem,calc(100dvh-8rem))] min-h-[30rem]"
       />
     </div>
   );

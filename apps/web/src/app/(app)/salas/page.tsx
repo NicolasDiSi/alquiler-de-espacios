@@ -17,15 +17,16 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * Salas (spec 0009), on the company edge: one sede's week as a matrix, a column per room. The page does not wait for
+ * Salas (spec 0009), on the company edge: one sede's week, its rooms as a calendar (a column per room) or as cards
+ * (spec 0008's grid). The page does not wait for
  * the week: it starts the read and hands the promise over, so the filters paint at once and the matrix streams in
  * behind its own `<Suspense>`. Only a new sede or week comes back here; the day and the people are applied in the
- * browser. The view is keyed by both, so new data starts from the search the URL asked for.
+ * browser, and so is the choice of view. The view is keyed by both, so new data starts from the search the URL asked for.
  */
 export default async function RoomsPage({
   searchParams,
 }: {
-  searchParams: Promise<Partial<Record<"sede" | "fecha" | "personas", string | string[]>>>;
+  searchParams: Promise<Partial<Record<"sede" | "fecha" | "personas" | "vista" | "tamano", string | string[]>>>;
 }) {
   const { actor } = await requireMember();
   const [t, params] = await Promise.all([getTranslations("rooms"), searchParams]);
@@ -52,8 +53,11 @@ export default async function RoomsPage({
         closesAt: formatTime(facility.closesAt),
         openWeekdays: facility.openWeekdays,
       }))}
+      rooms={rooms.map((room) => ({ facilityId: room.facility.id, name: room.name, capacity: room.capacity }))}
       week={week}
       now={now}
+      // The matrix keeps the screen: its grid scrolls inside this height, never the page.
+      calendarClassName="h-[min(46rem,calc(100dvh-8rem))] min-h-[28rem]"
     />
   );
 }

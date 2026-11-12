@@ -52,7 +52,7 @@ export function facilitiesOf(rooms: readonly RoomView[]) {
 }
 
 /** Whether `[start, start + minutes)` is a start the search offers on `date`: on the grid, in hours, not started. */
-export function offersStart(date: LocalDate, start: number, minutes: number, facility: FacilityRules, now: Date) {
+function offersStart(date: LocalDate, start: number, minutes: number, facility: FacilityRules, now: Date) {
   return (
     start % BOOKING_RULES.slotMinutes === 0 &&
     start >= facility.opensAt &&
@@ -100,7 +100,7 @@ export function readSearch(now: Date, params: SearchParams, rooms: readonly Room
 export const monthOf = (date: LocalDate) => `${date.slice(0, 7)}-01` as LocalDate;
 
 /** The last day of the month that starts on `month`. */
-export function monthEnd(month: LocalDate): LocalDate {
+function monthEnd(month: LocalDate): LocalDate {
   const [year = 0, index = 1] = month.split("-").map(Number);
   const last = new Date(Date.UTC(year, index, 0)).getUTCDate();
   return `${month.slice(0, 8)}${String(last).padStart(2, "0")}` as LocalDate;
@@ -160,20 +160,40 @@ export function searchHref(search: BookingSearch): string {
 /** The Monday of `date`'s week. */
 export const mondayOf = (date: LocalDate) => addDays(date, -((weekdayOf(date) + 6) % 7));
 
+const ROOMS_VIEWS = ["calendario", "grilla"] as const;
+export type RoomsView = (typeof ROOMS_VIEWS)[number];
+
 /**
- * The rooms matrix of `/salas` (spec 0009), mirrored in the URL: `?sede&fecha&personas`. The server reads the sede and
- * the week of `fecha`; the day and the people are the browser's to apply. Untrusted: an unknown sede falls back to the
- * first, a malformed day to the sede's next open day, people outside 1 to 40 to one.
+ * `/salas` (spec 0009), mirrored in the URL: `?sede&fecha&personas&vista&tamano`. The server reads the sede and the week of
+ * `fecha`; the day, the people and the view (the rooms as a calendar or as cards) are the browser's to apply.
+ * Untrusted: an unknown sede falls back to the first, a malformed day to the sede's next open day, people outside 1 to
+ * 40 to one, an unknown view to the calendar, an unknown size to all of them.
  */
 export type RoomsSearch = {
   readonly facilityId: string;
   readonly date: LocalDate;
   readonly people: number;
+  readonly view: RoomsView;
+  readonly size: RoomSize;
 };
+
+export const ROOM_SIZES = ["todas", "pequenas", "medianas", "grandes"] as const;
+/** The capacity bands of the quick filters (`?tamano`): small up to 4, medium 5 to 9, large 10 or more. */
+export type RoomSize = (typeof ROOM_SIZES)[number];
+
+const SIZE_FITS: Record<RoomSize, (capacity: number) => boolean> = {
+  todas: () => true,
+  pequenas: (capacity) => capacity <= 4,
+  medianas: (capacity) => capacity >= 5 && capacity <= 9,
+  grandes: (capacity) => capacity >= 10,
+};
+
+/** Whether a room of `capacity` falls in `size`. */
+export const fitsSize = (capacity: number, size: RoomSize) => SIZE_FITS[size](capacity);
 
 export function readRoomsSearch(
   now: Date,
-  params: Partial<Record<"sede" | "fecha" | "personas", string | string[]>>,
+  params: Partial<Record<"sede" | "fecha" | "personas" | "vista" | "tamano", string | string[]>>,
   rooms: readonly RoomView[],
 ): RoomsSearch | null {
   const facilities = facilitiesOf(rooms);
@@ -184,10 +204,34 @@ export function readRoomsSearch(
     facilityId: facility.id,
     date: parseLocalDate(single(params.fecha)) ?? nextOpenDay(now, facility),
     people: people >= 1 && people <= PEOPLE_MAX ? people : 1,
+    view: ROOMS_VIEWS.find((view) => view === single(params.vista)) ?? "calendario",
+    size: ROOM_SIZES.find((size) => size === single(params.tamano)) ?? "todas",
   };
 }
 
 export function roomsHref(search: RoomsSearch): string {
-  const params = new URLSearchParams({ sede: search.facilityId, fecha: search.date, personas: String(search.people) });
+  const params = new URLSearchParams({
+    sede: search.facilityId,
+    fecha: search.date,
+    personas: String(search.people),
+    vista: search.view,
+  });
+  if (search.size !== "todas") params.set("tamano", search.size);
   return `/salas?${params}`;
 }
+
+export const SCHEDULE_VIEWS = ["mes", "semana", "dia"] as const;
+/** How `/salas/[id]` shows the room's bookings (`?vista`): by month, week or day. Unknown values read as the month. */
+export type ScheduleView = (typeof SCHEDULE_VIEWS)[number];
+
+export const readScheduleView = (value: string | string[] | undefined): ScheduleView =>
+  SCHEDULE_VIEWS.find((view) => view === single(value)) ?? "mes";
+
+const fold = (text: string) =>
+  text
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLocaleLowerCase("es-AR");
+
+/** Whether a room's `name` matches the search `query`, ignoring case and accents. An empty query matches every room. */
+export const matchesName = (name: string, query: string) => fold(name).includes(fold(query.trim()));

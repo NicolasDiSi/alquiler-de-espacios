@@ -70,8 +70,16 @@ export function initialsOf(name: string): string {
 export function zoneLabel(timeZone: string, now = new Date()): string {
   if (timeZone === "UTC") return "UTC";
   const city = (timeZone.split("/").at(-1) ?? timeZone).replaceAll("_", " ");
-  const offset = new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "shortOffset" })
-    .formatToParts(now)
-    .find((part) => part.type === "timeZoneName")?.value;
+  const offset = zoneOffset(timeZone, now);
   return offset ? `${city}, ${offset}` : city;
+}
+
+/** Only the offset of a zone now ("GMT-3"), for where the city does not fit (a calendar's time axis). */
+export function zoneOffset(timeZone: string, now = new Date()): string {
+  if (timeZone === "UTC") return "UTC";
+  return (
+    new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "shortOffset" })
+      .formatToParts(now)
+      .find((part) => part.type === "timeZoneName")?.value ?? ""
+  );
 }

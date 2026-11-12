@@ -951,7 +951,7 @@
   },
   "rooms": {
     "title": "Salas",
-    "description": "Las salas de cada sede y su ocupación de hoy. Elegí una para ver su disponibilidad o reservarla.",
+    "description": "Las salas de cada sede, como calendario o como tarjetas. Elegí una para ver su detalle o reservarla.",
     "hours": "Horario de la sede: {opens} a {closes} (hoy)",
     "capacity": "{count, plural, one {# persona} other {# pers.}}",
     "empty": "Ninguna sala coincide con la búsqueda o el filtro.",
@@ -969,28 +969,53 @@
       "free": "Libres ahora ({count})",
       "small": "Pequeñas, hasta 4 ({count})",
       "medium": "Medianas, 5 a 9 ({count})",
-      "large": "Grandes, 10 o más ({count})"
+      "large": "Grandes, 10 o más ({count})",
+      "freeDay": "Con lugar ({count})"
     },
     "now": {
       "free": "Libre ahora",
       "busyUntil": "Ocupada hasta las {time}",
       "blockedUntil": "No disponible hasta las {time}",
       "closedNow": "Cerrada ahora",
-      "closedToday": "Cerrada hoy"
+      "closedToday": "Cerrada hoy",
+      "closedDay": "Cerrada ese día"
     },
     "actions": {
       "availability": "Ver disponibilidad",
       "book": "Reservar"
     },
     "detail": {
-      "title": "Disponibilidad de la sala",
+      "title": "Reservas de la sala",
       "back": "Volver a Salas",
       "switch": "Cambiar de sala",
-      "option": "{name} ({capacity} pers.)"
+      "option": "{name} ({capacity} pers.)",
+      "facts": {
+        "facility": "Sede",
+        "capacity": "Capacidad",
+        "hours": "Horario",
+        "days": "Días",
+        "timeZone": "Zona horaria",
+        "people": "Hasta {count} personas",
+        "hoursValue": "{opens} a {closes}"
+      },
+      "calendar": {
+        "hint": "Tocá o arrastrá sobre un horario libre, o tocá un día en la vista Mes, para reservar.",
+        "noStarts": "La sala no tiene horarios libres ese día. Probá otro día.",
+        "previous": "Anterior",
+        "next": "Siguiente",
+        "today": "Hoy",
+        "goTo": "Ir a fecha",
+        "view": "Vista del calendario",
+        "views": {
+          "mes": "Mes",
+          "semana": "Semana",
+          "dia": "Día"
+        }
+      }
     },
     "matrix": {
       "title": "Disponibilidad por sala",
-      "description": "Cada columna es una sala de la sede. Horario de {opens} a {closes}, hora de {zone}.",
+      "description": "Las salas de la sede como calendario o como tarjetas. Horario de {opens} a {closes}, hora de {zone}.",
       "facility": "Sede",
       "previousWeek": "Semana anterior",
       "nextWeek": "Semana siguiente",
@@ -1002,7 +1027,6 @@
       "more": "Una persona más",
       "days": "Días de la semana",
       "free": "{count, plural, one {# libre} other {# libres}}",
-      "hint": "{day}. Tocá o arrastrá sobre una sala libre para reservarla.",
       "capacity": "Hasta {count} pers.",
       "draft": "Tu selección",
       "noRooms": "Ninguna sala tiene lugar",
@@ -1014,7 +1038,32 @@
         "length": "Duración",
         "summary": "De {start} a {end}",
         "cancel": "Cancelar"
-      }
+      },
+      "view": "Ver las salas como",
+      "views": {
+        "calendario": "Calendario",
+        "grilla": "Grilla"
+      },
+      "noRoomsSize": "Ninguna sala coincide con la búsqueda o los filtros para {people, plural, one {# persona} other {# personas}}. Probá con otro nombre, otro tamaño o menos personas.",
+      "panel": {
+        "filters": "Filtros",
+        "reset": "Restablecer",
+        "size": "Tamaño de la sala",
+        "summary": "{shown} de {total} salas en {facility}",
+        "sheetDescription": "Los cambios se aplican al instante.",
+        "show": "{count, plural, =0 {Sin salas} one {Ver # sala} other {Ver # salas}}",
+        "active": "{count, plural, =0 {Sin filtros activos} one {# filtro activo} other {# filtros activos}}"
+      },
+      "instructions": "Tocá o arrastrá sobre una sala libre para reservarla.",
+      "instructionsCards": "Cada tarjeta muestra los horarios libres de la sala ese día.",
+      "previousDay": "Día hábil anterior",
+      "nextDay": "Día hábil siguiente",
+      "closed": "Cerrado",
+      "peopleCount": "{count, plural, one {# persona} other {# personas}}"
+    },
+    "cards": {
+      "free": "{count, plural, one {# horario libre} other {# horarios libres}}",
+      "full": "Sin horarios libres"
     }
   },
   "newBooking": {

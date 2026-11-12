@@ -1,5 +1,5 @@
 import { type Actor, type BookingId, type LocalDate, type TenantId, type UserId, zonedInstant } from "@espacios/domain";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import type { BookingRecord, MyBookingsPageQuery, NewBooking } from "../ports/bookings";
 import {
@@ -123,7 +123,14 @@ const ALL_ROOMS = [NORTE, SALA_TOKIO, SALA_CERRADA];
 const rooms: RoomCatalog = {
   listRooms: async () => ALL_ROOMS.filter((room) => room.active),
   findRoom: async (id) => ALL_ROOMS.find((room) => room.id === id) ?? null,
+  isBlocked: async (roomId, startsAt, endsAt) =>
+    blocks.some((block) => block.roomId === roomId && block.startsAt < endsAt && startsAt < block.endsAt),
 };
+/** The active blocks the fake catalog knows, cleared before each test. */
+let blocks: { roomId: string; startsAt: Date; endsAt: Date }[] = [];
+beforeEach(() => {
+  blocks = [];
+});
 
 // Monday 2026-11-09, 09:00 in Buenos Aires.
 const NOW = at("2026-11-09", 9);
@@ -228,6 +235,19 @@ describe("bookRoom", () => {
       expect(db.rows()).toEqual([]);
     },
   );
+
+  it("refuses a range an active block covers with room_blocked, writing nothing and saying nothing about the block", async () => {
+    const { db, deps } = setup();
+    blocks.push({ roomId: NORTE.id, startsAt: at("2026-11-10", 9), endsAt: at("2026-11-10", 10, 30) });
+
+    const result = await bookRoom(deps, ana, tuesday10to11);
+
+    expect(result).toEqual({ ok: false, reason: "room_blocked" });
+    expect(db.rows()).toEqual([]);
+    // A range that only touches the block's end is free: the interval is half open.
+    const after = { ...tuesday10to11, startsAt: at("2026-11-10", 10, 30), endsAt: at("2026-11-10", 11) };
+    await expect(bookRoom(deps, ana, after)).resolves.toMatchObject({ ok: true });
+  });
 
   it("returns not_found for an unknown room", async () => {
     const { db, deps } = setup();

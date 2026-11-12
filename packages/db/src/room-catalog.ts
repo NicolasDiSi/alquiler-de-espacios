@@ -60,5 +60,14 @@ export function createPrismaRoomCatalog(db: DatabaseClient): RoomCatalog {
       const row = await db.room.findUnique({ where: { id }, select: ROOM_SELECT });
       return row ? toView(row) : null;
     },
+    // Companies have no grant on `block`: the availability function is the only way in, and it returns nothing but
+    // the interval and its `kind` (spec 0004, AC-20). The parameters are bound, never interpolated.
+    isBlocked: async (roomId, startsAt, endsAt) => {
+      const rows = await db.$queryRaw<{ blocked: boolean }[]>`
+        SELECT EXISTS (
+          SELECT 1 FROM room_busy_intervals(${roomId}, ${startsAt}::timestamptz, ${endsAt}::timestamptz) WHERE kind = 'blocked'
+        ) AS blocked`;
+      return rows[0]?.blocked === true;
+    },
   };
 }

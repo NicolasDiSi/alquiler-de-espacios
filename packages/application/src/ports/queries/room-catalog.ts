@@ -21,4 +21,9 @@ export interface RoomCatalog {
   listRooms(): Promise<readonly RoomView[]>;
   /** One room, active or not, or `null` when no room has that id. The use case decides what an inactive one means. */
   findRoom(id: string): Promise<RoomView | null>;
+  /**
+   * Whether an unreleased block of the room, or of its whole facility, overlaps `[startsAt, endsAt)`. It answers yes
+   * or no only (spec 0004, AC-20): a company never reads a block, its reason or its author.
+   */
+  isBlocked(roomId: string, startsAt: Date, endsAt: Date): Promise<boolean>;
 }

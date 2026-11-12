@@ -1,9 +1,10 @@
-import { bookRoom, listMyBookings } from "@espacios/application";
+import { bookRoom, createBlock, listMyBookings } from "@espacios/application";
 import { type Actor, type LocalDate, type TenantId, type UserId, zonedInstant } from "@espacios/domain";
 import { afterAll, describe, expect, inject, it } from "vitest";
 
 import { createDatabaseClient } from "./client";
 import { createUuidV7Generator } from "./ids";
+import { createPrismaOperatorCatalog } from "./operator-catalog";
 import { createPrismaRoomCatalog } from "./room-catalog";
 import { asTenant, book, createMember, createRoom, createTenant, TEST_FACILITY_ID } from "./testing/fixtures";
 import { createPrismaUnitOfWork } from "./unit-of-work";
@@ -296,5 +297,38 @@ describe("bookRoom and the booking guard (spec 0004, AC-7 to AC-9, AC-19)", () =
     // After that facility closes (13:00 Tokyo), even though it is inside Buenos Aires hours.
     const late = { roomId, startsAt: new Date("2030-01-08T05:00:00Z"), endsAt: new Date("2030-01-08T06:00:00Z") };
     await expect(bookRoom(deps, ana, late)).resolves.toEqual({ ok: false, reason: "outside_hours" });
+  });
+});
+
+describe("a block racing a booking through the use cases (spec 0004, P-18)", () => {
+  it("never lets both win: either the booking is kept and the block refused with it, or the block stands and the booking is refused", async () => {
+    const operatorUserId = `user-operador-${crypto.randomUUID()}`;
+    await owner.appUser.create({ data: { id: operatorUserId, name: operatorUserId, role: "operator" } });
+    const actor: Actor = { role: "operator", userId: operatorUserId as UserId };
+    const operatorDeps = {
+      catalog: createPrismaOperatorCatalog(operator),
+      clock: { now: () => NOW },
+      ids: createUuidV7Generator(),
+    };
+
+    for (let round = 0; round < 6; round++) {
+      const ana = await member(`block-race-${round}`);
+      const roomId = await createRoom(owner);
+      const [booked, blocked] = await Promise.all([
+        bookRoom(deps, ana, slot(roomId, 10, 11)),
+        createBlock(operatorDeps, actor, {
+          facilityId: TEST_FACILITY_ID,
+          roomId,
+          startsAt: at(DAY, 9),
+          endsAt: at(DAY, 12),
+          reason: "mantenimiento",
+        }),
+      ]);
+
+      expect(booked.ok && blocked.ok).toBe(false);
+      if (booked.ok) expect(blocked).toMatchObject({ ok: false, reason: "block_has_bookings" });
+      else expect(booked).toEqual({ ok: false, reason: "room_blocked" });
+      expect(await confirmedIn(roomId)).toHaveLength(booked.ok ? 1 : 0);
+    }
   });
 });

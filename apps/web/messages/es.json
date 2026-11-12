@@ -225,11 +225,7 @@
   },
   "operator": {
     "title": "Panel del operador",
-    "description": "La ocupación de las salas y el uso de cada empresa.",
-    "empty": {
-      "title": "Las métricas todavía no están disponibles",
-      "description": "Acá vas a ver la ocupación por sala, el uso por empresa y los horarios con poca demanda."
-    },
+    "description": "Ocupación, demanda por franja horaria, uso por sala y consumo de las empresas clientes.",
     "error": {
       "title": "No pudimos cargar esta pantalla",
       "description": "El sistema está ocupado o no respondió. Probá de nuevo en unos segundos.",
@@ -518,6 +514,120 @@
       "blockedFromTo": "Bloqueo de {from} a {to} en {room}",
       "wholeFacility": "toda la sede",
       "zone": "Horarios en {zone}."
+    },
+    "dashboard": {
+      "none": "—",
+      "period": {
+        "label": "Período",
+        "options": {
+          "7d": "7 días",
+          "30d": "30 días",
+          "90d": "90 días"
+        },
+        "comparison": "vs. {days} días previos"
+      },
+      "delta": {
+        "points": "{sign}{value} pts",
+        "none": "Sin datos previos"
+      },
+      "kpis": {
+        "label": "Indicadores del período",
+        "occupancy": {
+          "label": "Ocupación general",
+          "openHours": "Horas disponibles"
+        },
+        "bookedHours": {
+          "label": "Horas reservadas",
+          "dailyAverage": "Promedio diario",
+          "meanDuration": "Duración media"
+        },
+        "bookings": {
+          "label": "Reservas confirmadas",
+          "perDay": "Promedio diario"
+        },
+        "cancellations": {
+          "label": "Tasa de cancelación",
+          "cancelled": "Canceladas"
+        }
+      },
+      "daily": {
+        "title": "Ocupación diaria",
+        "description": "Días hábiles de los últimos 90 días. La zona sombreada es el período seleccionado.",
+        "trend": "Media de 5 días",
+        "occupancy": "Ocupación diaria",
+        "summary": "Ocupación diaria en {days} días hábiles: entre {min} y {max}, con una media de {mean}.",
+        "tooltip": "{day} · {hours}",
+        "empty": "No hubo días abiertos en los últimos 90 días."
+      },
+      "heatmap": {
+        "title": "Ocupación por día y hora",
+        "description": "Parte del tiempo abierto que estuvo reservado en cada franja, sumando todas las salas del período.",
+        "caption": "Ocupación por día hábil y hora. Las celdas con guion estuvieron cerradas.",
+        "legend": "Ocupación",
+        "peak": "Pico",
+        "low": "Valle",
+        "slot": "{weekday}, {from} a {to} h",
+        "empty": "Ninguna sala estuvo abierta en el período."
+      },
+      "rooms": {
+        "title": "Uso por sala",
+        "description": "Horas reservadas sobre las horas abiertas de cada sala en el período.",
+        "usage": "Uso",
+        "booked": "Reservadas",
+        "open": "Abiertas",
+        "demand": {
+          "high": "Alta demanda",
+          "low": "Baja demanda"
+        },
+        "summary": "Uso por sala: {list}.",
+        "empty": "Ninguna sala estuvo abierta en el período."
+      },
+      "companies": {
+        "title": "Consumo por empresa",
+        "description": "Todas las cuentas del período, de la que más horas reservó a la que menos.",
+        "columns": {
+          "rank": "Puesto",
+          "company": "Empresa",
+          "kind": "Tipo",
+          "status": "Estado",
+          "hours": "Horas",
+          "bookings": "Reservas",
+          "cancellation": "Cancelación",
+          "share": "Participación"
+        },
+        "shareOf": "Participación de {name}",
+        "empty": "Todavía no hay clientes.",
+        "search": "Buscar empresa",
+        "caption": "Consumo por empresa en el período elegido",
+        "states": {
+          "active": "Activo",
+          "inactive": "Desactivado"
+        }
+      },
+      "recommendations": {
+        "title": "Recomendaciones",
+        "description": "Oportunidades detectadas en el período.",
+        "kinds": {
+          "idle": "Capacidad ociosa",
+          "lowUse": "Poco uso",
+          "cancellations": "Cancelaciones"
+        },
+        "slot": {
+          "title": "{facility}: {weekday} de {from} a {to} h",
+          "detail": "Se reservó el {occupancy} del tiempo abierto en esa franja. Es buena para una promoción o para mantenimiento.",
+          "action": "Ver sede"
+        },
+        "reasons": {
+          "no_bookings": "No reservó en el período",
+          "low_usage": "Reservó muy por debajo del promedio",
+          "high_cancellation": "Cancela con frecuencia"
+        },
+        "candidate": {
+          "detail": "{hours} reservadas, {confirmed, plural, one {# confirmada} other {# confirmadas}} y {cancelled, plural, one {# cancelada} other {# canceladas}}.",
+          "action": "Ver cliente"
+        },
+        "empty": "No hay oportunidades para este período."
+      }
     }
   },
   "notFound": {

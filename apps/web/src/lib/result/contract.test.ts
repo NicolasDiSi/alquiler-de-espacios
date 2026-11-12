@@ -120,4 +120,14 @@ describe("toActionResult", () => {
       message: "errors.past_date",
     });
   });
+
+  it("keeps the bookings in the way of a refusal (spec 0005)", () => {
+    const details = { total: 1, bookings: [] };
+    expect(toActionResult(fail("has_future_bookings", details), "Listo", errorMessage)).toEqual({
+      ok: false,
+      reason: "has_future_bookings",
+      message: "errors.has_future_bookings",
+      details,
+    });
+  });
 });

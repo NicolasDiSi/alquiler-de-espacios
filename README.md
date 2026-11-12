@@ -52,3 +52,4 @@ Business rules the brief leaves open, decided in the specs under `docs/specs/`.
 - A company is a promotion candidate with no confirmed booking in the range, with booked time under 25% of the mean of active companies (needs at least 3 of them), or with a cancellation rate of 0.3 or more over at least 5 bookings.
 - Low utilization slots are heatmap cells under 20% occupancy (adjustable), emptiest first, at most 20.
 - `lastBookingAt` is when the company last made a confirmed booking, whatever the range.
+- The operator dashboard reads the last 7, 30 or 90 complete days, ending yesterday in Buenos Aires, and compares each figure with the same number of days right before. The daily chart always covers the last 90 days. A room is in high demand from 80% occupancy and in low demand under 20%. A value that cannot be measured shows a dash, never 0% (spec 0006, assumed).

@@ -50,7 +50,14 @@
       "home": "alquiler-de-espacios, ir al inicio",
       "toggle": "Mostrar u ocultar el menú lateral"
     },
-    "nav": {},
+    "nav": {
+      "myBookings": "Mis reservas",
+      "newBooking": "Nueva reserva",
+      "panel": "Panel",
+      "admin": "Administración",
+      "sedes": "Sedes",
+      "clientes": "Clientes"
+    },
     "header": {
       "moreOptions": "Más opciones"
     },
@@ -201,10 +208,6 @@
     "roomOption": "{name} · {capacity, plural, one {# persona} other {# personas}}",
     "roomPlaceholder": "Elegí una sala",
     "date": "Fecha",
-    "datePlaceholder": "dd/mm/aaaa",
-    "dateFormat": "Escribí la fecha como día/mes/año, por ejemplo 12/11/2026, o elegila en el calendario.",
-    "chooseDate": "Elegir fecha en el calendario",
-    "changeDateTo": "Cambiar fecha, {date}",
     "dateHint": "Se reserva de lunes a viernes, hasta 60 días adelante.",
     "dateHintOtherDays": "Se reserva los días que abre la sede de la sala, hasta 60 días adelante.",
     "start": "Inicio",
@@ -222,10 +225,488 @@
   },
   "operator": {
     "title": "Panel del operador",
-    "description": "La ocupación de las salas y el uso de cada empresa.",
-    "empty": {
-      "title": "Las métricas todavía no están disponibles",
-      "description": "Acá vas a ver la ocupación por sala, el uso por empresa y los horarios con poca demanda."
+    "description": "Ocupación, demanda por franja horaria, uso por sala y consumo de las empresas clientes.",
+    "error": {
+      "title": "No pudimos cargar esta pantalla",
+      "description": "El sistema está ocupado o no respondió. Probá de nuevo en unos segundos.",
+      "retry": "Reintentar"
+    },
+    "success": {
+      "facilityCreated": "Sede creada",
+      "facilityUpdated": "Sede actualizada",
+      "facilityDeactivated": "Sede dada de baja",
+      "roomCreated": "Sala creada",
+      "roomUpdated": "Sala actualizada",
+      "roomDeactivated": "Sala dada de baja",
+      "blockCreated": "Bloqueo creado",
+      "blockReleased": "Bloqueo liberado",
+      "clientCreated": "Cliente creado",
+      "clientUpdated": "Cliente actualizado",
+      "clientDeactivated": "Cliente dado de baja",
+      "clientReactivated": "Cliente reactivado",
+      "memberAdded": "Miembro agregado"
+    },
+    "form": {
+      "retry": "Reintentar",
+      "signInAgain": "Elegir usuario de nuevo",
+      "confirm": "Confirmar",
+      "working": "Procesando…"
+    },
+    "refusal": {
+      "caption": "Reservas confirmadas que lo impiden",
+      "room": "Sala",
+      "company": "Empresa",
+      "start": "Inicio",
+      "end": "Fin",
+      "shown": "Se muestran {shown} de {total} reservas."
+    },
+    "status": {
+      "active": "{gender, select, f {Activa} other {Activo}}",
+      "inactiveSince": "{gender, select, f {Desactivada} other {Desactivado}} el {date}",
+      "filter": {
+        "active": "{gender, select, f {Activas} other {Activos}}",
+        "inactive": "{gender, select, f {Desactivadas} other {Desactivados}}"
+      }
+    },
+    "weekdays": {
+      "short": {
+        "0": "D",
+        "1": "L",
+        "2": "M",
+        "3": "X",
+        "4": "J",
+        "5": "V",
+        "6": "S"
+      },
+      "long": {
+        "0": "Domingo",
+        "1": "Lunes",
+        "2": "Martes",
+        "3": "Miércoles",
+        "4": "Jueves",
+        "5": "Viernes",
+        "6": "Sábado"
+      },
+      "short3": {
+        "0": "Dom",
+        "1": "Lun",
+        "2": "Mar",
+        "3": "Mié",
+        "4": "Jue",
+        "5": "Vie",
+        "6": "Sáb"
+      }
+    },
+    "facility": {
+      "title": "Sedes",
+      "description": "Las sedes, sus horarios y sus salas.",
+      "caption": "Sedes",
+      "noAddress": "Sin dirección",
+      "hours": "{from} a {to}",
+      "roomsCount": "{count, plural, =0 {Sin salas activas} one {# sala activa} other {# salas activas}}",
+      "empty": {
+        "title": "Todavía no hay sedes",
+        "description": "Creá la primera sede para poder cargar salas y recibir reservas."
+      },
+      "columns": {
+        "name": "Nombre",
+        "address": "Dirección",
+        "timeZone": "Zona horaria",
+        "hours": "Horario",
+        "days": "Días",
+        "rooms": "Salas activas",
+        "status": "Estado"
+      },
+      "form": {
+        "create": "Nueva sede",
+        "edit": "Editar",
+        "createTitle": "Nueva sede",
+        "editTitle": "Editar sede",
+        "description": "El horario y la zona valen para todas las salas de la sede.",
+        "name": "Nombre",
+        "address": "Dirección (opcional)",
+        "addressHint": "Solo se muestra al operador.",
+        "timeZone": "Zona horaria",
+        "opensAt": "Apertura",
+        "closesAt": "Cierre",
+        "weekdays": "Días que abre",
+        "save": "Guardar cambios",
+        "saving": "Guardando…",
+        "createSubmit": "Crear sede",
+        "creating": "Creando…"
+      },
+      "detailTitle": "Sede",
+      "back": "Volver a las sedes",
+      "deactivate": {
+        "trigger": "Desactivar sede",
+        "title": "¿Desactivar la sede?",
+        "description": "{name} se da de baja y no vuelve a abrir: para usarla de nuevo vas a tener que crear otra sede. Su historial y sus reservas pasadas se conservan.",
+        "confirm": "Desactivar sede",
+        "working": "Desactivando…",
+        "blockedByRooms": "{count, plural, one {Tiene # sala activa: desactivala primero.} other {Tiene # salas activas: desactivalas primero.}}"
+      },
+      "search": "Buscar por nombre o dirección"
+    },
+    "room": {
+      "title": "Salas",
+      "caption": "Salas de la sede",
+      "empty": "Esta sede todavía no tiene salas. Creá la primera para que los clientes puedan reservarla.",
+      "columns": {
+        "name": "Nombre",
+        "capacity": "Capacidad",
+        "activeFrom": "Disponible desde",
+        "status": "Estado",
+        "actions": "Acciones"
+      },
+      "form": {
+        "create": "Nueva sala",
+        "edit": "Editar",
+        "createTitle": "Nueva sala",
+        "editTitle": "Editar sala",
+        "description": "Una sala pertenece a una sola sede.",
+        "name": "Nombre",
+        "capacity": "Capacidad (personas)",
+        "activeFrom": "Disponible desde (opcional)",
+        "activeFromHint": "Vacío significa desde hoy. Una fecha anterior suma esos días a las métricas de ocupación.",
+        "save": "Guardar cambios",
+        "saving": "Guardando…",
+        "createSubmit": "Crear sala",
+        "creating": "Creando…"
+      },
+      "deactivate": {
+        "trigger": "Desactivar",
+        "title": "¿Desactivar {name}?",
+        "description": "{name} se da de baja y no vuelve a abrirse. Su historial se conserva. Si tiene reservas futuras, te las mostramos para que las canceles primero.",
+        "confirm": "Desactivar sala",
+        "working": "Desactivando…"
+      },
+      "search": "Buscar sala",
+      "emptyRetired": "Esta sede no tuvo salas."
+    },
+    "block": {
+      "title": "Bloqueos",
+      "caption": "Bloqueos de la sede, en la zona horaria {zone}",
+      "empty": "Ningún bloqueo. Bloqueá una sala o toda la sede cuando no se pueda reservar: mantenimiento, un feriado o un evento propio.",
+      "wholeFacility": "Toda la sede",
+      "states": {
+        "active": "Activo",
+        "finished": "Finalizado",
+        "released": "Liberado"
+      },
+      "columns": {
+        "scope": "Alcance",
+        "from": "Desde",
+        "to": "Hasta",
+        "reason": "Motivo",
+        "status": "Estado",
+        "actions": "Acciones"
+      },
+      "form": {
+        "create": "Nuevo bloqueo",
+        "title": "Nuevo bloqueo",
+        "description": "Nadie puede reservar durante el bloqueo. Los días y horarios se leen en la zona {zone}.",
+        "facility": "Sede",
+        "scope": "Alcance",
+        "wholeFacility": "Toda la sede",
+        "startDate": "Desde (día)",
+        "startTime": "Desde (hora)",
+        "endDate": "Hasta (día)",
+        "endTime": "Hasta (hora)",
+        "allDay": "Todo el día",
+        "reason": "Motivo",
+        "reasonHint": "Solo lo ve el operador. Las empresas ven la sala como no disponible.",
+        "save": "Crear bloqueo",
+        "saving": "Creando…"
+      },
+      "release": {
+        "trigger": "Liberar",
+        "title": "¿Liberar el bloqueo?",
+        "description": "Desde este momento la sala o la sede se puede reservar de nuevo. El bloqueo queda en el historial.",
+        "confirm": "Liberar",
+        "working": "Liberando…"
+      },
+      "search": "Buscar por sala o motivo",
+      "emptyRetired": "Esta sede no tuvo bloqueos."
+    },
+    "client": {
+      "title": "Clientes",
+      "detailTitle": "Cliente",
+      "description": "Las empresas y las personas que reservan salas.",
+      "caption": "Clientes",
+      "back": "Volver a los clientes",
+      "kinds": {
+        "company": "Empresa",
+        "individual": "Persona independiente"
+      },
+      "empty": {
+        "title": "Todavía no hay clientes",
+        "description": "Creá el primer cliente para que pueda reservar salas."
+      },
+      "columns": {
+        "logo": "Logo",
+        "name": "Nombre",
+        "slug": "Código",
+        "kind": "Tipo",
+        "status": "Estado"
+      },
+      "form": {
+        "create": "Nuevo cliente",
+        "edit": "Editar",
+        "createTitle": "Nuevo cliente",
+        "editTitle": "Editar cliente",
+        "description": "Un cliente siempre tiene al menos un miembro que puede reservar.",
+        "kind": "Tipo de cliente",
+        "name": "Nombre",
+        "slug": "Código",
+        "slugHint": "Letras minúsculas, números y guiones. No se puede cambiar después.",
+        "logo": "Logo (opcional)",
+        "logoHint": "Dirección https de una imagen. Vacío no muestra logo.",
+        "firstMember": "Primer miembro",
+        "firstMemberHint": "La persona que va a reservar por esta empresa.",
+        "kinds": {
+          "company": "Empresa",
+          "individual": "Persona independiente"
+        },
+        "save": "Guardar cambios",
+        "saving": "Guardando…",
+        "editDescription": "El código y el tipo de cliente no cambian.",
+        "createSubmit": "Crear cliente",
+        "creating": "Creando…"
+      },
+      "deactivate": {
+        "trigger": "Desactivar",
+        "title": "¿Desactivar el cliente?",
+        "description": "Los miembros de {name} ya no van a poder reservar, pero conservan su historial y pueden cancelar lo que ya reservaron. Podés reactivarlo cuando quieras.",
+        "confirm": "Desactivar cliente",
+        "working": "Desactivando…"
+      },
+      "reactivate": {
+        "trigger": "Reactivar",
+        "title": "¿Reactivar el cliente?",
+        "description": "Los miembros de {name} vuelven a poder reservar.",
+        "confirm": "Reactivar cliente",
+        "working": "Reactivando…"
+      },
+      "search": "Buscar por nombre o código",
+      "activity": {
+        "facts": {
+          "facilities": "Sedes",
+          "since": "Cliente desde"
+        },
+        "tabs": {
+          "activity": "Reservas y actividad"
+        },
+        "cards": {
+          "hours": {
+            "label": "Horas reservadas",
+            "share": "Participación en el total",
+            "mean": "Duración media"
+          },
+          "bookings": {
+            "label": "Reservas del período",
+            "done": "realizadas",
+            "upcoming": "Próximas",
+            "cancelled": "Canceladas",
+            "rate": "Tasa de cancelación"
+          },
+          "room": {
+            "label": "Sala preferida",
+            "share": "De sus horas",
+            "hours": "{hours} reservadas en el período",
+            "empty": "Sin reservas en el período."
+          }
+        },
+        "upcoming": {
+          "title": "Próximas reservas confirmadas",
+          "description": "Las siguientes reservas del cliente, desde ahora.",
+          "count": "{count, plural, =0 {Nada en agenda} other {# en agenda}}",
+          "today": "Hoy",
+          "tomorrow": "Mañana",
+          "empty": "No tiene reservas próximas."
+        },
+        "weekly": {
+          "title": "Patrón semanal",
+          "description": "Horas reservadas por día de la semana en los últimos {days} días.",
+          "peak": "Mayor demanda:",
+          "mean": "Duración media por reserva:"
+        },
+        "calendar": {
+          "title": "Cronograma",
+          "description": "Las reservas del cliente por mes, semana o día. Las canceladas aparecen tachadas.",
+          "selectHint": "En la vista Semana o Día, seleccioná un rango para bloquear ese horario en una sala o en toda la sede.",
+          "loadError": "No pudimos cargar las reservas del calendario. Probá de nuevo cambiando de fecha.",
+          "summary": "{days, plural, one {# día} other {# días}} · {count, plural, one {# reserva} other {# reservas}}",
+          "facility": "Filtrar por sede",
+          "allFacilities": "Todas las sedes",
+          "previous": "Anterior",
+          "next": "Siguiente",
+          "today": "Hoy",
+          "view": "Vista del calendario",
+          "views": {
+            "dayGridMonth": "Mes",
+            "timeGridWeek": "Semana",
+            "timeGridDay": "Día"
+          },
+          "block": "Bloquear horario",
+          "goTo": "Ir a fecha"
+        },
+        "history": {
+          "title": "Historial del período",
+          "description": "Todas las reservas del cliente en el período elegido, de la más nueva a la más vieja.",
+          "search": "Buscar por sala, sede o solicitante",
+          "caption": "Reservas del cliente en el período",
+          "columns": {
+            "date": "Fecha y horario",
+            "room": "Sala y sede",
+            "bookedBy": "Solicitante",
+            "status": "Estado",
+            "hours": "Horas"
+          },
+          "empty": "El cliente no tuvo reservas en el período.",
+          "capped": "Se muestran las primeras 500 reservas del período."
+        }
+      }
+    },
+    "member": {
+      "title": "Miembros",
+      "caption": "Miembros del cliente",
+      "columns": {
+        "name": "Nombre",
+        "since": "Alta"
+      },
+      "form": {
+        "create": "Agregar miembro",
+        "title": "Agregar miembro",
+        "description": "Una persona independiente tiene un solo miembro; una empresa puede tener todos los que necesite.",
+        "name": "Nombre",
+        "save": "Agregar",
+        "saving": "Agregando…"
+      }
+    },
+    "week": {
+      "title": "Esta semana",
+      "legendOpen": "Abierta",
+      "legendBlocked": "Bloqueada",
+      "closed": "Cerrada",
+      "today": "Hoy",
+      "openFromTo": "Abierta de {from} a {to}",
+      "blockedFromTo": "Bloqueo de {from} a {to} en {room}",
+      "wholeFacility": "toda la sede",
+      "zone": "Horarios en {zone}."
+    },
+    "dashboard": {
+      "none": "—",
+      "period": {
+        "label": "Período",
+        "options": {
+          "7d": "7 días",
+          "30d": "30 días",
+          "90d": "90 días"
+        },
+        "comparison": "vs. {days} días previos"
+      },
+      "delta": {
+        "points": "{sign}{value} pts",
+        "none": "Sin datos previos"
+      },
+      "kpis": {
+        "label": "Indicadores del período",
+        "occupancy": {
+          "label": "Ocupación general",
+          "openHours": "Horas disponibles"
+        },
+        "bookedHours": {
+          "label": "Horas reservadas",
+          "dailyAverage": "Promedio diario",
+          "meanDuration": "Duración media"
+        },
+        "bookings": {
+          "label": "Reservas confirmadas",
+          "perDay": "Promedio diario"
+        },
+        "cancellations": {
+          "label": "Tasa de cancelación",
+          "cancelled": "Canceladas"
+        }
+      },
+      "daily": {
+        "title": "Ocupación diaria",
+        "description": "Días hábiles de los últimos 90 días. La zona sombreada es el período seleccionado.",
+        "trend": "Media de 5 días",
+        "occupancy": "Ocupación diaria",
+        "summary": "Ocupación diaria en {days} días hábiles: entre {min} y {max}, con una media de {mean}.",
+        "tooltip": "{day} · {hours}",
+        "empty": "No hubo días abiertos en los últimos 90 días."
+      },
+      "heatmap": {
+        "title": "Ocupación por día y hora",
+        "description": "Parte del tiempo abierto que estuvo reservado en cada franja, sumando todas las salas del período.",
+        "caption": "Ocupación por día hábil y hora. Las celdas con guion estuvieron cerradas.",
+        "legend": "Ocupación",
+        "peak": "Pico",
+        "low": "Valle",
+        "slot": "{weekday}, {from} a {to} h",
+        "empty": "Ninguna sala estuvo abierta en el período."
+      },
+      "rooms": {
+        "title": "Uso por sala",
+        "description": "Horas reservadas sobre las horas abiertas de cada sala en el período.",
+        "usage": "Uso",
+        "booked": "Reservadas",
+        "open": "Abiertas",
+        "demand": {
+          "high": "Alta demanda",
+          "low": "Baja demanda"
+        },
+        "summary": "Uso por sala: {list}.",
+        "empty": "Ninguna sala estuvo abierta en el período."
+      },
+      "companies": {
+        "title": "Consumo por empresa",
+        "description": "Todas las cuentas del período, de la que más horas reservó a la que menos.",
+        "columns": {
+          "rank": "Puesto",
+          "company": "Empresa",
+          "kind": "Tipo",
+          "status": "Estado",
+          "hours": "Horas",
+          "bookings": "Reservas",
+          "cancellation": "Cancelación",
+          "share": "Participación"
+        },
+        "shareOf": "Participación de {name}",
+        "empty": "Todavía no hay clientes.",
+        "search": "Buscar empresa",
+        "caption": "Consumo por empresa en el período elegido",
+        "states": {
+          "active": "Activo",
+          "inactive": "Desactivado"
+        }
+      },
+      "recommendations": {
+        "title": "Recomendaciones",
+        "description": "Oportunidades detectadas en el período.",
+        "kinds": {
+          "idle": "Capacidad ociosa",
+          "lowUse": "Poco uso",
+          "cancellations": "Cancelaciones"
+        },
+        "slot": {
+          "title": "{facility}: {weekday} de {from} a {to} h",
+          "detail": "Se reservó el {occupancy} del tiempo abierto en esa franja. Es buena para una promoción o para mantenimiento.",
+          "action": "Ver sede"
+        },
+        "reasons": {
+          "no_bookings": "No reservó en el período",
+          "low_usage": "Reservó muy por debajo del promedio",
+          "high_cancellation": "Cancela con frecuencia"
+        },
+        "candidate": {
+          "detail": "{hours} reservadas, {confirmed, plural, one {# confirmada} other {# confirmadas}} y {cancelled, plural, one {# cancelada} other {# canceladas}}.",
+          "action": "Ver cliente"
+        },
+        "empty": "No hay oportunidades para este período."
+      }
     }
   },
   "notFound": {
@@ -404,5 +885,36 @@
       "title": "Colores",
       "description": "Los tokens del tema. Todo color en la app sale de acá."
     }
+  },
+  "dataTable": {
+    "selectedCount": "{count, plural, one {# elegido} other {# elegidos}}",
+    "filterBy": "Filtrar por {label}",
+    "count": "{shown, plural, =0 {Ningún resultado} one {# resultado} other {# resultados}} de {total}",
+    "activeFilters": "Filtros activos",
+    "chip": "{label}: {value}",
+    "searchChip": "Búsqueda: {query}",
+    "remove": "Quitar",
+    "clear": "Limpiar filtros",
+    "sortNext": {
+      "asc": "Ordenar de menor a mayor",
+      "desc": "Ordenar de mayor a menor",
+      "none": "Quitar el orden"
+    },
+    "noResults": {
+      "title": "No hay resultados con estos filtros",
+      "description": "Probá con otra búsqueda o quitá algún filtro."
+    },
+    "pagination": {
+      "label": "Páginas",
+      "page": "Página {page} de {pages}",
+      "previous": "Anterior",
+      "next": "Siguiente"
+    }
+  },
+  "datePicker": {
+    "placeholder": "dd/mm/aaaa",
+    "format": "Escribí la fecha como día/mes/año, por ejemplo 12/11/2026, o elegila en el calendario.",
+    "choose": "Elegir fecha en el calendario",
+    "changeTo": "Cambiar fecha, {date}"
   }
 }

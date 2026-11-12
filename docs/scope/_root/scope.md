@@ -24,7 +24,7 @@ Build order, by what each feature needs. Numbers never change (specs refer to th
 | 6   | Room availability grid                                                     | Slice 2    | planned     | 2, 5, 15 (facility hours and blocks)                      |
 | 14  | Rooms list: every room, pick one to see it                                 | Slice 2    | planned     | 6 (the link target), 15                                   |
 | 10  | Operator global bookings view                                              | Slice 4    | planned     | 15 (API)                                                  |
-| 9   | Operator dashboard                                                         | Slice 4    | planned     | 15 and 8 (metrics API)                                    |
+| 9   | Operator dashboard                                                         | Slice 4    | in-progress | 15 and 8 (metrics API)                                    |
 | 13  | Role based navigation in the sidebar                                       | Slice 1    | planned     | 5, 14, 10, 9 (an entry appears only when its page exists) |
 | 11  | End to end suite with accessibility checks                                 | Delivery   | planned     | 5, 7, 6, 14, 10, 9, 13                                    |
 | 12  | README, assumptions and AI usage                                           | Delivery   | planned     | everything                                                |
@@ -152,11 +152,17 @@ Backend only, from [spec 0004](../../specs/_root/0004-operator-administration-an
   - metrics on a known dataset: a room created mid range, a deactivated room, two zones, a blocked day leaving the denominator, a released block, an idle client, an empty range as `null`
     Spec 0004 · code in `packages/domain/`, `packages/application/`, `packages/db/`, `apps/web/`
 
-### 9. Operator dashboard · needs a decision
+### 9. Operator dashboard · in-progress, assumed decision (spec 0006)
 
 The screen where the operator reads occupancy, ranks clients, and spots low utilization periods (heatmap), with a date range.
 **Done when:** the operator sees the three metrics for a chosen range, idle clients and cells under 20% stand out, empty values show a dash, and a company user cannot open it.
-- [ ] Design it (spec): `/architect operator dashboard`
+- [ ] Design it (spec): assumed in [spec 0006](../../specs/_root/0006-operator-dashboard/index.md), `/architect operator dashboard` to ratify
+- [x] Build it: `/develop operator dashboard`
+  - [x] Daily occupancy query and `GET /metrics/daily` · AC-5
+  - [x] Dashboard at `/operador` from the template, on the metric use cases · AC-1 to AC-4
+- [ ] Verify it: `/check verify operator dashboard`
+- [ ] Test it: `/test operator dashboard`
+  Spec 0006 · code in `packages/domain/src/metrics/dashboard.ts`, `packages/application/src/use-cases/operator-dashboard.ts`, `packages/db/src/operator-queries.ts`, `apps/web/src/app/(app)/operador/`
 
 ### 10. Operator global bookings view
 
@@ -192,7 +198,11 @@ Out of scope for this build pass, kept so the plan stays honest. All are also li
 - **Holiday calendar**: facilities, closures and blocks are in feature 15 (spec 0004); an automatic or recurring calendar stays here · needs a decision
 - ~~**Rule based insights list**~~ moved into feature 15 (the `insights` endpoint of spec 0004)
 - **Subject per booking, "solo las mías" filter, busy times in the booking form** (from spec 0003): next version ideas for the README; the grid of feature 6 covers busy times · needs a decision
-- **Operator detail view per company** (one company's bookings, hours and cancellations over time): in v1 the feature 9 dashboard table covers "analyze each client company"; list it in the README limitations · needs a decision
+- **Operator detail view per company** (one company's bookings, hours and cancellations over time): built on the client page, assumed in [spec 0007](../../specs/_root/0007-client-detail-activity/index.md), `/architect client detail` to ratify · in progress
+- **Data model hardening** (no new entity, one migration): composite FK `booking(booked_by, tenant_id)` to `app_user(id, tenant_id)` so a booking's author always belongs to its company; composite FK `block(room_id, facility_id)` to `room(id, facility_id)` (today only `createBlock` checks it, and a mismatched row would silently block nothing, because the guard trigger and `room_busy_intervals` join on the facility); `CHECK (capacity > 0)` on `room`; `CHECK (deactivated_at >= active_from)` on `room`; `booking.cancelled_by`; a `block_kind` enum (maintenance, holiday, private event) next to the free text `reason` so metrics can tell them apart · needs a decision
+- **Data model growth, commercial** (the brief's promotions and occupancy goals): `room_rate` (price per hour per room, valid from and to) plus a price snapshot on `booking` (`price_cents`, `currency`) for revenue metrics; `promotion` (discount, valid range, weekdays and hours, so it can target the heatmap's low cells) with `promotion_company` and `booking.promotion_id`, to measure whether an insight turned into bookings; `booking.attendees` for a capacity fit metric (a 16 seat room booked for 2); `booking.checked_in_at` or a `no_show` status for real use against booked use · needs a decision
+- **Data model growth, operations**: `facility_hours` (one row per weekday and interval, replaces `opens_at`, `closes_at`, `open_weekdays`); `facility_closure` or `block_recurrence` (holidays, every Friday); `booking_series` with `booking.series_id` (weekly meetings); `amenity` and `room_amenity` (projector, video call, search by equipment); `company_plan` (monthly included hours, per company limits); `audit_event` (actor, entity, action, before, after, at; already in spec 0004 follow-up); `outbox_event` for notifications and a `waitlist_entry` that is told when a cancelled slot frees; `idempotency_key` (above); `membership` and a `company_admin` role with `invitation` (spec 0004 follow-up) · needs a decision
+- **Data model growth, only at real scale**: stored `room_daily_usage` snapshots (measure first, spec 0004); an `organization` above `facility` if the product becomes a SaaS for several operators (a second tenancy level, the most expensive change on this list) · needs a decision
 
 ## Legend
 

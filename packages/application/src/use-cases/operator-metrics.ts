@@ -133,6 +133,25 @@ export function getHeatmap(
   });
 }
 
+export type DailyMetric = Usage & { readonly date: LocalDate };
+
+/**
+ * Spec 0006: occupancy per local day, with the definitions of `getRoomMetrics` summed over the rooms of the scope. A day
+ * with nothing open (a weekend, a closed facility) has `occupancy: null`.
+ */
+export function getDailyMetrics(
+  deps: Deps,
+  actor: Actor,
+  input: MetricInput & HeatmapScope,
+): Promise<Result<{ days: readonly DailyMetric[] }>> {
+  return authorized(actor, input, async (range) => {
+    const scope = { facilityId: input.facilityId, roomId: input.roomId };
+    if (!(await deps.queries.scopeExists(scope))) return fail("not_found");
+    const rows = await deps.queries.dailyUsage(range, scope);
+    return ok({ days: rows.map((row) => ({ date: row.date, ...usage(row) })) });
+  });
+}
+
 export type Insights = {
   readonly lowUtilizationSlots: readonly {
     readonly facility: { readonly id: string; readonly name: string };

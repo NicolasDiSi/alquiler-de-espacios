@@ -3,15 +3,18 @@ import { expect, test } from "@playwright/test";
 import { blockHydration, setPreferences, waitForHydration } from "./fixtures";
 
 test.describe("shell", () => {
-  test("renders the shell at / with an empty sidebar and the member's bookings", async ({ page }) => {
+  test("renders the shell at / with the member's sections and bookings", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1, name: "Mis reservas" })).toBeVisible();
     await expect(page.getByRole("main").getByRole("link", { name: "Nueva reserva" }).first()).toBeVisible();
 
     const sidebar = page.locator("[data-slot=sidebar]");
     await expect(sidebar.getByText("alquiler-de-espacios")).toBeVisible();
-    // Only the product link: no section entries until the inbox ships.
-    await expect(sidebar.getByRole("link")).toHaveCount(1);
+    // The product link and the member's sections (spec 0005): never an operator entry nor the gallery.
+    await expect(sidebar.getByRole("link")).toHaveCount(3);
+    await expect(sidebar.getByRole("link", { name: "Mis reservas" })).toHaveAttribute("aria-current", "page");
+    await expect(sidebar.getByRole("link", { name: "Nueva reserva" })).toBeVisible();
+    await expect(sidebar.locator('a[href^="/operador"]')).toHaveCount(0);
     await expect(sidebar.locator('a[href="/design-system"]')).toHaveCount(0);
 
     await expect(page.getByRole("radiogroup", { name: "Densidad" })).toBeVisible();

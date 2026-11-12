@@ -1,4 +1,4 @@
-import type { Reason, Result } from "@espacios/domain";
+import type { Reason, RefusalDetails, Result } from "@espacios/domain";
 
 /**
  * What a Server Action hands the UI (spec 0001): the use case's result plus the text to show, so the user always
@@ -6,7 +6,13 @@ import type { Reason, Result } from "@espacios/domain";
  */
 export type ActionResult<T> =
   | { readonly ok: true; readonly value: T; readonly message: string }
-  | { readonly ok: false; readonly reason: Reason; readonly message: string };
+  | {
+      readonly ok: false;
+      readonly reason: Reason;
+      readonly message: string;
+      /** Only `has_future_bookings` and `block_has_bookings` carry it: the bookings in the way (spec 0005). */
+      readonly details?: RefusalDetails;
+    };
 
 /**
  * Adds the message to a use case result. `successMessage` is the action's `success.*` text ("Reserva confirmada");
@@ -18,5 +24,6 @@ export function toActionResult<T>(
   errorMessage: (reason: Reason) => string,
 ): ActionResult<T> {
   if (result.ok) return { ok: true, value: result.value, message: successMessage };
-  return { ok: false, reason: result.reason, message: errorMessage(result.reason) };
+  const failure = { ok: false as const, reason: result.reason, message: errorMessage(result.reason) };
+  return result.details ? { ...failure, details: result.details } : failure;
 }

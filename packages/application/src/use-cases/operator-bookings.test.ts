@@ -12,7 +12,7 @@ const member: Actor = { role: "member", userId: "user-ana" as UserId, tenantId: 
 const record = (id: string, startsAt: string, hours = 1): OperatorBookingRecord => ({
   id: id as BookingId,
   company: { id: "company-acme", name: "Acme" },
-  room: { id: "room-1", name: "Sala 1", timeZone: "America/Argentina/Buenos_Aires" },
+  room: { id: "room-1", name: "Sala 1", timeZone: "America/Argentina/Buenos_Aires", facilityName: "Sede Central" },
   bookedBy: { name: "Ana" },
   startsAt: new Date(startsAt),
   endsAt: new Date(new Date(startsAt).getTime() + hours * 3_600_000),
@@ -59,7 +59,7 @@ describe("listOperatorBookings (spec 0004, AC-10)", () => {
           {
             id: "b1",
             company: { id: "company-acme", name: "Acme" },
-            room: { id: "room-1", name: "Sala 1" },
+            room: { id: "room-1", name: "Sala 1", facilityName: "Sede Central" },
             startsAt: "2026-11-11T10:00:00-03:00",
             endsAt: "2026-11-11T11:00:00-03:00",
             status: "confirmed",

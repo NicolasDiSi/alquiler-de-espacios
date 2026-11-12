@@ -15,8 +15,11 @@ export {
   MY_BOOKINGS_PAGE,
   type MyBookingsPage,
 } from "./use-cases/bookings";
+export * from "./use-cases/client-activity";
 export { resolveSession, type Session } from "./use-cases/identity";
 export * from "./use-cases/operator-bookings";
 export * from "./use-cases/operator-catalog";
+export * from "./use-cases/operator-dashboard";
 export * from "./use-cases/operator-metrics";
+export * from "./use-cases/operator-views";
 export { type Dependencies, withRaceHandling } from "./use-cases/shared";

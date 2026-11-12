@@ -1,5 +1,6 @@
 import type {
   CompanyUsageRow,
+  DailyUsageRow,
   HeatmapRow,
   HeatmapScope,
   MetricRange,
@@ -9,7 +10,7 @@ import type {
   OperatorQueries,
   RoomUsageRow,
 } from "@espacios/application";
-import type { BookingId } from "@espacios/domain";
+import type { BookingId, LocalDate } from "@espacios/domain";
 
 import type { DatabaseClient } from "./client";
 import { Prisma } from "./generated/prisma/client";
@@ -22,7 +23,7 @@ const RECORD_SELECT = {
   createdAt: true,
   cancelledAt: true,
   company: { select: { id: true, name: true } },
-  room: { select: { id: true, name: true, facility: { select: { timeZone: true } } } },
+  room: { select: { id: true, name: true, facility: { select: { timeZone: true, name: true } } } },
   user: { select: { name: true } },
 } as const satisfies Prisma.BookingSelect;
 
@@ -32,7 +33,12 @@ function toRecord(row: Row): OperatorBookingRecord {
   return {
     id: row.id as BookingId,
     company: row.company,
-    room: { id: row.room.id, name: row.room.name, timeZone: row.room.facility.timeZone },
+    room: {
+      id: row.room.id,
+      name: row.room.name,
+      timeZone: row.room.facility.timeZone,
+      facilityName: row.room.facility.name,
+    },
     bookedBy: { name: row.user.name },
     startsAt: row.startsAt,
     endsAt: row.endsAt,
@@ -216,6 +222,89 @@ export function createPrismaOperatorQueries(db: DatabaseClient): OperatorQueries
           cancelled: row.cancelled,
           lastBookingAt: row.last_booking_at,
         }),
+      );
+    },
+
+    clientActivity: async (range, companyId, now) => {
+      // Confirmed bookings of one client, each on the local day it starts in its facility's zone (as `roomUsage`).
+      const confirmedInRange = Prisma.sql`
+        FROM booking bk
+        JOIN room r ON r.id = bk.room_id
+        JOIN facility f ON f.id = r.facility_id
+        WHERE bk.tenant_id = ${companyId} AND bk.status = 'confirmed'
+          AND (bk.starts_at AT TIME ZONE f.time_zone)::date BETWEEN ${range.from}::date AND ${range.to}::date`;
+      const [rooms, weekdays, upcoming] = await Promise.all([
+        db.$queryRaw<
+          {
+            room_id: string;
+            room_name: string;
+            facility_id: string;
+            facility_name: string;
+            booked: number;
+            confirmed: number;
+          }[]
+        >`
+          SELECT r.id AS room_id, r.name AS room_name, f.id AS facility_id, f.name AS facility_name,
+            (SUM(EXTRACT(EPOCH FROM bk.ends_at - bk.starts_at)) / 60)::float8 AS booked, COUNT(*)::int AS confirmed
+          ${confirmedInRange}
+          GROUP BY r.id, f.id
+          ORDER BY booked DESC, r.name`,
+        db.$queryRaw<{ weekday: number; booked: number; confirmed: number }[]>`
+          SELECT EXTRACT(DOW FROM (bk.starts_at AT TIME ZONE f.time_zone))::int AS weekday,
+            (SUM(EXTRACT(EPOCH FROM bk.ends_at - bk.starts_at)) / 60)::float8 AS booked, COUNT(*)::int AS confirmed
+          ${confirmedInRange}
+          GROUP BY 1
+          ORDER BY 1`,
+        db.$queryRaw<{ upcoming: number }[]>`
+          SELECT COUNT(*)::int AS upcoming FROM booking
+          WHERE tenant_id = ${companyId} AND status = 'confirmed' AND starts_at > ${now}`,
+      ]);
+      return {
+        rooms: rooms.map((row) => ({
+          roomId: row.room_id,
+          roomName: row.room_name,
+          facilityId: row.facility_id,
+          facilityName: row.facility_name,
+          bookedMinutes: row.booked,
+          confirmed: row.confirmed,
+        })),
+        weekdays: weekdays.map((row) => ({
+          weekday: row.weekday,
+          bookedMinutes: row.booked,
+          confirmed: row.confirmed,
+        })),
+        upcoming: upcoming[0]?.upcoming ?? 0,
+      };
+    },
+
+    dailyUsage: async (range, scope) => {
+      // Open minutes per local day come from `room_day_open`; bookings count on the local day they start in their
+      // facility's zone, exactly like `roomUsage`. Every day of the range answers, closed ones with zero.
+      const rows = await db.$queryRaw<{ day: string; open: number; booked: number }[]>`
+        WITH ${roomDays(range, scope)},
+        open_day AS (
+          SELECT day, SUM(${MINUTES_OF("open_ranges")}) AS open FROM room_day_open GROUP BY day
+        ),
+        booked_day AS (
+          SELECT (bk.starts_at AT TIME ZONE f.time_zone)::date AS day,
+            SUM(EXTRACT(EPOCH FROM bk.ends_at - bk.starts_at)) / 60 AS minutes
+          FROM booking bk
+          JOIN room r ON r.id = bk.room_id
+          JOIN facility f ON f.id = r.facility_id
+          WHERE bk.status = 'confirmed'
+            AND (bk.starts_at AT TIME ZONE f.time_zone)::date BETWEEN ${range.from}::date AND ${range.to}::date
+            AND (${scope.facilityId ?? null}::text IS NULL OR f.id = ${scope.facilityId ?? null}::text)
+            AND (${scope.roomId ?? null}::text IS NULL OR r.id = ${scope.roomId ?? null}::text)
+          GROUP BY 1
+        )
+        SELECT to_char(d, 'YYYY-MM-DD') AS day,
+          COALESCE(o.open, 0)::float8 AS open, COALESCE(b.minutes, 0)::float8 AS booked
+        FROM generate_series(${range.from}::date, ${range.to}::date, interval '1 day') AS d
+        LEFT JOIN open_day o ON o.day = d::date
+        LEFT JOIN booked_day b ON b.day = d::date
+        ORDER BY d`;
+      return rows.map(
+        (row): DailyUsageRow => ({ date: row.day as LocalDate, openMinutes: row.open, bookedMinutes: row.booked }),
       );
     },
 

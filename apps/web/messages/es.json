@@ -956,6 +956,34 @@
       "back": "Volver a Salas",
       "switch": "Cambiar de sala",
       "option": "{name} ({capacity} pers.)"
+    },
+    "matrix": {
+      "title": "Disponibilidad por sala",
+      "description": "Cada columna es una sala de la sede. Horario de {opens} a {closes}, hora de {zone}.",
+      "facility": "Sede",
+      "previousWeek": "Semana anterior",
+      "nextWeek": "Semana siguiente",
+      "week": "Semana del {from} al {to}",
+      "today": "Hoy",
+      "goTo": "Ir a fecha",
+      "people": "Personas",
+      "fewer": "Una persona menos",
+      "more": "Una persona más",
+      "days": "Días de la semana",
+      "free": "{count, plural, one {# libre} other {# libres}}",
+      "hint": "{day}. Tocá o arrastrá sobre una sala libre para reservarla.",
+      "capacity": "Hasta {count} pers.",
+      "draft": "Tu selección",
+      "noRooms": "Ninguna sala tiene lugar",
+      "noRoomsDescription": "Ninguna sala de la sede tiene lugar para {people, plural, one {# persona} other {# personas}}. Probá con menos personas u otra sede.",
+      "dialog": {
+        "title": "Reservar {room}",
+        "description": "{day} · {facility} · Hasta {capacity} personas",
+        "start": "Inicio",
+        "length": "Duración",
+        "summary": "De {start} a {end}",
+        "cancel": "Cancelar"
+      }
     }
   },
   "newBooking": {

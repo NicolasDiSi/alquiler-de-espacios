@@ -156,3 +156,38 @@ export function searchHref(search: BookingSearch): string {
   if (!search.onlyFree) params.set("libres", "0");
   return `/reservas/nueva?${params}`;
 }
+
+/** The Monday of `date`'s week. */
+export const mondayOf = (date: LocalDate) => addDays(date, -((weekdayOf(date) + 6) % 7));
+
+/**
+ * The rooms matrix of `/salas` (spec 0009), mirrored in the URL: `?sede&fecha&personas`. The server reads the sede and
+ * the week of `fecha`; the day and the people are the browser's to apply. Untrusted: an unknown sede falls back to the
+ * first, a malformed day to the sede's next open day, people outside 1 to 40 to one.
+ */
+export type RoomsSearch = {
+  readonly facilityId: string;
+  readonly date: LocalDate;
+  readonly people: number;
+};
+
+export function readRoomsSearch(
+  now: Date,
+  params: Partial<Record<"sede" | "fecha" | "personas", string | string[]>>,
+  rooms: readonly RoomView[],
+): RoomsSearch | null {
+  const facilities = facilitiesOf(rooms);
+  const facility = facilities.find((item) => item.id === single(params.sede)) ?? facilities[0];
+  if (!facility) return null;
+  const people = Math.trunc(Number(single(params.personas)));
+  return {
+    facilityId: facility.id,
+    date: parseLocalDate(single(params.fecha)) ?? nextOpenDay(now, facility),
+    people: people >= 1 && people <= PEOPLE_MAX ? people : 1,
+  };
+}
+
+export function roomsHref(search: RoomsSearch): string {
+  const params = new URLSearchParams({ sede: search.facilityId, fecha: search.date, personas: String(search.people) });
+  return `/salas?${params}`;
+}

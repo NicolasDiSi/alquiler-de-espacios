@@ -1,9 +1,10 @@
-import type { FacilityMonth, FacilityMonthRoom } from "@espacios/application";
+import type { AvailabilityRoom, FacilityMonth, FacilityMonthRoom } from "@espacios/application";
 import {
   addDays,
   type BusyInterval,
   type DaySlot,
   daySlots,
+  formatTime,
   freeStarts,
   isBookableDay,
   type LocalDate,
@@ -92,4 +93,20 @@ export function roomsOnDay(
       fit: window ? windowFit(date, month.facility, busy, now, window.start, window.end) : null,
     };
   });
+}
+
+/** A room of the month as the confirmation reads it: with its sede, hours as `HH:MM`. */
+export function choiceRoom(month: MonthData, room: FacilityMonthRoom): AvailabilityRoom {
+  const { facility } = month;
+  return {
+    ...room,
+    facility: {
+      id: facility.id,
+      name: facility.name,
+      timeZone: facility.timeZone,
+      opensAt: formatTime(facility.opensAt),
+      closesAt: formatTime(facility.closesAt),
+      openWeekdays: facility.openWeekdays,
+    },
+  };
 }

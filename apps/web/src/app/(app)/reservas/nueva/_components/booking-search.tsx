@@ -3,13 +3,13 @@
 import { useMemo } from "react";
 
 import type { FacilityMonth } from "@espacios/application";
-import { formatTime, type LocalDate } from "@espacios/domain";
+import type { LocalDate } from "@espacios/domain";
 import { cn } from "cn";
 import { ShieldCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import type { BookingChoice } from "@/components/booking/confirm-booking";
-import { indexMonth, monthStarts, roomsOnDay } from "@/lib/bookings/month";
+import { choiceRoom, indexMonth, monthStarts, roomsOnDay } from "@/lib/bookings/month";
 import { timeOf } from "@/lib/bookings/search";
 
 import { BookingFilters } from "./booking-filters";
@@ -55,17 +55,7 @@ export function BookingSearchView({
   const choice: BookingChoice | null =
     chosen && window
       ? {
-          room: {
-            ...chosen.room,
-            facility: {
-              id: data.facility.id,
-              name: data.facility.name,
-              timeZone: data.facility.timeZone,
-              opensAt: formatTime(data.facility.opensAt),
-              closesAt: formatTime(data.facility.closesAt),
-              openWeekdays: data.facility.openWeekdays,
-            },
-          },
+          room: choiceRoom(data, chosen.room),
           date: search.date,
           start: timeOf(window.start),
           end: timeOf(window.end),

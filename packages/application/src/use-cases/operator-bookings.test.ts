@@ -23,7 +23,7 @@ const record = (id: string, startsAt: string, hours = 1): OperatorBookingRecord 
 
 function setup(rows: readonly OperatorBookingRecord[]) {
   const seen: OperatorBookingsPageQuery[] = [];
-  const queries: OperatorQueries = {
+  const queries: Pick<OperatorQueries, "listBookings"> = {
     listBookings: async (query) => {
       seen.push(query);
       return rows.slice(0, query.limit);
@@ -99,7 +99,7 @@ describe("listOperatorBookings (spec 0004, AC-10)", () => {
   });
 
   it("returns busy when the database cannot answer in time", async () => {
-    const queries: OperatorQueries = {
+    const queries: Pick<OperatorQueries, "listBookings"> = {
       listBookings: async () => {
         throw new BusyError();
       },

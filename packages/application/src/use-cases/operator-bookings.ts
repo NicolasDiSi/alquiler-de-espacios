@@ -68,7 +68,7 @@ export type OperatorBookingsPage = {
  * asked is read to know whether another page exists. Only the operator may ask (authorization is a business rule).
  */
 export async function listOperatorBookings(
-  deps: { readonly queries: OperatorQueries; readonly clock: Clock },
+  deps: { readonly queries: Pick<OperatorQueries, "listBookings">; readonly clock: Clock },
   actor: Actor,
   input: ListOperatorBookingsInput,
 ): Promise<Result<OperatorBookingsPage>> {

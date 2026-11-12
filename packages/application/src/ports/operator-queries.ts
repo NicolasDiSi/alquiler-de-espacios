@@ -1,4 +1,4 @@
-import type { BookingId, BookingStatus } from "@espacios/domain";
+import type { BookingId, BookingStatus, LocalDate } from "@espacios/domain";
 
 /**
  * The operator's global reads (spec 0004): every company's data, through the operator login and never a tenant
@@ -48,6 +48,53 @@ export type OperatorBookingsPageQuery = {
   readonly now: Date;
 };
 
+/** Inclusive local days. Each facility reads them in its own time zone. */
+export type MetricRange = { readonly from: LocalDate; readonly to: LocalDate };
+
+/** What one room offered and used in a range. Minutes, never ratios: the ratios are rules of the domain. */
+export type RoomUsageRow = {
+  readonly roomId: string;
+  readonly roomName: string;
+  readonly facilityId: string;
+  readonly facilityName: string;
+  /** Opening minutes inside the room's active window, minus blocked time. */
+  readonly openMinutes: number;
+  readonly blockedMinutes: number;
+  /** Confirmed bookings starting in the range. */
+  readonly bookedMinutes: number;
+};
+
+export type CompanyUsageRow = {
+  readonly id: string;
+  readonly name: string;
+  readonly kind: "company" | "individual";
+  readonly active: boolean;
+  readonly bookedMinutes: number;
+  readonly confirmed: number;
+  readonly cancelled: number;
+  /** When the company last made a confirmed booking, whatever the range. `null` if it never did. */
+  readonly lastBookingAt: Date | null;
+};
+
+/** One weekday by hour cell of one facility, hours read in its own zone. Only cells with open or booked minutes. */
+export type HeatmapRow = {
+  readonly facilityId: string;
+  readonly facilityName: string;
+  readonly weekday: number;
+  readonly hour: number;
+  readonly openMinutes: number;
+  readonly bookedMinutes: number;
+};
+
+export type HeatmapScope = { readonly facilityId?: string | undefined; readonly roomId?: string | undefined };
+
 export interface OperatorQueries {
   listBookings(query: OperatorBookingsPageQuery): Promise<readonly OperatorBookingRecord[]>;
+  /** Every room, including ones deactivated or not yet active (their open minutes are 0 when out of the range). */
+  roomUsage(range: MetricRange): Promise<readonly RoomUsageRow[]>;
+  /** Every company, idle and inactive ones included. */
+  companyUsage(range: MetricRange, kind?: "company" | "individual"): Promise<readonly CompanyUsageRow[]>;
+  heatmap(range: MetricRange, scope: HeatmapScope): Promise<readonly HeatmapRow[]>;
+  /** Whether the facility and the room of a scope exist (a heatmap of an unknown one is 404). */
+  scopeExists(scope: HeatmapScope): Promise<boolean>;
 }

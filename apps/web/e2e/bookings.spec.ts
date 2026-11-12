@@ -73,6 +73,45 @@ test.describe("book a room (spec 0003)", () => {
     await expect(alert).not.toContainText(USERS.ana.name);
   });
 
+  test("a member cancels a booking, it moves to Canceladas, and another company can take the slot", async ({
+    page,
+    context,
+  }) => {
+    const slot = freeSlot();
+    await book(page, slot, ROOMS.luna);
+    await expect(page).toHaveURL(/nueva=/);
+
+    const row = page
+      .getByRole("row")
+      .filter({ hasText: "Sala Luna" })
+      .filter({ hasText: shown(slot.date) })
+      .filter({ hasText: `${slot.start} a ${slot.end}` });
+    await row.getByRole("button", { name: /^Cancelar la reserva de Sala Luna/ }).click();
+    const dialog = page.getByRole("dialog", { name: "¿Cancelar esta reserva?" });
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: "Sí, cancelar reserva" }).click();
+
+    await expect(page.getByText("Reserva cancelada").first()).toBeVisible();
+    await expect(row).toHaveCount(0);
+
+    await page
+      .getByRole("navigation", { name: "Vistas de reservas" })
+      .getByRole("link", { name: "Canceladas" })
+      .click();
+    await expect(
+      page
+        .getByRole("row")
+        .filter({ hasText: "Sala Luna" })
+        .filter({ hasText: shown(slot.date) })
+        .filter({ hasText: "Cancelada" }),
+    ).toHaveCount(1);
+
+    await context.clearCookies();
+    await context.addCookies([sessionCookie(USERS.carla.id)]);
+    await book(page, slot, ROOMS.luna);
+    await expect(page).toHaveURL(/nueva=/);
+  });
+
   test("the operator gets 403 on both pages and the API", async ({ page, context }) => {
     await context.clearCookies();
     await context.addCookies([sessionCookie(USERS.operador.id)]);

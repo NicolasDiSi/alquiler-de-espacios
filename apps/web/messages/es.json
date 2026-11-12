@@ -133,7 +133,8 @@
       "bookedBy": "Reservada por",
       "status": "Estado",
       "createdAt": "Creada",
-      "cancelledAt": "Cancelada el"
+      "cancelledAt": "Cancelada el",
+      "actions": "Acciones"
     },
     "timeRange": "{start} a {end}",
     "phase": {
@@ -180,7 +181,16 @@
       "description": "Puede ser un problema momentáneo. Probá de nuevo en unos segundos.",
       "retry": "Reintentar"
     },
-    "dateAndTime": "{date} · {time}"
+    "dateAndTime": "{date} · {time}",
+    "cancelAction": {
+      "button": "Cancelar",
+      "buttonFor": "Cancelar la reserva de {room}, {date}, {time}",
+      "title": "¿Cancelar esta reserva?",
+      "description": "{room}, {date}, {time}. La sala queda libre para otras empresas y no se puede deshacer.",
+      "keep": "Conservar reserva",
+      "confirm": "Sí, cancelar reserva",
+      "pending": "Cancelando…"
+    }
   },
   "bookingForm": {
     "metaTitle": "Nueva reserva",

@@ -10,7 +10,7 @@ import {
   type UnitOfWork,
 } from "../ports/ports";
 import type { FacilityView, RoomCatalog, RoomView } from "../ports/queries/room-catalog";
-import { bookRoom, listMyBookings, toBookingView } from "./bookings";
+import { bookRoom, cancelBooking, listMyBookings, toBookingView } from "./bookings";
 
 const BUENOS_AIRES = "America/Argentina/Buenos_Aires";
 const at = (date: string, hours: number, minutes = 0) =>
@@ -82,6 +82,14 @@ function fakeDatabase() {
         pending.push(stored);
         return stored;
       },
+      cancel: async (id, now) => {
+        const row = rows.find((r) => r.tenantId === tenantId && r.id === id);
+        if (row?.status !== "confirmed" || row.startsAt <= now) return null;
+        const cancelled: Stored = { ...row, status: "cancelled", cancelledAt: now };
+        rows = rows.map((r) => (r === row ? cancelled : r));
+        return cancelled;
+      },
+      find: async (id) => rows.find((r) => r.tenantId === tenantId && r.id === id) ?? null,
       findExactConfirmed: async (slot) =>
         rows.find(
           (row) =>
@@ -392,5 +400,79 @@ describe("toBookingView", () => {
   it("never carries the company", () => {
     const view = toBookingView(record("b-1", at("2026-11-10", 10), at("2026-11-10", 11)), NOW);
     expect(JSON.stringify(view)).not.toContain(ACME);
+  });
+});
+
+describe("cancelBooking", () => {
+  async function booked() {
+    const { db, deps } = setup();
+    await bookRoom(deps, ana, tuesday10to11);
+    return { db, deps };
+  }
+
+  it("cancels a confirmed booking of the company and returns it cancelled", async () => {
+    const { db, deps } = await booked();
+    const result = await cancelBooking(deps, ana, "booking-1");
+
+    expect(result).toMatchObject({
+      ok: true,
+      value: { id: "booking-1", status: "cancelled", phase: "cancelled", cancelledAt: "2026-11-09T09:00:00-03:00" },
+    });
+    expect(db.rows()[0]?.status).toBe("cancelled");
+  });
+
+  it("lets a colleague cancel and frees the slot for a rebooking", async () => {
+    const { deps } = await booked();
+    expect((await cancelBooking(deps, beto, "booking-1")).ok).toBe(true);
+    expect(await bookRoom(deps, gus, tuesday10to11)).toMatchObject({ ok: true, value: { created: true } });
+  });
+
+  it("answers not_found for another company's booking and for an unknown id, changing nothing", async () => {
+    const { db, deps } = await booked();
+    expect(await cancelBooking(deps, gus, "booking-1")).toEqual({ ok: false, reason: "not_found" });
+    expect(await cancelBooking(deps, ana, "nope")).toEqual({ ok: false, reason: "not_found" });
+    expect(db.rows()[0]?.status).toBe("confirmed");
+  });
+
+  it("answers already_cancelled the second time", async () => {
+    const { deps } = await booked();
+    await cancelBooking(deps, ana, "booking-1");
+    expect(await cancelBooking(deps, ana, "booking-1")).toEqual({ ok: false, reason: "already_cancelled" });
+  });
+
+  it("answers cancel_not_allowed once the booking started", async () => {
+    const { db, deps } = await booked();
+    const started = { ...deps, clock: { now: () => at("2026-11-10", 10) } };
+    expect(await cancelBooking(started, ana, "booking-1")).toEqual({ ok: false, reason: "cancel_not_allowed" });
+    expect(db.rows()[0]?.status).toBe("confirmed");
+  });
+
+  it("refuses the operator as forbidden before touching the database", async () => {
+    const { deps } = await booked();
+    expect(await cancelBooking(deps, operator, "booking-1")).toEqual({ ok: false, reason: "forbidden" });
+  });
+
+  it("reports cancel_not_allowed when the state changed between the statement and the read", async () => {
+    const { deps } = await booked();
+    const racing = {
+      ...deps,
+      uow: {
+        run: (tenantId: TenantId, work: (tx: TenantTransaction) => Promise<unknown>) =>
+          deps.uow.run(tenantId, (tx) => work({ ...tx, bookings: { ...tx.bookings, cancel: async () => null } })),
+      } as UnitOfWork,
+    };
+    expect(await cancelBooking(racing, ana, "booking-1")).toEqual({ ok: false, reason: "cancel_not_allowed" });
+  });
+
+  it("turns a busy database into busy", async () => {
+    const busy = {
+      uow: {
+        run: async () => {
+          throw new BusyError();
+        },
+      } as UnitOfWork,
+      clock: { now: () => NOW },
+    };
+    expect(await cancelBooking(busy, ana, "booking-1")).toEqual({ ok: false, reason: "busy" });
   });
 });

@@ -6,6 +6,7 @@ import {
   type BookingPhase,
   type BookingStatus,
   bookingPhase,
+  checkCancellation,
   fail,
   ok,
   type Result,
@@ -136,4 +137,37 @@ export async function listMyBookings(
     const next = rows.length > limit && last ? { startsAt: last.startsAt, id: last.id } : null;
     return ok({ bookings: page.map((record) => toBookingView(record, now)), next });
   });
+}
+
+/**
+ * `cancelBooking` (spec 0001, "Booking and cancel flows"): a member cancels a booking of its own company before it
+ * starts. Any member of the company may cancel it, whoever booked it, and a company that can no longer book may still
+ * cancel. One statement flips only a confirmed booking that has not started. If it changed nothing, the booking is read
+ * once (under row level security, so another company's id is `not_found`) and the domain rule names the reason:
+ * `already_cancelled` or `cancel_not_allowed`. A refusal writes nothing.
+ */
+export async function cancelBooking(
+  deps: Pick<Dependencies, "uow" | "clock">,
+  actor: Actor,
+  bookingId: string,
+): Promise<Result<BookingView>> {
+  const member = authorizeMember(actor);
+  if (!member.ok) return member;
+
+  const id = bookingId as BookingId;
+  const now = deps.clock.now();
+  return withRaceHandling(() =>
+    deps.uow.run(member.value.tenantId, async (tx): Promise<Result<BookingView>> => {
+      const cancelled = await tx.bookings.cancel(id, now);
+      if (cancelled) return ok(toBookingView(cancelled, now));
+
+      const existing = await tx.bookings.find(id);
+      if (!existing) return fail("not_found");
+      const refusal = checkCancellation(existing, now);
+      if (!refusal.ok) return refusal;
+      // It was confirmed and not started when read, yet the statement matched nothing: the state changed in between
+      // (a start or another cancel committed). Report what it is now.
+      return fail("cancel_not_allowed");
+    }),
+  );
 }

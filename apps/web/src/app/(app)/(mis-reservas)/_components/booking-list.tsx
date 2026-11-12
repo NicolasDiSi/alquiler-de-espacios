@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
+import { CancelBookingButton } from "./cancel-booking-button";
+
 /** Text carries the state; the badge style only reinforces it (never color alone). */
 const PHASE_VARIANT: Record<BookingPhase, "secondary" | "outline"> = {
   upcoming: "outline",
@@ -73,6 +75,17 @@ export function BookingList({ view, initial, newId }: BookingListProps) {
     };
   };
 
+  /** A confirmed booking that has not started can be cancelled; the server decides again on every attempt. */
+  const dropRow = (id: string) => setBookings((current) => current.filter((booking) => booking.id !== id));
+  const action = (booking: BookingView) =>
+    booking.phase === "upcoming" ? (
+      <CancelBookingButton
+        booking={booking}
+        summary={{ room: booking.room.name, date: details(booking).date, time: details(booking).time }}
+        onGone={dropRow}
+      />
+    ) : null;
+
   const status = (booking: BookingView) => (
     <span className="flex flex-wrap items-center gap-1.5">
       <Badge variant={PHASE_VARIANT[booking.phase]}>{t(`phase.${booking.phase}`)}</Badge>
@@ -81,6 +94,7 @@ export function BookingList({ view, initial, newId }: BookingListProps) {
   );
 
   const showCancelledAt = view === "cancelled";
+  const showActions = view === "upcoming";
 
   /** Below the list: the retry after a failed load, "Ver más" while there is more, or the sentence that says it ended. */
   const footer = () => {
@@ -118,6 +132,11 @@ export function BookingList({ view, initial, newId }: BookingListProps) {
               <TableHead scope="col">{t("columns.status")}</TableHead>
               <TableHead scope="col">{t("columns.createdAt")}</TableHead>
               {showCancelledAt ? <TableHead scope="col">{t("columns.cancelledAt")}</TableHead> : null}
+              {showActions ? (
+                <TableHead scope="col">
+                  <span className="sr-only">{t("columns.actions")}</span>
+                </TableHead>
+              ) : null}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -132,6 +151,7 @@ export function BookingList({ view, initial, newId }: BookingListProps) {
                   <TableCell>{status(booking)}</TableCell>
                   <TableCell>{shown.createdAt}</TableCell>
                   {showCancelledAt ? <TableCell>{shown.cancelledAt}</TableCell> : null}
+                  {showActions ? <TableCell className="text-right">{action(booking)}</TableCell> : null}
                 </TableRow>
               );
             })}
@@ -163,6 +183,7 @@ export function BookingList({ view, initial, newId }: BookingListProps) {
                   </>
                 ) : null}
               </dl>
+              {action(booking) ? <div className="flex justify-end">{action(booking)}</div> : null}
             </li>
           );
         })}

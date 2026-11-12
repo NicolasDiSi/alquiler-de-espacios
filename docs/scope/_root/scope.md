@@ -24,7 +24,7 @@ Build order, by what each feature needs. Numbers never change (specs refer to th
 | 6   | Room availability grid                                                     | Slice 2    | planned     | 2, 5, 15 (facility hours and blocks)                      |
 | 14  | Rooms list: every room, pick one to see it                                 | Slice 2    | planned     | 6 (the link target), 15                                   |
 | 10  | Operator global bookings view                                              | Slice 4    | planned     | 15 (API)                                                  |
-| 9   | Operator dashboard                                                         | Slice 4    | planned     | 15 and 8 (metrics API)                                    |
+| 9   | Operator dashboard                                                         | Slice 4    | in-progress | 15 and 8 (metrics API)                                    |
 | 13  | Role based navigation in the sidebar                                       | Slice 1    | planned     | 5, 14, 10, 9 (an entry appears only when its page exists) |
 | 11  | End to end suite with accessibility checks                                 | Delivery   | planned     | 5, 7, 6, 14, 10, 9, 13                                    |
 | 12  | README, assumptions and AI usage                                           | Delivery   | planned     | everything                                                |
@@ -152,11 +152,17 @@ Backend only, from [spec 0004](../../specs/_root/0004-operator-administration-an
   - metrics on a known dataset: a room created mid range, a deactivated room, two zones, a blocked day leaving the denominator, a released block, an idle client, an empty range as `null`
     Spec 0004 · code in `packages/domain/`, `packages/application/`, `packages/db/`, `apps/web/`
 
-### 9. Operator dashboard · needs a decision
+### 9. Operator dashboard · in-progress, assumed decision (spec 0006)
 
 The screen where the operator reads occupancy, ranks clients, and spots low utilization periods (heatmap), with a date range.
 **Done when:** the operator sees the three metrics for a chosen range, idle clients and cells under 20% stand out, empty values show a dash, and a company user cannot open it.
-- [ ] Design it (spec): `/architect operator dashboard`
+- [ ] Design it (spec): assumed in [spec 0006](../../specs/_root/0006-operator-dashboard/index.md), `/architect operator dashboard` to ratify
+- [x] Build it: `/develop operator dashboard`
+  - [x] Daily occupancy query and `GET /metrics/daily` · AC-5
+  - [x] Dashboard at `/operador` from the template, on the metric use cases · AC-1 to AC-4
+- [ ] Verify it: `/check verify operator dashboard`
+- [ ] Test it: `/test operator dashboard`
+  Spec 0006 · code in `packages/domain/src/metrics/dashboard.ts`, `packages/application/src/use-cases/operator-dashboard.ts`, `packages/db/src/operator-queries.ts`, `apps/web/src/app/(app)/operador/`
 
 ### 10. Operator global bookings view
 

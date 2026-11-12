@@ -18,6 +18,7 @@ export {
 export { resolveSession, type Session } from "./use-cases/identity";
 export * from "./use-cases/operator-bookings";
 export * from "./use-cases/operator-catalog";
+export * from "./use-cases/operator-dashboard";
 export * from "./use-cases/operator-metrics";
 export * from "./use-cases/operator-views";
 export { type Dependencies, withRaceHandling } from "./use-cases/shared";

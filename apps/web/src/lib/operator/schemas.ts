@@ -1,4 +1,5 @@
 import { CLIENT_KINDS } from "@espacios/application";
+import { INSIGHT_THRESHOLDS, type LocalDate, parseLocalDate } from "@espacios/domain";
 import { z } from "zod";
 
 /**
@@ -73,4 +74,19 @@ export const bookingsQuery = z.object({
   to: instant.optional(),
   cursor: z.string().min(1).max(512).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+
+/** A metric range: inclusive local days `YYYY-MM-DD`, each read in its facility's zone. A day that does not exist is 400. */
+const localDay = z.string().transform((value, ctx) => {
+  const day = parseLocalDate(value);
+  if (!day) ctx.addIssue({ code: "custom", message: "not a day" });
+  return day ?? ("" as LocalDate);
+});
+const metricRange = { from: localDay, to: localDay };
+export const roomMetricsQuery = z.object(metricRange);
+export const companyMetricsQuery = z.object({ ...metricRange, kind: z.enum(CLIENT_KINDS).optional() });
+export const heatmapQuery = z.object({ ...metricRange, facilityId: id.optional(), roomId: id.optional() });
+export const insightsQuery = z.object({
+  ...metricRange,
+  lowOccupancy: z.coerce.number().min(0).max(1).default(INSIGHT_THRESHOLDS.lowOccupancy),
 });

@@ -55,3 +55,9 @@ export async function respond<T>(result: Result<T>, key: string, created?: (valu
 
 /** The `{id}` of a dynamic route. */
 export type IdContext = { readonly params: Promise<{ readonly id: string }> };
+
+/** A use case result whose value is the whole body (200), or the failure with its reason's status. */
+export async function respondBody<T extends object>(result: Result<T>): Promise<Response> {
+  if (!result.ok) return refuse(result.reason, result.details);
+  return Response.json(result.value, { headers: NO_STORE });
+}

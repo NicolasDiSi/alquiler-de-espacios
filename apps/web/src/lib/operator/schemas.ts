@@ -62,3 +62,15 @@ const flag = z
 export const inactiveQuery = z.object({ includeInactive: flag });
 export const roomsQuery = z.object({ includeInactive: flag, facilityId: id.optional() });
 export const blocksQuery = z.object({ includeReleased: flag, facilityId: id.optional(), roomId: id.optional() });
+
+/** `GET /operator/bookings` filters (AC-10). `from` and `to` are instants with an offset, bounding `startsAt`: `[from, to)`. */
+export const bookingsQuery = z.object({
+  companyId: id.optional(),
+  roomId: id.optional(),
+  facilityId: id.optional(),
+  status: z.enum(["confirmed", "cancelled"]).optional(),
+  from: instant.optional(),
+  to: instant.optional(),
+  cursor: z.string().min(1).max(512).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});

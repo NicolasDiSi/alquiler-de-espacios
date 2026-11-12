@@ -1,9 +1,17 @@
 // The composition root: the only place in the app that creates adapters (dependency cruiser rule
 // `only-composition-root-wires-adapters`). Everything is created on first use, so `next build` needs no database.
-import type { Dependencies, OperatorDependencies, RoomCatalog, UserDirectory } from "@espacios/application";
+import type {
+  Clock,
+  Dependencies,
+  OperatorDependencies,
+  OperatorQueries,
+  RoomCatalog,
+  UserDirectory,
+} from "@espacios/application";
 import {
   createDatabaseClient,
   createPrismaOperatorCatalog,
+  createPrismaOperatorQueries,
   createPrismaRoomCatalog,
   createPrismaUnitOfWork,
   createPrismaUserDirectory,
@@ -79,4 +87,9 @@ export function sessionSecret(): string {
     );
   }
   return secret;
+}
+
+/** What the operator's global reads need (spec 0004): the queries on the operator login and the clock. */
+export function operatorReadEdge(): { readonly queries: OperatorQueries; readonly clock: Clock } {
+  return { queries: createPrismaOperatorQueries(operatorDb()), clock: systemClock };
 }

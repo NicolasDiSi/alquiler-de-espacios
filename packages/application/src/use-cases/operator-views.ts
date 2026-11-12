@@ -212,3 +212,28 @@ export function toOperatorWeekView(
   });
   return { days, nowMinutes: localMinutesOf(now, timeZone) };
 }
+
+/** Where a block can go (spec 0007): each active sede with its active rooms, by name, for a dialog outside the sede page. */
+export type OperatorBlockTarget = {
+  readonly facility: OperatorFacilityView;
+  readonly rooms: readonly OperatorRoomView[];
+};
+
+export function toOperatorBlockTargets(
+  facilities: readonly FacilityRecord[],
+  rooms: readonly RoomRecord[],
+): OperatorBlockTarget[] {
+  const active = rooms.filter((room) => !room.deactivatedAt);
+  return toOperatorFacilityViews(
+    facilities.filter((facility) => !facility.deactivatedAt),
+    active,
+  )
+    .map((facility) => ({
+      facility,
+      rooms: active
+        .filter((room) => room.facilityId === facility.id)
+        .map((room) => toOperatorRoomView(room, facility.timeZone))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    }))
+    .sort((a, b) => a.facility.name.localeCompare(b.facility.name));
+}

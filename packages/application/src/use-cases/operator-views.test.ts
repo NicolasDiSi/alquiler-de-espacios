@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { BlockRecord, FacilityRecord, RoomRecord } from "../ports/operator-catalog";
 import {
+  toOperatorBlockTargets,
   toOperatorBlockViews,
   toOperatorClientView,
   toOperatorFacilityViews,
@@ -99,5 +100,27 @@ describe("operator views (spec 0005)", () => {
       status: "active",
       deactivatedAt: null,
     });
+  });
+});
+
+describe("block targets (spec 0007)", () => {
+  it("offers each active sede with its active rooms, both by name", () => {
+    const targets = toOperatorBlockTargets(
+      [
+        facility({ id: "f-2", name: "Sur" }),
+        facility(),
+        facility({ id: "f-3", name: "Cerrada", deactivatedAt: created }),
+      ],
+      [
+        room({ id: "r-2", name: "Luna" }),
+        room(),
+        room({ id: "r-3", deactivatedAt: created }),
+        room({ id: "r-4", facilityId: "f-2", name: "Mar" }),
+      ],
+    );
+    expect(targets.map((target) => [target.facility.name, target.rooms.map((r) => r.name)])).toEqual([
+      ["Norte", ["Luna", "Sol"]],
+      ["Sur", ["Mar"]],
+    ]);
   });
 });

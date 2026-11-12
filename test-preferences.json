@@ -5,5 +5,7 @@
   "e2eTool": "playwright",
   "testDir": "beside the source",
   "filePattern": "*.test.ts",
-  "packageManager": "pnpm"
+  "packageManager": "pnpm",
+  "timing": "on-request",
+  "timingNote": "Write tests only when the engineer asks for them. While building, only keep existing tests compiling."
 }

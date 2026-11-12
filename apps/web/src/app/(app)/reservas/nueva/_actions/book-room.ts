@@ -56,10 +56,13 @@ export async function bookRoom(_previous: BookingFormState, formData: FormData):
   const session = await getSession();
   if (!session) return refusal("unauthenticated", values);
 
-  const input = parseBookingForm(values);
+  const edge = companyEdge();
+  // The room decides the zone the typed day and times are read in (spec 0004).
+  const room = await edge.rooms.findRoom(values.roomId.trim());
+  const input = parseBookingForm(values, (roomId) => (roomId === room?.id ? room.facility.timeZone : undefined));
   if (!input.ok) return refusal("invalid_input", values, input.invalidFields);
 
-  const result = await bookRoomUseCase(companyEdge(), session.actor, input.value);
+  const result = await bookRoomUseCase(edge, session.actor, input.value);
   if (!result.ok) return refusal(result.reason, values);
 
   redirect(`/?vista=proximas&nueva=${encodeURIComponent(result.value.booking.id)}`);

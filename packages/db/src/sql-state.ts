@@ -1,4 +1,4 @@
-import { BusyError, ConcurrencyError } from "@espacios/application";
+import { BusyError, ConcurrencyError, RuleViolationError } from "@espacios/application";
 
 type WrappedError = {
   readonly code?: unknown;
@@ -30,6 +30,17 @@ export function sqlState(error: unknown): string | undefined {
 /** `23P01`: the exclusion constraint refused an overlapping confirmed booking. */
 const EXCLUSION_VIOLATION = "23P01";
 
+/**
+ * The custom SQLSTATEs of the booking guard trigger (migration `operator_administration`, spec 0004): each is one
+ * reason a booking that looked fine to the use case cannot be stored any more.
+ */
+const GUARD_REFUSALS = {
+  EB001: "room_inactive",
+  EB002: "company_inactive",
+  EB003: "outside_hours",
+  EB004: "room_blocked",
+} as const;
+
 /** Lock timeout, statement timeout, deadlock and serialization failure: nothing was written, a retry may work. */
 const BUSY_STATES = new Set(["55P03", "57014", "40P01", "40001"]);
 
@@ -38,12 +49,15 @@ const TRANSACTION_UNAVAILABLE = "P2028";
 
 /**
  * Turns a database error into the error the application understands (spec 0001): an overlap becomes
- * `ConcurrencyError`, a timeout becomes `BusyError`. Anything else is returned unchanged, to be thrown on as a bug.
+ * `ConcurrencyError`, a refusal of the booking guard becomes `RuleViolationError`, a timeout becomes `BusyError`. Anything else is returned unchanged, to be thrown on as a bug.
  * Call it outside `$transaction`, once PostgreSQL has rolled the aborted transaction back.
  */
 export function translateDatabaseError(error: unknown): unknown {
   const state = sqlState(error);
   if (state === EXCLUSION_VIOLATION) return new ConcurrencyError({ cause: error });
+  if (state && Object.hasOwn(GUARD_REFUSALS, state)) {
+    return new RuleViolationError(GUARD_REFUSALS[state as keyof typeof GUARD_REFUSALS], { cause: error });
+  }
   if ((state && BUSY_STATES.has(state)) || (error as WrappedError | null)?.code === TRANSACTION_UNAVAILABLE) {
     return new BusyError({ cause: error });
   }

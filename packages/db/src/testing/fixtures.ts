@@ -11,10 +11,27 @@ export async function createTenant(owner: DatabaseClient, name: string): Promise
   return tenantId;
 }
 
+/**
+ * A facility that is always open (every day, 00:00 to 24:00, Buenos Aires like the real one), so the fixed UTC times of
+ * `at()` never fall outside the opening window the booking guard checks. Created once and reused.
+ */
+export const TEST_FACILITY_ID = "facility-test-always-open";
+
+async function ensureTestFacility(owner: DatabaseClient): Promise<string> {
+  // Test files run in parallel against one database, so this must be atomic: a find then create would race.
+  await owner.$executeRaw`
+    INSERT INTO facility (id, name, time_zone, opens_at, closes_at, open_weekdays)
+    VALUES (${TEST_FACILITY_ID}, 'Test facility (always open)', 'America/Argentina/Buenos_Aires', 0, 1440, ARRAY[0, 1, 2, 3, 4, 5, 6]::smallint[])
+    ON CONFLICT DO NOTHING`;
+  return TEST_FACILITY_ID;
+}
+
 /** A room of its own, so a test never overlaps another test's bookings. Rooms have no row level security. */
-export async function createRoom(owner: DatabaseClient): Promise<string> {
+export async function createRoom(owner: DatabaseClient, facilityId?: string): Promise<string> {
   const id = `room-${randomUUID()}`;
-  await owner.room.create({ data: { id, name: id, capacity: 6 } });
+  await owner.room.create({
+    data: { id, name: id, capacity: 6, facilityId: facilityId ?? (await ensureTestFacility(owner)) },
+  });
   return id;
 }
 

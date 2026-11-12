@@ -9,23 +9,25 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 ## At a glance
 
-| #   | Feature                                               | Phase      | Status      |
-| --- | ----------------------------------------------------- | ---------- | ----------- |
-| 1   | Repo foundation: tooling, layer packages, web shell   | Foundation | existing    |
-| 2   | Database foundation: roles, FORCE RLS, schema, seeds  | Foundation | done        |
-| 3   | Company identity: seeded users, signed cookie, picker | Foundation | done        |
-| 4   | Result and error contract                             | Foundation | in-progress |
-| 5   | Book a room and see it in my bookings                 | Slice 1    | in-progress |
-| 13  | Role based navigation in the sidebar                  | Slice 1    | planned     |
-| 14  | Rooms list: every room, pick one to see it            | Slice 2    | planned     |
-| 6   | Room availability grid                                | Slice 2    | planned     |
-| 7   | Cancel a booking and free the slot                    | Slice 3    | planned     |
-| 8   | Operator metrics: queries and API                     | Slice 4    | planned     |
-| 15  | Operator administration: facilities, rooms, clients, blocks (data and API) | Slice 4 | in-progress |
-| 9   | Operator dashboard                                    | Slice 4    | planned     |
-| 10  | Operator global bookings view                         | Slice 4    | planned     |
-| 11  | End to end suite with accessibility checks            | Delivery   | planned     |
-| 12  | README, assumptions and AI usage                      | Delivery   | planned     |
+Build order, by what each feature needs. Numbers never change (specs refer to them); the sections below stay grouped by slice.
+
+| #   | Feature                                                                    | Phase      | Status      | Needs                                                     |
+| --- | -------------------------------------------------------------------------- | ---------- | ----------- | --------------------------------------------------------- |
+| 1   | Repo foundation: tooling, layer packages, web shell                        | Foundation | existing    | none                                                      |
+| 2   | Database foundation: roles, FORCE RLS, schema, seeds                       | Foundation | done        | 1                                                         |
+| 3   | Company identity: seeded users, signed cookie, picker                      | Foundation | done        | 1, 2                                                      |
+| 4   | Result and error contract                                                  | Foundation | in-progress | 1                                                         |
+| 5   | Book a room and see it in my bookings                                      | Slice 1    | in-progress | 2, 3, 4                                                   |
+| 15  | Operator administration: facilities, rooms, clients, blocks (data and API) | Slice 4    | in-progress | 2, 3, 4                                                   |
+| 8   | Operator metrics: queries and API                                          | Slice 4    | planned     | 15 (built together, verify and test with it)              |
+| 7   | Cancel a booking and free the slot                                         | Slice 3    | planned     | 5                                                         |
+| 6   | Room availability grid                                                     | Slice 2    | planned     | 2, 5, 15 (facility hours and blocks)                      |
+| 14  | Rooms list: every room, pick one to see it                                 | Slice 2    | planned     | 6 (the link target), 15                                   |
+| 10  | Operator global bookings view                                              | Slice 4    | planned     | 15 (API)                                                  |
+| 9   | Operator dashboard                                                         | Slice 4    | planned     | 15 and 8 (metrics API)                                    |
+| 13  | Role based navigation in the sidebar                                       | Slice 1    | planned     | 5, 14, 10, 9 (an entry appears only when its page exists) |
+| 11  | End to end suite with accessibility checks                                 | Delivery   | planned     | 5, 7, 6, 14, 10, 9, 13                                    |
+| 12  | README, assumptions and AI usage                                           | Delivery   | planned     | everything                                                |
 
 ## Foundations
 
@@ -130,12 +132,15 @@ Occupancy per room and overall, usage per company (hours, bookings, cancellation
 Backend only, from [spec 0004](../../specs/_root/0004-operator-administration-and-metrics/index.md). The operator adds and retires facilities, rooms and clients through `/api/v1/operator/*`, blocks rooms or a whole facility, and reads the global bookings list and the metrics (rooms, companies, heatmap, insights). A person who works alone is a client of kind `individual` with one member. Facility owns the time zone and opening hours. It extends features 8 and 10 and replaces the constants of the booking rules. The screens come later.
 **Done when:** the 21 acceptance criteria of spec 0004 hold, the booking proofs of specs 0001 and 0003 still pass on the default facility, and the guard trigger refuses a direct insert into an inactive room, outside the opening window or over a block.
 - [x] Design it (spec): `/architect operator administration` (spec 0004)
-- [ ] Build it: `/develop operator administration`
-  - [ ] Migration: `facility`, `block`, room and company columns (`kind`, `logo_url`, `deactivated_at`, `active_from`), backfill, grants, booking guard trigger, seeds · AC-2, AC-3, AC-8, AC-9, AC-16, AC-19
-  - [ ] Domain and member path: facility rules replace the constants, new reasons, inactive rooms and companies refused · AC-7, AC-8, AC-9, AC-15, AC-16
-  - [ ] Operator edge: facilities, rooms, clients with members, deactivation, hours change with the affected bookings list · AC-1 to AC-7, AC-21
-  - [ ] Blocks and the availability `kind` · AC-17, AC-18, AC-19, AC-20
-  - [ ] Bookings list, metrics and insights · AC-10 to AC-14
+- [x] Build it: `/develop operator administration`
+  - [x] Migration: `facility`, `block`, room and company columns (`kind`, `logo_url`, `deactivated_at`, `active_from`), backfill, grants, booking guard trigger, seeds · AC-2, AC-3, AC-8, AC-9, AC-16, AC-19
+  - [x] Domain and member path: facility rules replace the constants, new reasons, inactive rooms and companies refused · AC-7, AC-8, AC-9, AC-15, AC-16
+  - [x] Operator edge: facilities, rooms, clients with members, deactivation, hours change with the affected bookings list · AC-1 to AC-7, AC-21
+    - Done: thin CRUD, deactivation of rooms, facilities and clients (with company reactivation), the hours change check (`has_future_bookings` with its list) and the block creation refusal (`block_has_bookings` with its list), all in one operator transaction with the row locks. Proven against Postgres, including the race with a booking in flight (P-16).
+  - [x] Blocks and the availability `kind` · AC-17, AC-18, AC-19, AC-20
+    - Done: block create and release, the availability function with `kind`, the `room_blocked` pre check in `bookRoom` (`RoomCatalog.isBlocked`, a yes or no that never shows a block), the guard trigger as the backstop, and P-18 through the use cases (`createBlock` against `bookRoom`). The `GET /rooms/{id}/availability` endpoint itself belongs to feature 6; the data side of AC-20 is proven in `availability.test.ts`.
+  - [x] Bookings list, metrics and insights · AC-10 to AC-14
+    - Done: the bookings list (AC-10), `OperatorQueries` port, `listOperatorBookings`, `GET /operator/bookings` with filters and an opaque keyset cursor, upcoming run first then past. `from` and `to` bound `startsAt` as instants, `[from, to)`. Metrics: `GET /operator/metrics/rooms`, `companies`, `heatmap` and `insights` (AC-11 to AC-14). The database counts minutes per room and day in each facility's zone (`tstzmultirange`, blocks taken out of the open minutes); ratios, thresholds and insights are domain rules (`packages/domain/src/metrics`). Proven on a hand computed dataset in `packages/db/src/operator-metrics.test.ts`. Documented in `docs/api/operator.md` and the README Supuestos.
 - [ ] Verify it: `/check verify operator administration`
 - [ ] Test it: `/test operator administration`. Must cover, as agreed on 2026-11-11:
   - `company.kind` (`company` or `individual`, immutable, default `company`) and `logo_url` (https only, 2048 max, `null` clears it)
@@ -145,7 +150,7 @@ Backend only, from [spec 0004](../../specs/_root/0004-operator-administration-an
   - the operator login can insert into `app_user` (members only) and `facility`, `room`, `company`, `block`, but never `booking`, and has no `DELETE` (the widest permission change of the spec)
   - races P-16, P-17, P-18: book against deactivate, hours change and block
   - metrics on a known dataset: a room created mid range, a deactivated room, two zones, a blocked day leaving the denominator, a released block, an idle client, an empty range as `null`
-  Spec 0004 · code in `packages/domain/`, `packages/application/`, `packages/db/`, `apps/web/`
+    Spec 0004 · code in `packages/domain/`, `packages/application/`, `packages/db/`, `apps/web/`
 
 ### 9. Operator dashboard · needs a decision
 

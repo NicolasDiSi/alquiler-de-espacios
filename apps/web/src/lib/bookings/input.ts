@@ -32,21 +32,28 @@ function fieldsOf(error: z.ZodError): BookingFormField[] {
 }
 
 /**
- * The form's values to the booking's two instants, built on the server in the facility's zone (spec 0001). A time
+ * The form's values to the booking's two instants, built on the server in the room's facility zone (spec 0004). A time
  * off the 30 minute marks still parses, so the use case can answer with its own reason (`not_on_grid`).
  */
-export function parseBookingForm(values: BookingFormValues): ParseResult {
+export function parseBookingForm(
+  values: BookingFormValues,
+  /** The zone of the room's facility (spec 0004), or `undefined` for a room that does not exist. */
+  timeZoneOf: (roomId: string) => string | undefined,
+): ParseResult {
   const parsed = bookingFormSchema.safeParse(values);
   if (!parsed.success) return { ok: false, invalidFields: fieldsOf(parsed.error) };
   const { roomId, date, start, end } = parsed.data;
   // Both checks passed in the schema, so neither is null here.
   const day = parseLocalDate(date) as NonNullable<ReturnType<typeof parseLocalDate>>;
+  // An unknown room has no zone. The use case answers `not_found` for it before it reads the instants, so UTC only
+  // keeps this function total.
+  const timeZone = timeZoneOf(roomId) ?? "UTC";
   return {
     ok: true,
     value: {
       roomId,
-      startsAt: zonedInstant(day, parseTime(start) ?? 0),
-      endsAt: zonedInstant(day, parseTime(end) ?? 0),
+      startsAt: zonedInstant(day, parseTime(start) ?? 0, timeZone),
+      endsAt: zonedInstant(day, parseTime(end) ?? 0, timeZone),
     },
   };
 }

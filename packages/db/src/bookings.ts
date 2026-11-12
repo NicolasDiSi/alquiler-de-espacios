@@ -18,7 +18,7 @@ const RECORD_SELECT = {
   status: true,
   createdAt: true,
   cancelledAt: true,
-  room: { select: { id: true, name: true } },
+  room: { select: { id: true, name: true, facility: { select: { timeZone: true } } } },
   user: { select: { name: true } },
 } as const satisfies Prisma.BookingSelect;
 
@@ -27,7 +27,7 @@ type Row = Prisma.BookingGetPayload<{ select: typeof RECORD_SELECT }>;
 function toRecord(row: Row): BookingRecord {
   return {
     id: row.id as BookingId,
-    room: row.room,
+    room: { id: row.room.id, name: row.room.name, timeZone: row.room.facility.timeZone },
     bookedBy: { name: row.user.name },
     startsAt: row.startsAt,
     endsAt: row.endsAt,

@@ -38,3 +38,17 @@ Open the app and pick a seeded user on `/ingresar` ("sign in as"). There are no 
 > **After pulling a change to the database roles** (`infra/local/postgres/`), recreate the local database once with `docker compose down -v`, then run the steps above again. Postgres runs those init scripts only when its volume is new. This deletes your local data.
 
 Prisma Studio (`pnpm db:studio`) connects as the schema owner, and row level security applies to it too, so it shows no bookings. To browse every company, read only: `DATABASE_OWNER_URL=postgresql://espacios_operator:espacios_operator@localhost:5432/espacios pnpm db:studio`.
+
+## Supuestos
+
+Business rules the brief leaves open, decided in the specs under `docs/specs/`.
+
+- Every user belongs to a client company, or is the operator. A person who works alone is a client of kind `individual` with one member, so tenant isolation stays one rule.
+- A facility (sede) owns the time zone, the opening hours and the open weekdays. Rooms and companies are deactivated, never deleted. A deactivated room or facility never reopens (create a new room instead); a company can be reactivated.
+- The operator cannot book or cancel on behalf of a client. Only members write bookings.
+- Blocks (maintenance, holidays, private events) cover a room or a whole facility. They are never edited, only released, and companies see them only as "not available".
+- Metrics count confirmed bookings only. Occupancy is booked minutes over open minutes inside the room's active window, with blocked time taken out. Facility and overall occupancy are a weighted ratio, never an average of room ratios.
+- A metric range is at most 366 days. Each day is read in its facility's time zone.
+- A company is a promotion candidate with no confirmed booking in the range, with booked time under 25% of the mean of active companies (needs at least 3 of them), or with a cancellation rate of 0.3 or more over at least 5 bookings.
+- Low utilization slots are heatmap cells under 20% occupancy (adjustable), emptiest first, at most 20.
+- `lastBookingAt` is when the company last made a confirmed booking, whatever the range.

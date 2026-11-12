@@ -24,7 +24,7 @@ import { Label } from "@/components/ui/label";
 import type { BookingFormField, BookingFormValues } from "@/lib/bookings/input";
 
 import { type BookingFormState, bookRoom } from "../_actions/book-room";
-import { startChoices, withChange } from "../_lib/form-options";
+import { facilityFor, startChoices, withChange } from "../_lib/form-options";
 import { DateField } from "./date-field";
 
 /**
@@ -72,7 +72,8 @@ export function BookingForm({ rooms, initialValues, now: nowIso }: BookingFormPr
   };
 
   const change = (field: BookingFormField, value: string) =>
-    setValues((current) => withChange(current, field, value, now));
+    setValues((current) => withChange(current, field, value, now, rooms));
+  const facility = facilityFor(values.roomId, rooms);
 
   const invalid = new Set<BookingFormField>(state?.invalidFields ?? []);
   const fieldProps = (field: BookingFormField) => ({
@@ -122,6 +123,7 @@ export function BookingForm({ rooms, initialValues, now: nowIso }: BookingFormPr
         value={values.date}
         onChange={(date) => change("date", date)}
         now={now}
+        facility={facility}
         invalid={invalid.has("date")}
         errorId={alertId}
       />
@@ -131,7 +133,7 @@ export function BookingForm({ rooms, initialValues, now: nowIso }: BookingFormPr
           <Label htmlFor="booking-start">{t("start")}</Label>
           <NativeSelect {...fieldProps("start")} required>
             <option value="">{t("timePlaceholder")}</option>
-            {startChoices(values.date, now).map((option) => (
+            {startChoices(values.date, now, facility).map((option) => (
               <option key={option.time} value={option.time} disabled={option.disabled}>
                 {option.time}
               </option>
@@ -142,7 +144,7 @@ export function BookingForm({ rooms, initialValues, now: nowIso }: BookingFormPr
           <Label htmlFor="booking-end">{t("end")}</Label>
           <NativeSelect {...fieldProps("end")} required>
             <option value="">{values.start ? t("timePlaceholder") : t("endNeedsStart")}</option>
-            {endTimes(values.start).map((time) => (
+            {endTimes(values.start, facility).map((time) => (
               <option key={time} value={time}>
                 {time}
               </option>

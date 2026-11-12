@@ -41,15 +41,7 @@ export default async function NewBookingPage({ searchParams }: { searchParams: P
       {rooms.length === 0 ? (
         <EmptyState icon={DoorOpen} title={t("empty.title")} description={t("empty.description")} />
       ) : (
-        <BookingForm
-          rooms={rooms}
-          initialValues={initialBookingValues(
-            now,
-            params,
-            rooms.map((room) => room.id),
-          )}
-          now={now.toISOString()}
-        />
+        <BookingForm rooms={rooms} initialValues={initialBookingValues(now, params, rooms)} now={now.toISOString()} />
       )}
     </div>
   );

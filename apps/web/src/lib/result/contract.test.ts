@@ -26,9 +26,21 @@ describe("the error contract (spec 0001, P-6)", () => {
     expect(byStatus).toEqual({
       "400": ["invalid_input"],
       "401": ["unauthenticated"],
-      "403": ["forbidden"],
+      "403": ["company_inactive", "forbidden"],
       "404": ["not_found"],
-      "409": ["conflict", "already_cancelled"],
+      "409": [
+        "conflict",
+        "already_exists",
+        "has_future_bookings",
+        "block_has_bookings",
+        "facility_has_active_rooms",
+        "facility_inactive",
+        "individual_is_single",
+        "already_released",
+        "room_inactive",
+        "room_blocked",
+        "already_cancelled",
+      ],
       "422": [
         "not_on_grid",
         "outside_hours",
@@ -61,6 +73,32 @@ describe("failureResponse", () => {
     const response = failureResponse("busy", errors.busy as string);
     expect(response.status).toBe(503);
     expect(response.headers.get("Retry-After")).toBe("1");
+  });
+});
+
+describe("failureResponse with bookings in the way", () => {
+  it("adds details with ISO dates for has_future_bookings", async () => {
+    const booking = {
+      id: "b-1",
+      roomId: "r-1",
+      roomName: "Sala 1",
+      companyName: "Acme",
+      startsAt: new Date("2030-01-07T12:00:00Z"),
+      endsAt: new Date("2030-01-07T13:00:00Z"),
+    };
+    const response = failureResponse("has_future_bookings", errors.has_future_bookings as string, {
+      total: 1,
+      bookings: [booking],
+    });
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({
+      code: "has_future_bookings",
+      message: errors.has_future_bookings,
+      details: {
+        total: 1,
+        bookings: [{ ...booking, startsAt: "2030-01-07T12:00:00.000Z", endsAt: "2030-01-07T13:00:00.000Z" }],
+      },
+    });
   });
 });
 

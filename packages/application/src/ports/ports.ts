@@ -1,4 +1,4 @@
-import type { TenantId } from "@espacios/domain";
+import type { Reason, TenantId } from "@espacios/domain";
 
 import type { BookingRepository, MyBookingsQuery } from "./bookings";
 
@@ -37,6 +37,37 @@ export class ConcurrencyError extends Error {
   constructor(options?: { cause?: unknown }) {
     super("A concurrent write won the race for the same room and time.", options);
     this.name = "ConcurrencyError";
+  }
+}
+
+/**
+ * Thrown by the adapter when the database guard on `booking` refused an insert (spec 0004): the room, its facility or
+ * the company was deactivated, the booking fell outside the opening window, or a block covers it, all decided after the
+ * use case looked. The use case turns it into the matching reason. The driver error stays in `cause`.
+ */
+export class RuleViolationError extends Error {
+  constructor(
+    readonly reason: Extract<Reason, "room_inactive" | "company_inactive" | "outside_hours" | "room_blocked">,
+    options?: { cause?: unknown },
+  ) {
+    super(`The database refused the booking: ${reason}.`, options);
+    this.name = "RuleViolationError";
+  }
+}
+
+/** Thrown by the operator adapter when a unique value (a name, a slug) is already taken (`23505`). */
+export class UniqueViolationError extends Error {
+  constructor(options?: { cause?: unknown }) {
+    super("That value is already taken.", options);
+    this.name = "UniqueViolationError";
+  }
+}
+
+/** Thrown by the operator adapter when a record points at one that does not exist (`23503`). */
+export class MissingReferenceError extends Error {
+  constructor(options?: { cause?: unknown }) {
+    super("A referenced record does not exist.", options);
+    this.name = "MissingReferenceError";
   }
 }
 

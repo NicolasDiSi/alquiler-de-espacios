@@ -13,10 +13,13 @@ datasource db {
 
 // A client company is a tenant. Tenant-owned tables carry `tenant_id` and an RLS policy (see multi-tenant-safety).
 model Company {
-  id        String   @id
-  name      String
-  slug      String   @unique
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  id            String       @id
+  name          String
+  slug          String       @unique
+  kind          CompanyKind  @default(company)
+  logoUrl       String?      @map("logo_url")
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  deactivatedAt DateTime?    @map("deactivated_at") @db.Timestamptz(3)
 
   users    AppUser[]
   bookings Booking[]
@@ -29,6 +32,14 @@ enum UserRole {
   operator
 
   @@map("user_role")
+}
+
+// A person who works alone is a client of kind `individual` with one member (spec 0004), so isolation stays one rule.
+enum CompanyKind {
+  company
+  individual
+
+  @@map("company_kind")
 }
 
 enum BookingStatus {
@@ -49,21 +60,71 @@ model AppUser {
 
   company  Company?  @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   bookings Booking[]
+  blocks   Block[]
 
   @@index([tenantId])
   @@map("app_user")
 }
 
+// A site that owns the time zone and the opening hours of its rooms (spec 0004). Minutes count from local midnight,
+// weekdays are 0 Sunday to 6 Saturday. The CHECKs on the hours are hand written in the migration.
+model Facility {
+  id            String    @id
+  name          String    @unique
+  address       String?
+  timeZone      String    @map("time_zone")
+  opensAt       Int       @map("opens_at")
+  closesAt      Int       @map("closes_at")
+  openWeekdays  Int[]     @map("open_weekdays") @db.SmallInt
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  deactivatedAt DateTime? @map("deactivated_at") @db.Timestamptz(3)
+
+  rooms  Room[]
+  blocks Block[]
+
+  @@map("facility")
+}
+
 // Owned by the operator and shared by every company: no tenant_id, no row level security, read only for companies.
+// The window `[activeFrom, deactivatedAt)` is when the room could be booked, and it never reopens (spec 0004).
 model Room {
-  id        String   @id
-  name      String   @unique
-  capacity  Int
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  id            String    @id
+  facilityId    String    @map("facility_id")
+  name          String
+  capacity      Int
+  activeFrom    DateTime  @default(now()) @map("active_from") @db.Timestamptz(3)
+  deactivatedAt DateTime? @map("deactivated_at") @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
 
+  facility Facility  @relation(fields: [facilityId], references: [id], onDelete: Restrict)
   bookings Booking[]
+  blocks   Block[]
 
+  @@unique([facilityId, name])
+  @@index([facilityId])
   @@map("room")
+}
+
+// The operator closes a room (or, with no room, a whole facility) for a period. Never shown to companies, only as a
+// busy interval through room_busy_intervals. Never edited or deleted: a release sets `releasedAt` (spec 0004).
+model Block {
+  id         String    @id
+  facilityId String    @map("facility_id")
+  roomId     String?   @map("room_id")
+  startsAt   DateTime  @map("starts_at") @db.Timestamptz(3)
+  endsAt     DateTime  @map("ends_at") @db.Timestamptz(3)
+  reason     String
+  createdBy  String    @map("created_by")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  releasedAt DateTime? @map("released_at") @db.Timestamptz(3)
+
+  facility Facility @relation(fields: [facilityId], references: [id], onDelete: Restrict)
+  room     Room?    @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  creator  AppUser  @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@index([facilityId, startsAt])
+  @@index([roomId, startsAt])
+  @@map("block")
 }
 
 // The tenant table. The exclusion constraint, CHECKs, row level security and grants are hand written SQL in the

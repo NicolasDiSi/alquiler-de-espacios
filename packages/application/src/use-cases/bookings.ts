@@ -38,13 +38,13 @@ export function toBookingView(record: BookingRecord, now: Date): BookingView {
   return {
     id: record.id,
     room: { id: record.room.id, name: record.room.name },
-    startsAt: toFacilityIso(record.startsAt),
-    endsAt: toFacilityIso(record.endsAt),
+    startsAt: toFacilityIso(record.startsAt, record.room.timeZone),
+    endsAt: toFacilityIso(record.endsAt, record.room.timeZone),
     status: record.status,
     phase: bookingPhase(record, now),
     bookedBy: { name: record.bookedBy.name },
-    createdAt: toFacilityIso(record.createdAt),
-    cancelledAt: record.cancelledAt ? toFacilityIso(record.cancelledAt) : null,
+    createdAt: toFacilityIso(record.createdAt, record.room.timeZone),
+    cancelledAt: record.cancelledAt ? toFacilityIso(record.cancelledAt, record.room.timeZone) : null,
   };
 }
 
@@ -56,10 +56,13 @@ export type BookRoomOutcome = { readonly booking: BookingView; readonly created:
 /**
  * `bookRoom` (spec 0001, "Booking and cancel flows"): a member books a room for its own company.
  *
- * Order: authorize, check every rule (no database), check the room exists, then one tenant transaction runs
- * `insertIfFree`. If the database stored nothing, an overlapping confirmed booking exists: when it is this
- * company's own booking of exactly the same room and range (a double submit), it is returned as a success;
- * otherwise the answer is `conflict`, with nothing about the other booking. A refusal writes nothing.
+ * Order: authorize, find the room (its facility gives the zone, hours and open days), refuse an inactive room, check
+ * every rule (no database write), refuse a range an active block covers, then one tenant transaction runs
+ * `insertIfFree`. A company that was deactivated, or a block that appeared since, is refused by the database guard
+ * (`RuleViolationError`) and comes back as its reason. If the database stored nothing, an overlapping confirmed
+ * booking exists: when it is this company's own booking of exactly the same room and range (a double submit), it is
+ * returned as a success; otherwise the answer is `conflict`, with nothing about the other booking. A refusal writes
+ * nothing.
  */
 export async function bookRoom(
   deps: Dependencies & { readonly rooms: RoomCatalog },
@@ -69,15 +72,19 @@ export async function bookRoom(
   const member = authorizeMember(actor);
   if (!member.ok) return member;
 
-  const now = deps.clock.now();
-  const period = validateBooking(input, now);
-  if (!period.ok) return period;
-
   const room = await deps.rooms.findRoom(input.roomId);
   if (!room) return fail("not_found");
+  if (!room.active) return fail("room_inactive");
+
+  const now = deps.clock.now();
+  const period = validateBooking(input, now, room.facility);
+  if (!period.ok) return period;
 
   const { tenantId, userId } = member.value;
   const slot = { roomId: room.id, ...period.value };
+  // The clean refusal (spec 0004, AC-19): nothing is written and nothing about the block is said. A block created
+  // after this look is caught by the database guard below.
+  if (await deps.rooms.isBlocked(slot.roomId, slot.startsAt, slot.endsAt)) return fail("room_blocked");
   return withRaceHandling(() =>
     deps.uow.run(tenantId, async (tx): Promise<Result<BookRoomOutcome>> => {
       const id = deps.ids.next() as BookingId;

@@ -1,11 +1,11 @@
 import type { Brand } from "../shared/brand";
 
 /**
- * The facility's calendar (spec 0001, "Booking rules"): one zone, given by its IANA name and never as a fixed offset.
- * Instants are stored in UTC; every rule about days and opening hours is read in this zone. The math uses
+ * The facility's calendar (spec 0001, "Booking rules", and spec 0004): the zone is a column of the facility, given by
+ * its IANA name and never as a fixed offset, and every function that reads a day or a clock takes it. Instants are
+ * stored in UTC; every rule about days and opening hours is read in the facility's zone. The math uses
  * `Intl.DateTimeFormat` only, so it runs the same on the server and in the browser, with no library.
  */
-export const FACILITY_TIME_ZONE = "America/Argentina/Buenos_Aires";
 
 /** A day on the facility's calendar, `YYYY-MM-DD`. Built only through `parseLocalDate` or the helpers here. */
 export type LocalDate = Brand<string, "LocalDate">;
@@ -13,16 +13,36 @@ export type LocalDate = Brand<string, "LocalDate">;
 const MINUTE_MS = 60_000;
 const DAY_MINUTES = 24 * 60;
 
-const PARTS_FORMAT = new Intl.DateTimeFormat("en-US", {
-  timeZone: FACILITY_TIME_ZONE,
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-  second: "2-digit",
-  hourCycle: "h23",
-});
+const FORMATS = new Map<string, Intl.DateTimeFormat>();
+
+/** One formatter per zone: building one is the costly part of reading a clock. Throws `RangeError` on an unknown zone. */
+function formatFor(timeZone: string): Intl.DateTimeFormat {
+  let format = FORMATS.get(timeZone);
+  if (!format) {
+    format = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    });
+    FORMATS.set(timeZone, format);
+  }
+  return format;
+}
+
+/** True when `timeZone` is an IANA zone this runtime knows. Used to validate what the operator types. */
+export function isTimeZone(timeZone: string): boolean {
+  try {
+    formatFor(timeZone);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 type WallClock = {
   readonly year: number;
@@ -34,15 +54,17 @@ type WallClock = {
 };
 
 /** What a wall clock in the facility shows at `instant`. */
-function wallClock(instant: Date): WallClock {
-  const parts = PARTS_FORMAT.formatToParts(instant).map((part) => [part.type, Number(part.value)]);
+function wallClock(instant: Date, timeZone: string): WallClock {
+  const parts = formatFor(timeZone)
+    .formatToParts(instant)
+    .map((part) => [part.type, Number(part.value)]);
   // `formatToParts` always returns these six fields for the options above.
   return Object.fromEntries(parts) as WallClock;
 }
 
 /** Minutes the facility's clock is ahead of UTC at `instant` (Buenos Aires: -180). */
-export function facilityOffsetMinutes(instant: Date): number {
-  const clock = wallClock(instant);
+export function facilityOffsetMinutes(instant: Date, timeZone: string): number {
+  const clock = wallClock(instant, timeZone);
   const asUtc = Date.UTC(clock.year, clock.month - 1, clock.day, clock.hour, clock.minute, clock.second);
   const wholeSeconds = Math.floor(instant.getTime() / 1000) * 1000;
   return Math.round((asUtc - wholeSeconds) / MINUTE_MS);
@@ -72,20 +94,20 @@ function dateParts(date: LocalDate): [number, number, number] {
 }
 
 /** The facility day `instant` falls on. */
-export function localDateOf(instant: Date): LocalDate {
-  const clock = wallClock(instant);
+export function localDateOf(instant: Date, timeZone: string): LocalDate {
+  const clock = wallClock(instant, timeZone);
   return toLocalDate(clock.year, clock.month, clock.day);
 }
 
 /** Minutes since local midnight at `instant` (10:30 is 630). Seconds are dropped. */
-export function localMinutesOf(instant: Date): number {
-  const clock = wallClock(instant);
+export function localMinutesOf(instant: Date, timeZone: string): number {
+  const clock = wallClock(instant, timeZone);
   return clock.hour * 60 + clock.minute;
 }
 
 /** True when `instant` is exactly on a whole minute of the facility's clock (no seconds, no milliseconds). */
-export function isWholeMinute(instant: Date): boolean {
-  return wallClock(instant).second === 0 && instant.getUTCMilliseconds() === 0;
+export function isWholeMinute(instant: Date, timeZone: string): boolean {
+  return wallClock(instant, timeZone).second === 0 && instant.getUTCMilliseconds() === 0;
 }
 
 /** The day `days` after `date` (negative goes back). */
@@ -105,11 +127,11 @@ export function weekdayOf(date: LocalDate): number {
  * The instant at which the facility's clock shows `minutes` past midnight on `date`. The offset is read twice, so a
  * zone that changes its offset that day still lands on the right instant.
  */
-export function zonedInstant(date: LocalDate, minutes: number): Date {
+export function zonedInstant(date: LocalDate, minutes: number, timeZone: string): Date {
   const [year, month, day] = dateParts(date);
   const asUtc = Date.UTC(year, month - 1, day, 0, minutes);
-  const firstGuess = asUtc - facilityOffsetMinutes(new Date(asUtc)) * MINUTE_MS;
-  const offset = facilityOffsetMinutes(new Date(firstGuess));
+  const firstGuess = asUtc - facilityOffsetMinutes(new Date(asUtc), timeZone) * MINUTE_MS;
+  const offset = facilityOffsetMinutes(new Date(firstGuess), timeZone);
   return new Date(asUtc - offset * MINUTE_MS);
 }
 
@@ -128,9 +150,9 @@ export function formatTime(minutes: number): string {
 }
 
 /** RFC 3339 in the facility's zone, the API's output format: `2026-11-12T10:00:00-03:00`. */
-export function toFacilityIso(instant: Date): string {
-  const clock = wallClock(instant);
-  const offset = facilityOffsetMinutes(instant);
+export function toFacilityIso(instant: Date, timeZone: string): string {
+  const clock = wallClock(instant, timeZone);
+  const offset = facilityOffsetMinutes(instant, timeZone);
   const sign = offset < 0 ? "-" : "+";
   const absolute = Math.abs(offset);
   const date = toLocalDate(clock.year, clock.month, clock.day);

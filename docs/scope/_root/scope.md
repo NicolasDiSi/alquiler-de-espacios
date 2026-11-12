@@ -9,23 +9,25 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 ## At a glance
 
-| #   | Feature                                                                    | Phase      | Status      |
-| --- | -------------------------------------------------------------------------- | ---------- | ----------- |
-| 1   | Repo foundation: tooling, layer packages, web shell                        | Foundation | existing    |
-| 2   | Database foundation: roles, FORCE RLS, schema, seeds                       | Foundation | done        |
-| 3   | Company identity: seeded users, signed cookie, picker                      | Foundation | done        |
-| 4   | Result and error contract                                                  | Foundation | in-progress |
-| 5   | Book a room and see it in my bookings                                      | Slice 1    | in-progress |
-| 13  | Role based navigation in the sidebar                                       | Slice 1    | planned     |
-| 14  | Rooms list: every room, pick one to see it                                 | Slice 2    | planned     |
-| 6   | Room availability grid                                                     | Slice 2    | planned     |
-| 7   | Cancel a booking and free the slot                                         | Slice 3    | planned     |
-| 8   | Operator metrics: queries and API                                          | Slice 4    | planned     |
-| 15  | Operator administration: facilities, rooms, clients, blocks (data and API) | Slice 4    | in-progress |
-| 9   | Operator dashboard                                                         | Slice 4    | planned     |
-| 10  | Operator global bookings view                                              | Slice 4    | planned     |
-| 11  | End to end suite with accessibility checks                                 | Delivery   | planned     |
-| 12  | README, assumptions and AI usage                                           | Delivery   | planned     |
+Build order, by what each feature needs. Numbers never change (specs refer to them); the sections below stay grouped by slice.
+
+| #   | Feature                                                                    | Phase      | Status      | Needs                                                     |
+| --- | -------------------------------------------------------------------------- | ---------- | ----------- | --------------------------------------------------------- |
+| 1   | Repo foundation: tooling, layer packages, web shell                        | Foundation | existing    | none                                                      |
+| 2   | Database foundation: roles, FORCE RLS, schema, seeds                       | Foundation | done        | 1                                                         |
+| 3   | Company identity: seeded users, signed cookie, picker                      | Foundation | done        | 1, 2                                                      |
+| 4   | Result and error contract                                                  | Foundation | in-progress | 1                                                         |
+| 5   | Book a room and see it in my bookings                                      | Slice 1    | in-progress | 2, 3, 4                                                   |
+| 15  | Operator administration: facilities, rooms, clients, blocks (data and API) | Slice 4    | in-progress | 2, 3, 4                                                   |
+| 8   | Operator metrics: queries and API                                          | Slice 4    | planned     | 15 (built together, verify and test with it)              |
+| 7   | Cancel a booking and free the slot                                         | Slice 3    | planned     | 5                                                         |
+| 6   | Room availability grid                                                     | Slice 2    | planned     | 2, 5, 15 (facility hours and blocks)                      |
+| 14  | Rooms list: every room, pick one to see it                                 | Slice 2    | planned     | 6 (the link target), 15                                   |
+| 10  | Operator global bookings view                                              | Slice 4    | planned     | 15 (API)                                                  |
+| 9   | Operator dashboard                                                         | Slice 4    | planned     | 15 and 8 (metrics API)                                    |
+| 13  | Role based navigation in the sidebar                                       | Slice 1    | planned     | 5, 14, 10, 9 (an entry appears only when its page exists) |
+| 11  | End to end suite with accessibility checks                                 | Delivery   | planned     | 5, 7, 6, 14, 10, 9, 13                                    |
+| 12  | README, assumptions and AI usage                                           | Delivery   | planned     | everything                                                |
 
 ## Foundations
 

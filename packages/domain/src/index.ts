@@ -1,3 +1,4 @@
+export * from "./booking/availability";
 export * from "./booking/booking";
 export * from "./booking/calendar";
 export * from "./booking/facility";

@@ -4,7 +4,7 @@
 
 alquiler-de-espacios is a technical challenge (Fontanella SRL, Senior Full Stack, 72 hours): a web app where client companies see meeting room availability, book rooms and cancel their own bookings, and the operator sees utilization metrics overall and per client company. The full brief is in [docs/challenge.md](docs/challenge.md); read it before planning.
 
-**Status:** the repo foundation (tooling, layer packages, web app shell) and the database foundation (roles, FORCE row level security, the booking schema with the overlap constraint, demo seeds) are in place. No booking use case or screen exists yet. Spec 0001 made the architecture decisions and [docs/scope/_root/scope.md](docs/scope/_root/scope.md) holds the build order. Next: `/develop company identity` (feature 3).
+**Status:** the repo foundation (tooling, layer packages, web app shell) and the database foundation (roles, FORCE row level security, the booking schema with the overlap constraint, demo seeds) are in place. On top of them: the company identity picker, booking and cancelling with "Mis reservas", operator administration (facilities, rooms, clients, blocks), the metrics API, the operator dashboard and the client activity page (specs 0002 to 0007). Spec 0001 made the architecture decisions and [docs/scope/_root/scope.md](docs/scope/_root/scope.md) holds the build order. Next: room availability (spec 0008).
 
 ## Non negotiables from the brief
 
@@ -87,8 +87,8 @@ The business rules do not know about Next.js or Prisma. `dependency-cruiser` enf
 | Workspace              | Role                                                                                  | May import                                     |
 | ---------------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------- |
 | `packages/domain`      | Business rules: booking validity, overlap, cancellation, policies, metric definitions | nothing                                        |
-| `packages/application` | Use cases and **ports** (interfaces). Orchestrates, never implements infrastructure.  | `domain`, `contracts`, `zod`                   |
-| `packages/db`          | Prisma schema, migrations, RLS and the unit of work: the PostgreSQL adapter.          | `application`, `domain`, `contracts`           |
+| `packages/application` | Use cases and **ports** (interfaces). Orchestrates, never implements infrastructure.  | `domain`, `zod`                                |
+| `packages/db`          | Prisma schema, migrations, RLS and the unit of work: the PostgreSQL adapter.          | `application`, `domain`                        |
 | `packages/config`      | Shared TypeScript configuration.                                                      | nothing                                        |
 | `apps/web`             | The web app (Next.js 16). See [apps/web/AGENTS.md](apps/web/AGENTS.md).               | anything; adapters only from `src/composition` |
 

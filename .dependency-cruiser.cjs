@@ -2,9 +2,8 @@
  * Architecture boundaries (ports and adapters). See docs/adr/0002-hexagonal-architecture.md.
  *
  * domain       -> nothing (pure business rules)
- * contracts    -> zod only
- * application  -> domain, contracts (declares ports)
- * adapters     -> application, domain, contracts (implement ports)
+ * application  -> domain, zod (declares ports)
+ * adapters     -> application, domain (implement ports)
  * apps         -> anything, but adapters are only wired in the composition root
  */
 const ADAPTERS = "^packages/(db)/";
@@ -30,21 +29,12 @@ module.exports = {
       },
     },
     {
-      name: "contracts-only-zod",
-      severity: "error",
-      comment: "contracts are shared schemas; they may depend on zod and nothing else.",
-      from: { path: "^packages/contracts/src" },
-      to: {
-        pathNot: ["^packages/contracts/src", "node_modules/zod/"],
-      },
-    },
-    {
       name: "application-has-no-infrastructure",
       severity: "error",
       comment: "application declares ports; it never imports adapters, frameworks or vendor SDKs.",
       from: { path: "^packages/application/src" },
       to: {
-        pathNot: ["^packages/(application|domain|contracts)/src", "node_modules/zod/"],
+        pathNot: ["^packages/(application|domain)/src", "node_modules/zod/"],
       },
     },
     {

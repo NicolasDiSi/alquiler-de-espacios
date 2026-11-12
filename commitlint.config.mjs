@@ -5,7 +5,7 @@ export default {
     "scope-enum": [
       2,
       "always",
-      ["web", "domain", "application", "contracts", "db", "config", "infra", "ci", "deps", "docs", "repo"],
+      ["web", "domain", "application", "db", "config", "infra", "ci", "deps", "docs", "repo"],
     ],
     "subject-case": [2, "always", "lower-case"],
     "body-max-line-length": [1, "always", 100],

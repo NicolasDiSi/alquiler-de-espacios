@@ -28,7 +28,7 @@ pnpm --filter @espacios/application typecheck
 
 ## Gotchas
 
-- `dependency-cruiser` allows imports only from `domain`, `contracts` and `zod`. A vendor SDK here fails the boundaries gate.
+- `dependency-cruiser` allows imports only from `domain` and `zod`. A vendor SDK here fails the boundaries gate.
 - Ports are excluded from coverage. Behaviour is covered through the use case tests.
 
 ## Agent skills

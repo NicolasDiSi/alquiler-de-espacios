@@ -31,7 +31,7 @@ Model the write side for correctness (domain, tenancy, overlap constraint) and n
 3. **Writes go through use cases only.** An edge never writes through a repository or Prisma.
 4. **Reads go through query ports** in `packages/application/src/ports/queries/<screen-need>.ts`, named for the need (`listMyBookings`, `getRoomAvailability`, `getUtilizationByCompany`), returning a view DTO. Implement them in `packages/db`. Pages never import `@espacios/db` or Prisma (only `src/composition` may).
 5. **Return what the screen shows, nothing more.** Never return a domain entity or a Prisma model. Availability for a company returns time ranges only, never another company's name or booking id.
-6. **Contracts are Zod schemas in `packages/contracts`.** Inputs end in `Input`, outputs end in `View`. Infer types from the schema. (The package does not exist yet; the first API feature creates it. `contracts-only-zod` in `.dependency-cruiser.cjs` already limits it to `zod`.)
+6. **Inputs are Zod schemas at the edge, outputs are the use case's views.** Request schemas live in `apps/web/src/lib/<edge>/` and their types are inferred from them; responses are the view types `packages/application` returns, shared by the Route Handler and its `fetch` caller. There is no `packages/contracts`: with `apps/web` as the only consumer, published together with the API, a type change already fails `typecheck` (spec 0001 rationale). Extract the schemas to a package when a second client appears.
 7. **Tenant and actor come from the server.** Never trust a company id sent in a body, query or header without checking it against the current identity.
 8. **Lists are paginated with a keyset, with a hard maximum.** Order by a stable pair such as `(startsAt desc, id desc)` and pass a cursor. Default page 25, maximum 100.
 9. **No N+1.** A screen section costs a fixed number of queries no matter how many rows it shows.
@@ -42,7 +42,7 @@ Model the write side for correctness (domain, tenancy, overlap constraint) and n
 ## How to test compliance
 
 1. **Boundary rules (`pnpm check:ai --gate=boundaries`).** Files under `apps/web/src/app/**` and `apps/web/src/components/**` may not import `@espacios/db` or `@prisma/client`.
-2. **Contract tests on every handler or action.** Bad input gives `validation_failed`; another company's id gives `not_found`; a valid call returns a body that `View.parse` accepts.
+2. **Contract tests on every handler or action.** Bad input gives `validation_failed`; another company's id gives `not_found`; a valid call returns the use case's view.
 3. **Query budget tests (testcontainers).** Assert the query count is the same for 5 rows and for 500 rows, and that list queries use the expected index.
 
 ## Smells

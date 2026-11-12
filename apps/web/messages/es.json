@@ -56,7 +56,8 @@
       "panel": "Panel",
       "admin": "Administración",
       "sedes": "Sedes",
-      "clientes": "Clientes"
+      "clientes": "Clientes",
+      "rooms": "Salas"
     },
     "header": {
       "moreOptions": "Más opciones"
@@ -916,5 +917,167 @@
     "format": "Escribí la fecha como día/mes/año, por ejemplo 12/11/2026, o elegila en el calendario.",
     "choose": "Elegir fecha en el calendario",
     "changeTo": "Cambiar fecha, {date}"
+  },
+  "rooms": {
+    "title": "Salas",
+    "description": "Las salas de cada sede y su ocupación de hoy. Elegí una para ver su disponibilidad o reservarla.",
+    "hours": "Horario de la sede: {opens} a {closes} (hoy)",
+    "capacity": "{count, plural, one {# persona} other {# pers.}}",
+    "empty": "Ninguna sala coincide con la búsqueda o el filtro.",
+    "emptyAll": {
+      "title": "Todavía no hay salas",
+      "description": "Cuando el operador cargue salas, las vas a ver acá."
+    },
+    "filters": {
+      "label": "Filtros de salas",
+      "facility": "Sede",
+      "search": "Buscar sala por nombre",
+      "quick": "Filtros rápidos",
+      "count": "Mostrando {shown} de {total} salas",
+      "all": "Todas ({count})",
+      "free": "Libres ahora ({count})",
+      "small": "Pequeñas, hasta 4 ({count})",
+      "medium": "Medianas, 5 a 9 ({count})",
+      "large": "Grandes, 10 o más ({count})"
+    },
+    "now": {
+      "free": "Libre ahora",
+      "busyUntil": "Ocupada hasta las {time}",
+      "blockedUntil": "No disponible hasta las {time}",
+      "closedNow": "Cerrada ahora",
+      "closedToday": "Cerrada hoy"
+    },
+    "actions": {
+      "availability": "Ver disponibilidad",
+      "book": "Reservar"
+    },
+    "detail": {
+      "title": "Disponibilidad de la sala",
+      "back": "Volver a Salas",
+      "switch": "Cambiar de sala",
+      "option": "{name} ({capacity} pers.)"
+    }
+  },
+  "newBooking": {
+    "title": "Nueva reserva",
+    "description": "Elegí para qué necesitás la sala, el día y la hora, y te mostramos las salas libres.",
+    "allRooms": "Ver todas las salas",
+    "empty": {
+      "title": "Todavía no hay salas",
+      "description": "Cuando el operador cargue salas, vas a poder reservarlas acá."
+    }
+  },
+  "booking": {
+    "filters": {
+      "title": "Qué necesitás",
+      "facility": "Sede",
+      "zone": "Hora de {zone}. Abre de {opens} a {closes}.",
+      "duration": "Duración",
+      "minutes": "{hours, plural, =0 {} other {# h}}{minutes, plural, =0 {} other { # min}}",
+      "people": "Personas",
+      "fewer": "Una persona menos",
+      "more": "Una persona más",
+      "peopleHint": "Solo se muestran salas con lugar para todos.",
+      "onlyFree": "Solo salas libres",
+      "onlyFreeHint": "Ocultá las salas ocupadas en tu horario.",
+      "rules": "Se reserva de lunes a viernes, hasta 60 días adelante, en franjas de 30 minutos. Podés cancelar hasta que empiece.",
+      "summary": "{facility} · {hours, plural, =0 {} other {# h}}{minutes, plural, =0 {} other { # min}} · {people, plural, one {# persona} other {# personas}}",
+      "peopleMin": "Mín. {people} pers."
+    },
+    "calendar": {
+      "title": "Elegí el día",
+      "description": "Los días con punto tienen al menos una sala libre para lo que buscás.",
+      "descriptionRoom": "Los días con punto tienen al menos un horario libre en esta sala.",
+      "step": "1. Elegí el día",
+      "today": "Hoy",
+      "legendAvailable": "Con disponibilidad",
+      "legendUnavailable": "Sin lugar",
+      "previousWeek": "Semana anterior",
+      "nextWeek": "Semana siguiente",
+      "week": "Días de la semana",
+      "dayAvailable": "{day}, con salas libres",
+      "dayUnavailable": "{day}, sin lugar"
+    },
+    "times": {
+      "label": "Horarios libres del {day}",
+      "description": "Horarios de inicio para {minutes, plural, other {# minutos}}.",
+      "rooms": "{count, plural, one {# sala} other {# salas}}",
+      "emptyTitle": "Sin horarios libres",
+      "emptyDescription": "Ninguna sala tiene lugar ese día con estos filtros. Probá otro día o cambiá la duración o las personas.",
+      "emptyDescriptionRoom": "La sala no tiene lugar ese día para esta duración. Probá otro día o una duración más corta.",
+      "step": "2. Horario de inicio",
+      "suggested": "Horario de inicio",
+      "length": "{minutes} min de reserva",
+      "previousDay": "Día con lugar anterior",
+      "nextDay": "Día con lugar siguiente",
+      "available": "{count, plural, one {# sala disponible} other {# salas disponibles}}",
+      "dayDescription": "{count, plural, one {# sala disponible} other {# salas disponibles}} con lugar para {people, plural, one {# persona} other {# personas o más}}"
+    },
+    "rooms": {
+      "title": "Salas libres de {start} a {end}",
+      "titleDay": "Salas de la sede ese día",
+      "description": "{count, plural, one {# sala} other {# salas}} con lugar para {people, plural, one {# persona} other {# personas}}.",
+      "label": "Salas libres en tu horario",
+      "pickTitle": "Elegí un horario",
+      "pickDescription": "Cuando elijas la hora de inicio, te mostramos las salas libres para esa franja.",
+      "nextBooking": "Libre hasta las {time}",
+      "freeUntilClose": "Libre hasta el cierre",
+      "busy": "Ocupada",
+      "freeFrom": "Se libera a las {time}",
+      "busyUntilClose": "Ocupada hasta el cierre",
+      "step": "3. Seleccioná la sala",
+      "titleAll": "Disponibilidad por sala",
+      "hint": "Elegí una sala para ver el resumen y confirmar.",
+      "window": "Libres de {start} a {end} (lugar para {people, plural, one {# persona} other {# personas}})",
+      "available": "{count, plural, one {# disponible} other {# disponibles}}",
+      "recommended": "Recomendada",
+      "capacity": "Hasta {count} pers.",
+      "none": "Ninguna sala de la sede tiene lugar para {people, plural, one {# persona} other {# personas}}."
+    },
+    "timeline": {
+      "label": "Ocupación del día",
+      "summary": "Ocupación del día por sala: {free} de {total} salas libres en tu horario.",
+      "legend": {
+        "free": "Libre",
+        "booked": "Ocupada",
+        "mine": "Tu reserva",
+        "blocked": "No disponible",
+        "window": "Tu horario",
+        "past": "Ya pasó"
+      }
+    },
+    "room": {
+      "capacity": "Hasta {count} personas"
+    },
+    "confirm": {
+      "title": "Tu reserva",
+      "instant": "Se confirma al instante.",
+      "what": "{day}, de {start} a {end}",
+      "where": "{room}, {facility}. Hasta {capacity} personas.",
+      "confirm": "Confirmar reserva",
+      "confirming": "Reservando…",
+      "review": "Revisar y confirmar",
+      "empty": "Elegí un día, un horario y una sala para ver el resumen.",
+      "emptyRoom": "Elegí un día y un horario para ver el resumen.",
+      "when": "{day} · {start} a {end} ({minutes} min)",
+      "place": "{facility} · Hasta {capacity} personas",
+      "minutes": "{minutes} min",
+      "cancelNote": "Podés cancelar sin costo hasta que empiece la reserva.",
+      "line": "{room} · {day}, {start} a {end}",
+      "seeBookings": "Ver en Mis reservas"
+    },
+    "search": {
+      "subtitle": "Elegí sede, día, horario y sala.",
+      "back": "Volver a Mis reservas",
+      "allRoomsShort": "Ver todas",
+      "hours": "{opens} a {closes} · {zone}",
+      "facilityHours": "Abre de {opens} a {closes} hs"
+    },
+    "bar": {
+      "allFree": "Libre todo el horario",
+      "span": "{state} de {start} a {end}",
+      "label": "{room}: {spans}",
+      "selection": "Selección ({start} a {end})"
+    }
   }
 }

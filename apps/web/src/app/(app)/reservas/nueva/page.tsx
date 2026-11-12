@@ -1,48 +1,55 @@
-import Link from "next/link";
-
+import { getFacilityMonth } from "@espacios/application";
+import { formatTime } from "@espacios/domain";
 import { DoorOpen } from "lucide-react";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
 import { EmptyState } from "@/components/empty-state";
-import { Button } from "@/components/ui/button";
 import { companyEdge } from "@/composition";
+import { facilitiesOf, monthGrid, readSearch, type SearchParams } from "@/lib/bookings/search";
 import { requireMember } from "@/lib/session/session";
 
-import { BookingForm } from "./_components/booking-form";
-import { initialBookingValues, type PrefillParams } from "./_lib/form-options";
+import { BookingSearchView } from "./_components/booking-search";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("bookingForm");
-  return { title: t("metaTitle") };
+  const t = await getTranslations("newBooking");
+  return { title: t("title") };
 }
 
 /**
- * `/reservas/nueva` (spec 0003), company edge only: without a session it redirects to the picker, the operator gets
- * 403. `?sala=&fecha=&inicio=&fin=` prefills the form; values the form would not offer are dropped.
+ * `/reservas/nueva` (spec 0003, rebuilt by spec 0008, AC-3), company edge only. The server reads one thing: the sede's
+ * rooms and their busy time over the month the calendar shows. Day, start, duration, people, room and "solo libres"
+ * are applied in the browser over that data, so only a new sede or month comes back here. The view is keyed by both,
+ * so new data starts from the search the URL asked for. Only "Confirmar reserva" books, through `bookRoom`.
  */
-export default async function NewBookingPage({ searchParams }: { searchParams: Promise<PrefillParams> }) {
-  await requireMember();
-  const t = await getTranslations("bookingForm");
+export default async function NewBookingPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const { actor } = await requireMember();
+  const [t, params] = await Promise.all([getTranslations("newBooking"), searchParams]);
   const edge = companyEdge();
-  const [rooms, params] = await Promise.all([edge.rooms.listRooms(), searchParams]);
-  // The server's clock decides the default day and which days and starts the form offers (spec 0003).
+  const rooms = await edge.rooms.listRooms();
   const now = edge.clock.now();
+  const search = readSearch(now, params, rooms);
+  if (!search) {
+    return <EmptyState icon={DoorOpen} title={t("empty.title")} description={t("empty.description")} />;
+  }
+
+  const month = await getFacilityMonth(edge, actor, { facilityId: search.facilityId, ...monthGrid(search.month) });
+  // A refusal here is a database that could not answer in time, or a sede retired since the rooms were read.
+  if (!month.ok) throw new Error(`getFacilityMonth: ${month.reason}`);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="space-y-1">
-        <Button asChild variant="link" className="px-0">
-          <Link href="/">{t("back")}</Link>
-        </Button>
-        <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("description")}</p>
-      </div>
-      {rooms.length === 0 ? (
-        <EmptyState icon={DoorOpen} title={t("empty.title")} description={t("empty.description")} />
-      ) : (
-        <BookingForm rooms={rooms} initialValues={initialBookingValues(now, params, rooms)} now={now.toISOString()} />
-      )}
-    </div>
+    <BookingSearchView
+      key={`${search.facilityId}:${search.month}`}
+      initial={search}
+      facilities={facilitiesOf(rooms).map((facility) => ({
+        id: facility.id,
+        name: facility.name,
+        timeZone: facility.timeZone,
+        opensAt: formatTime(facility.opensAt),
+        closesAt: formatTime(facility.closesAt),
+      }))}
+      month={month.value}
+      now={now}
+    />
   );
 }

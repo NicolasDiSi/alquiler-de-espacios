@@ -1,6 +1,6 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { refresh } from "next/cache";
 
 import { bookRoom as bookRoomUseCase } from "@espacios/application";
 import { fail, type Reason } from "@espacios/domain";
@@ -18,14 +18,18 @@ import { type ActionResult, toActionResult } from "@/lib/result/action-result";
 import { getSession } from "@/lib/session/session";
 
 /**
- * What the form gets back on a refusal (spec 0003, "Form state"): the result with its catalog message, the values
- * as submitted so nothing is lost, and the fields to mark invalid. A success redirects instead.
+ * What the form gets back (spec 0003, "Form state"). On a refusal: the result with its catalog message, the values as
+ * submitted so nothing is lost, and the fields to mark invalid. On a success: the new booking's id and the catalog
+ * message; the user stays on the screen, so several bookings can be made in a row (spec 0008).
  */
-export type BookingFormState = {
-  readonly result: Extract<ActionResult<never>, { ok: false }>;
-  readonly values: BookingFormValues;
-  readonly invalidFields: readonly BookingFormField[];
-} | null;
+export type BookingFormState =
+  | {
+      readonly result: Extract<ActionResult<never>, { ok: false }>;
+      readonly values: BookingFormValues;
+      readonly invalidFields: readonly BookingFormField[];
+    }
+  | { readonly result: { readonly ok: true; readonly message: string }; readonly bookingId: string }
+  | null;
 
 function valuesOf(formData: FormData): BookingFormValues {
   const read = (field: BookingFormField) => {
@@ -63,7 +67,10 @@ export async function bookRoom(_previous: BookingFormState, formData: FormData):
   if (!input.ok) return refusal("invalid_input", values, input.invalidFields);
 
   const result = await bookRoomUseCase(edge, session.actor, input.value);
+  // Either way the room's time changed or was not what the screen showed: read the page again, so it shows it.
+  refresh();
   if (!result.ok) return refusal(result.reason, values);
 
-  redirect(`/?vista=proximas&nueva=${encodeURIComponent(result.value.booking.id)}`);
+  const success = await getTranslations("success");
+  return { result: { ok: true, message: success("bookingConfirmed") }, bookingId: result.value.booking.id };
 }

@@ -1,5 +1,6 @@
 import type {
   CompanyUsageRow,
+  DailyUsageRow,
   HeatmapRow,
   HeatmapScope,
   MetricRange,
@@ -9,7 +10,7 @@ import type {
   OperatorQueries,
   RoomUsageRow,
 } from "@espacios/application";
-import type { BookingId } from "@espacios/domain";
+import type { BookingId, LocalDate } from "@espacios/domain";
 
 import type { DatabaseClient } from "./client";
 import { Prisma } from "./generated/prisma/client";
@@ -216,6 +217,37 @@ export function createPrismaOperatorQueries(db: DatabaseClient): OperatorQueries
           cancelled: row.cancelled,
           lastBookingAt: row.last_booking_at,
         }),
+      );
+    },
+
+    dailyUsage: async (range, scope) => {
+      // Open minutes per local day come from `room_day_open`; bookings count on the local day they start in their
+      // facility's zone, exactly like `roomUsage`. Every day of the range answers, closed ones with zero.
+      const rows = await db.$queryRaw<{ day: string; open: number; booked: number }[]>`
+        WITH ${roomDays(range, scope)},
+        open_day AS (
+          SELECT day, SUM(${MINUTES_OF("open_ranges")}) AS open FROM room_day_open GROUP BY day
+        ),
+        booked_day AS (
+          SELECT (bk.starts_at AT TIME ZONE f.time_zone)::date AS day,
+            SUM(EXTRACT(EPOCH FROM bk.ends_at - bk.starts_at)) / 60 AS minutes
+          FROM booking bk
+          JOIN room r ON r.id = bk.room_id
+          JOIN facility f ON f.id = r.facility_id
+          WHERE bk.status = 'confirmed'
+            AND (bk.starts_at AT TIME ZONE f.time_zone)::date BETWEEN ${range.from}::date AND ${range.to}::date
+            AND (${scope.facilityId ?? null}::text IS NULL OR f.id = ${scope.facilityId ?? null}::text)
+            AND (${scope.roomId ?? null}::text IS NULL OR r.id = ${scope.roomId ?? null}::text)
+          GROUP BY 1
+        )
+        SELECT to_char(d, 'YYYY-MM-DD') AS day,
+          COALESCE(o.open, 0)::float8 AS open, COALESCE(b.minutes, 0)::float8 AS booked
+        FROM generate_series(${range.from}::date, ${range.to}::date, interval '1 day') AS d
+        LEFT JOIN open_day o ON o.day = d::date
+        LEFT JOIN booked_day b ON b.day = d::date
+        ORDER BY d`;
+      return rows.map(
+        (row): DailyUsageRow => ({ date: row.day as LocalDate, openMinutes: row.open, bookedMinutes: row.booked }),
       );
     },
 

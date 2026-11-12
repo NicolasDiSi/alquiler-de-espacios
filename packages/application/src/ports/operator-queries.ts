@@ -86,6 +86,13 @@ export type HeatmapRow = {
   readonly bookedMinutes: number;
 };
 
+/** One local day across every room of a scope: what was open and what was booked, with the room usage definitions. */
+export type DailyUsageRow = {
+  readonly date: LocalDate;
+  readonly openMinutes: number;
+  readonly bookedMinutes: number;
+};
+
 export type HeatmapScope = { readonly facilityId?: string | undefined; readonly roomId?: string | undefined };
 
 export interface OperatorQueries {
@@ -95,6 +102,8 @@ export interface OperatorQueries {
   /** Every company, idle and inactive ones included. */
   companyUsage(range: MetricRange, kind?: "company" | "individual"): Promise<readonly CompanyUsageRow[]>;
   heatmap(range: MetricRange, scope: HeatmapScope): Promise<readonly HeatmapRow[]>;
+  /** One row per local day of the range, closed days included (zero open minutes). */
+  dailyUsage(range: MetricRange, scope: HeatmapScope): Promise<readonly DailyUsageRow[]>;
   /** Whether the facility and the room of a scope exist (a heatmap of an unknown one is 404). */
   scopeExists(scope: HeatmapScope): Promise<boolean>;
 }

@@ -1,9 +1,15 @@
 import type { Actor, LocalDate, UserId } from "@espacios/domain";
 import { describe, expect, it } from "vitest";
 
-import type { CompanyUsageRow, HeatmapRow, OperatorQueries, RoomUsageRow } from "../ports/operator-queries";
+import type {
+  CompanyUsageRow,
+  DailyUsageRow,
+  HeatmapRow,
+  OperatorQueries,
+  RoomUsageRow,
+} from "../ports/operator-queries";
 import { BusyError } from "../ports/ports";
-import { getCompanyMetrics, getHeatmap, getInsights, getRoomMetrics } from "./operator-metrics";
+import { getCompanyMetrics, getDailyMetrics, getHeatmap, getInsights, getRoomMetrics } from "./operator-metrics";
 
 const operator: Actor = { role: "operator", userId: "user-op" as UserId };
 const member: Actor = { role: "member", userId: "user-ana" as UserId, tenantId: "company-acme" as never };
@@ -37,7 +43,13 @@ const cell = (facilityId: string, hour: number, openMinutes: number, bookedMinut
   bookedMinutes,
 });
 
-function deps(data: { rooms?: RoomUsageRow[]; companies?: CompanyUsageRow[]; cells?: HeatmapRow[]; exists?: boolean }) {
+function deps(data: {
+  rooms?: RoomUsageRow[];
+  companies?: CompanyUsageRow[];
+  cells?: HeatmapRow[];
+  days?: DailyUsageRow[];
+  exists?: boolean;
+}) {
   const calls: unknown[] = [];
   const queries: OperatorQueries = {
     listBookings: async () => [],
@@ -47,6 +59,7 @@ function deps(data: { rooms?: RoomUsageRow[]; companies?: CompanyUsageRow[]; cel
       return data.companies ?? [];
     },
     heatmap: async () => data.cells ?? [],
+    dailyUsage: async () => data.days ?? [],
     scopeExists: async () => data.exists ?? true,
   };
   return { deps: { queries }, calls };
@@ -55,7 +68,7 @@ function deps(data: { rooms?: RoomUsageRow[]; companies?: CompanyUsageRow[]; cel
 describe("authorization and range, on every metric", () => {
   it("refuses a member, a reversed range and a range over a year", async () => {
     const { deps: d } = deps({});
-    for (const run of [getRoomMetrics, getCompanyMetrics, getHeatmap, getInsights] as const) {
+    for (const run of [getRoomMetrics, getCompanyMetrics, getHeatmap, getDailyMetrics, getInsights] as const) {
       expect(await run(d, member, range)).toMatchObject({ ok: false, reason: "forbidden" });
       expect(await run(d, operator, { from: range.to, to: range.from })).toMatchObject({ reason: "invalid_range" });
       expect(await run(d, operator, { from: range.from, to: "2032-01-01" as LocalDate })).toMatchObject({
@@ -113,6 +126,27 @@ describe("getHeatmap (AC-13)", () => {
     expect(await getHeatmap(d, operator, range)).toEqual({
       ok: true,
       value: { cells: [{ weekday: 1, hour: 9, occupancy: 0.5 }] },
+    });
+  });
+});
+
+describe("getDailyMetrics (spec 0006)", () => {
+  it("is 404 for an unknown scope, and gives each day its occupancy, null when nothing was open", async () => {
+    expect(await getDailyMetrics(deps({ exists: false }).deps, operator, { ...range, roomId: "x" })).toMatchObject({
+      reason: "not_found",
+    });
+    const days: DailyUsageRow[] = [
+      { date: range.from, openMinutes: 400, bookedMinutes: 100 },
+      { date: range.to, openMinutes: 0, bookedMinutes: 0 },
+    ];
+    expect(await getDailyMetrics(deps({ days }).deps, operator, range)).toEqual({
+      ok: true,
+      value: {
+        days: [
+          { date: range.from, openMinutes: 400, bookedMinutes: 100, occupancy: 0.25 },
+          { date: range.to, openMinutes: 0, bookedMinutes: 0, occupancy: null },
+        ],
+      },
     });
   });
 });

@@ -194,3 +194,27 @@ describe("heatmap (AC-13)", () => {
     await expect(queries.scopeExists({})).resolves.toBe(true);
   });
 });
+
+describe("daily usage (spec 0006)", () => {
+  it("answers every local day with the room usage definitions, closed days at zero", async () => {
+    const days = await queries.dailyUsage({ from: "2030-01-06" as LocalDate, to: range.to }, { facilityId: FACILITY });
+    // Sunday closed. Monday: A 420 (less the released block) and C 240 until it closed. Tuesday: A and B 300 each
+    // (less the facility block), the cancelled booking left out.
+    expect(days).toEqual([
+      { date: "2030-01-06", openMinutes: 0, bookedMinutes: 0 },
+      { date: "2030-01-07", openMinutes: 660, bookedMinutes: 120 },
+      { date: "2030-01-08", openMinutes: 600, bookedMinutes: 60 },
+    ]);
+  });
+
+  it("reads the day in each facility's own zone and narrows to one room", async () => {
+    const monday = { from: "2030-01-07" as LocalDate, to: "2030-01-07" as LocalDate };
+    expect(await queries.dailyUsage(monday, { facilityId: TOKYO })).toEqual([
+      { date: "2030-01-07", openMinutes: 480, bookedMinutes: 60 },
+    ]);
+    expect(await queries.dailyUsage(range, { roomId: id("room-b") })).toEqual([
+      { date: "2030-01-07", openMinutes: 0, bookedMinutes: 0 },
+      { date: "2030-01-08", openMinutes: 300, bookedMinutes: 60 },
+    ]);
+  });
+});

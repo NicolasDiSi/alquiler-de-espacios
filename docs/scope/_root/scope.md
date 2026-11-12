@@ -135,9 +135,10 @@ Backend only, from [spec 0004](../../specs/_root/0004-operator-administration-an
   - [x] Domain and member path: facility rules replace the constants, new reasons, inactive rooms and companies refused · AC-7, AC-8, AC-9, AC-15, AC-16
   - [x] Operator edge: facilities, rooms, clients with members, deactivation, hours change with the affected bookings list · AC-1 to AC-7, AC-21
     - Done: thin CRUD, deactivation of rooms, facilities and clients (with company reactivation), the hours change check (`has_future_bookings` with its list) and the block creation refusal (`block_has_bookings` with its list), all in one operator transaction with the row locks. Proven against Postgres, including the race with a booking in flight (P-16).
-  - [ ] Blocks and the availability `kind` · AC-17, AC-18, AC-19, AC-20
-    - Block create and release with the bookings list are done; still to build: the availability function with `kind`, the `room_blocked` refusal in `bookRoom`, and the P-18 proof through the use case.
+  - [x] Blocks and the availability `kind` · AC-17, AC-18, AC-19, AC-20
+    - Done: block create and release, the availability function with `kind`, the `room_blocked` pre check in `bookRoom` (`RoomCatalog.isBlocked`, a yes or no that never shows a block), the guard trigger as the backstop, and P-18 through the use cases (`createBlock` against `bookRoom`). The `GET /rooms/{id}/availability` endpoint itself belongs to feature 6; the data side of AC-20 is proven in `availability.test.ts`.
   - [ ] Bookings list, metrics and insights · AC-10 to AC-14
+    - Done: the bookings list (AC-10), `OperatorQueries` port, `listOperatorBookings`, `GET /operator/bookings` with filters and an opaque keyset cursor, upcoming run first then past. `from` and `to` bound `startsAt` as instants, `[from, to)`. Still to build: the three metric endpoints and insights (AC-11 to AC-14).
 - [ ] Verify it: `/check verify operator administration`
 - [ ] Test it: `/test operator administration`. Must cover, as agreed on 2026-11-11:
   - `company.kind` (`company` or `individual`, immutable, default `company`) and `logo_url` (https only, 2048 max, `null` clears it)

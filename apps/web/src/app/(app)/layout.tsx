@@ -8,6 +8,8 @@ import { SidebarInset } from "@/components/ui/sidebar";
 
 import { AppSidebar } from "./_components/app-sidebar";
 import { AppSidebarTrigger } from "./_components/app-sidebar-trigger";
+import { BrandLink } from "./_components/brand-link";
+import { CurrentBrand, CurrentNav } from "./_components/current-nav";
 import { CurrentUser } from "./_components/current-user";
 import { DashboardSidebarProvider } from "./_components/dashboard-sidebar-provider";
 import { DensitySwitch } from "./_components/density-switch";
@@ -30,7 +32,17 @@ export default function AppLayout({ children }: Readonly<{ children: ReactNode }
       >
         {t("skipToContent")}
       </a>
-      <AppSidebar />
+      <AppSidebar
+        brand={
+          <Suspense fallback={<BrandLink href="/" />}>
+            <CurrentBrand />
+          </Suspense>
+        }
+      >
+        <Suspense fallback={null}>
+          <CurrentNav />
+        </Suspense>
+      </AppSidebar>
       <SidebarInset
         id={MAIN_ID}
         tabIndex={-1}

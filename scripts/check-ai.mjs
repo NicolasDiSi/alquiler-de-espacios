@@ -24,7 +24,7 @@ const maxLines = Number(args.get("lines") ?? 20);
 const onlyGate = args.get("gate");
 const affected = args.has("affected");
 // Scoped end to end suites, so a change to one area does not run the whole Playwright set. Each maps to a turbo task.
-const E2E_SUITES = { bookings: "e2e:bookings", shell: "e2e:shell" };
+const E2E_SUITES = { bookings: "e2e:bookings", shell: "e2e:shell", operator: "e2e:operator" };
 const e2eSuite = args.get("suite");
 if (e2eSuite !== undefined && !Object.hasOwn(E2E_SUITES, e2eSuite)) {
   console.log(`Unknown suite "${e2eSuite}". Suites: ${Object.keys(E2E_SUITES).join(", ")}`);

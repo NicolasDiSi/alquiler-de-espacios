@@ -20,8 +20,9 @@ import type { NavGroup } from "@/navigation/sidebar-items";
 export function NavMain({ groups }: { readonly groups: readonly NavGroup[] }) {
   const t = useTranslations("shell.nav");
   const path = usePathname();
-  // Nested routes (e.g. /reservas/RES-12) keep their parent item active.
-  const isActive = (url: string) => path === url || path.startsWith(`${url}/`);
+  // A section stays active under it (/operador/sedes/123 keeps Sedes); a home only on its own URL.
+  const isActive = ({ url, match }: NavGroup["items"][number]) =>
+    path === url || (match === "section" && path.startsWith(`${url}/`));
 
   return groups.map((group) => (
     <SidebarGroup key={group.id}>
@@ -30,8 +31,8 @@ export function NavMain({ groups }: { readonly groups: readonly NavGroup[] }) {
         <SidebarMenu>
           {group.items.map((item) => (
             <SidebarMenuItem key={item.id}>
-              <SidebarMenuButton asChild tooltip={t(item.label)} isActive={isActive(item.url)}>
-                <Link prefetch={false} href={item.url} aria-current={isActive(item.url) ? "page" : undefined}>
+              <SidebarMenuButton asChild tooltip={t(item.label)} isActive={isActive(item)}>
+                <Link prefetch={false} href={item.url} aria-current={isActive(item) ? "page" : undefined}>
                   <item.icon aria-hidden />
                   <span>{t(item.label)}</span>
                 </Link>

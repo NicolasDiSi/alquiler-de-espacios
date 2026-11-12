@@ -33,6 +33,10 @@
     "e2e:shell": {
       "dependsOn": ["build"],
       "cache": false
+    },
+    "e2e:operator": {
+      "dependsOn": ["build"],
+      "cache": false
     }
   }
 }

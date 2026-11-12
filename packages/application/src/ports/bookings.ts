@@ -34,6 +34,14 @@ export interface BookingRepository {
   insertIfFree(booking: NewBooking): Promise<BookingRecord | null>;
   /** This company's confirmed booking of exactly this room and range, if any: the exact repeat of a request. */
   findExactConfirmed(slot: BookingSlot): Promise<BookingRecord | null>;
+  /**
+   * Cancels this company's booking in one statement that only matches a confirmed booking that has not started at
+   * `now`, so a cancel racing a cancel or the start cannot both win. `null` when nothing matched (it does not exist
+   * for this company, it was cancelled, or it started): `find` tells which.
+   */
+  cancel(id: BookingId, now: Date): Promise<BookingRecord | null>;
+  /** This company's booking by id, whatever its state. Another company's booking is `null`. */
+  find(id: BookingId): Promise<BookingRecord | null>;
 }
 
 /**

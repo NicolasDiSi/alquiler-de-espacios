@@ -9,6 +9,7 @@ export {
   type BookRoomInput,
   type BookRoomOutcome,
   bookRoom,
+  cancelBooking,
   type ListMyBookingsInput,
   listMyBookings,
   MY_BOOKINGS_PAGE,

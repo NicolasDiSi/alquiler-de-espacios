@@ -17,7 +17,8 @@ import {
 import { createAppColumnHelper, DATA_TABLE_PAGE_SIZE, useAppTable } from "@/components/data-table/table-hook";
 import { formatDecimalHours } from "@/lib/operator/metric-format";
 
-import { StatusDot } from "../../../_components/status";
+import { StatusDot } from "../status";
+import type { ActivitySubject } from "./subject";
 
 const helper = createAppColumnHelper<OperatorBookingView>();
 
@@ -28,18 +29,21 @@ const hoursOf = (booking: OperatorBookingView) =>
   (Date.parse(booking.endsAt) - Date.parse(booking.startsAt)) / 3_600_000;
 
 /**
- * Every booking of the client in the period, newest first (spec 0007, AC-4): search by room, sede or member, filter by
- * state, sort by date or hours. A cancelled booking computes no hours and reads struck through.
+ * Every booking of a client or a sede in the period, newest first (spec 0007, AC-4): search by room, sede (or client,
+ * for a sede) or member, filter by state, sort by date or hours. A cancelled booking computes no hours and reads struck
+ * through.
  */
 export function BookingHistory({
   bookings,
   capped,
+  subject,
 }: {
   readonly bookings: readonly OperatorBookingView[];
   /** The period had more bookings than were read. */
   readonly capped: boolean;
+  readonly subject: ActivitySubject;
 }) {
-  const t = useTranslations("operator.client.activity.history");
+  const t = useTranslations("operator.activity.history");
   const home = useTranslations("home");
   const format = useFormatter();
 
@@ -72,6 +76,16 @@ export function BookingHistory({
             </span>
           ),
         }),
+        // A sede's history mixes clients, so it says whose each booking is; a client's would repeat its own name.
+        ...(subject === "facility"
+          ? [
+              helper.accessor((row) => row.company.name, {
+                id: "company",
+                sortFn: "text",
+                meta: { label: t("columns.client"), searchable: true },
+              }),
+            ]
+          : []),
         helper.accessor((row) => row.bookedBy.name, {
           id: "bookedBy",
           sortFn: "text",
@@ -97,7 +111,7 @@ export function BookingHistory({
           ),
         }),
       ]),
-    [t, home, format],
+    [t, home, format, subject],
   );
 
   const table = useAppTable({
@@ -112,7 +126,7 @@ export function BookingHistory({
   const heading = (
     <div className="space-y-1.5 md:border-b md:px-4 md:py-4">
       <h3 className="leading-none font-semibold">{t("title")}</h3>
-      <p className="text-muted-foreground text-sm">{t("description")}</p>
+      <p className="text-muted-foreground text-sm">{t(`description.${subject}`)}</p>
     </div>
   );
 
@@ -121,7 +135,7 @@ export function BookingHistory({
     return (
       <DataTableFrame>
         {heading}
-        <p className="text-muted-foreground text-sm md:px-4 md:py-6">{t("empty")}</p>
+        <p className="text-muted-foreground text-sm md:px-4 md:py-6">{t(`empty.${subject}`)}</p>
       </DataTableFrame>
     );
   }
@@ -131,10 +145,10 @@ export function BookingHistory({
       <DataTableFrame>
         {heading}
         <DataTableToolbar>
-          <DataTableSearch label={t("search")} />
+          <DataTableSearch label={t(`search.${subject}`)} />
           <DataTableFacetFilter columnId="phase" />
         </DataTableToolbar>
-        <DataTableContent caption={t("caption")} />
+        <DataTableContent caption={t(`caption.${subject}`)} />
         <DataTablePagination />
         {capped ? <p className="text-muted-foreground px-4 pb-3 text-xs">{t("capped")}</p> : null}
       </DataTableFrame>

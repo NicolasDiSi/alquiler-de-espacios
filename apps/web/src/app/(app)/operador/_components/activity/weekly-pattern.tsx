@@ -7,11 +7,11 @@ import { weekdayKey } from "@/lib/operator/format";
 import { formatDecimalHours, formatHours } from "@/lib/operator/metric-format";
 
 /**
- * The client's booked hours per weekday of the period (spec 0007, AC-2), as bars with the hours written on top and the
+ * The booked hours of a client or a sede per weekday of the period (spec 0007, AC-2), as bars with the hours written on top and the
  * busiest day marked by color and by its words. A list, so a screen reader reads each day with its hours.
  */
 export async function WeeklyPattern({ activity }: { readonly activity: ClientActivity }) {
-  const t = await getTranslations("operator.client.activity.weekly");
+  const t = await getTranslations("operator.activity.weekly");
   const days = await getTranslations("operator.weekdays");
   const none = (await getTranslations("operator.dashboard"))("none");
   const max = Math.max(...activity.weekdays.map((day) => day.bookedMinutes), 0);

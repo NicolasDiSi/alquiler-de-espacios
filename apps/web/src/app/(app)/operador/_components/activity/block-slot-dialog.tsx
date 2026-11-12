@@ -9,10 +9,10 @@ import { useTranslations } from "next-intl";
 import { NativeSelect } from "@/components/native-select";
 import { markOfMinutes, zoneLabel } from "@/lib/operator/format";
 
-import { createBlockAction } from "../../../_actions/blocks";
-import { BlockFields, type BlockTimes } from "../../../_components/block-fields";
-import { Field } from "../../../_components/field";
-import { FormDialog } from "../../../_components/form-dialog";
+import { createBlockAction } from "../../_actions/blocks";
+import { BlockFields, type BlockTimes } from "../block-fields";
+import { Field } from "../field";
+import { FormDialog } from "../form-dialog";
 
 /** A picked range as the block form's days and times, read in the sede's own zone. */
 function timesOf(selection: { readonly start: Date; readonly end: Date }, timeZone: string): BlockTimes {
@@ -25,11 +25,11 @@ function timesOf(selection: { readonly start: Date; readonly end: Date }, timeZo
 }
 
 /**
- * "Bloquear horario" from a client's page (spec 0007): the operator never books for a client (spec 0004), but may close
- * a room or a sede. The sede is picked first, then the spec 0005 block fields, prefilled when a calendar range was
+ * "Bloquear horario" from a client's or a sede's activity (spec 0007): the operator never books for a client (spec
+ * 0004), but may close a room or a sede. The sede is picked first, then the spec 0005 block fields, prefilled when a calendar range was
  * selected. Opened by its trigger, or from outside with `open`.
  */
-export function ClientBlockDialog({
+export function BlockSlotDialog({
   targets,
   trigger,
   open,

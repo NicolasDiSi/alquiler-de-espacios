@@ -9,7 +9,7 @@ import dayGridPlugin from "@fullcalendar/react/daygrid";
 import interactionPlugin from "@fullcalendar/react/interaction";
 import esLocale from "@fullcalendar/react/locales/es";
 import timeGridPlugin from "@fullcalendar/react/timegrid";
-import { Building2, CalendarOff, ChevronLeft, ChevronRight, XIcon } from "lucide-react";
+import { Building2, CalendarOff, ChevronLeft, ChevronRight, DoorOpen, XIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 
 import { EventCalendarViews } from "@/components/calendar/event-calendar-views";
@@ -22,22 +22,27 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMounted } from "@/hooks/use-mounted";
 
-import { Facts } from "../../../_components/facts";
-import { ClientBlockDialog } from "./client-block-dialog";
+import { Facts } from "../facts";
+import { BlockSlotDialog } from "./block-slot-dialog";
+import type { ActivitySubject } from "./subject";
 
 const VIEWS = ["dayGridMonth", "timeGridWeek", "timeGridDay"] as const;
 const plugins = [dayGridPlugin, timeGridPlugin, interactionPlugin];
 
-/** Pages read for one visible range, at most (a month of one client fits in one or two). */
+/** Pages read for one visible range, at most (a month of one client or one sede fits in a few). */
 const MAX_PAGES = 10;
 const ALL = "all";
 /** Weekdays the calendar never shows (Sunday): the picker does not offer them either. */
 const HIDDEN_DAYS = [0];
 const DAY_MS = 86_400_000;
 
-/** Every booking of the client starting in `[start, end)`, through the documented operator API, page by page. */
+/** The operator API's filter for each subject. */
+const SCOPE_PARAM = { client: "companyId", facility: "facilityId" } as const satisfies Record<ActivitySubject, string>;
+
+/** Every booking of the subject starting in `[start, end)`, through the documented operator API, page by page. */
 async function fetchBookings(
-  companyId: string,
+  subject: ActivitySubject,
+  id: string,
   range: { readonly start: Date; readonly end: Date },
   signal: AbortSignal,
 ): Promise<OperatorBookingView[]> {
@@ -45,7 +50,7 @@ async function fetchBookings(
   let cursor: string | null = null;
   for (let page = 0; page < MAX_PAGES; page += 1) {
     const params = new URLSearchParams({
-      companyId,
+      [SCOPE_PARAM[subject]]: id,
       from: range.start.toISOString(),
       to: range.end.toISOString(),
       limit: "100",
@@ -61,9 +66,14 @@ async function fetchBookings(
   return bookings;
 }
 
-const toEvent = (booking: OperatorBookingView): EventInput => ({
+/** What the filter narrows by: a client's sedes, a sede's rooms. */
+const filterKey = (subject: ActivitySubject, booking: OperatorBookingView) =>
+  subject === "client" ? booking.room.facilityName : booking.room.name;
+
+const toEvent = (subject: ActivitySubject, booking: OperatorBookingView): EventInput => ({
   id: booking.id,
-  title: booking.room.name,
+  // A sede's calendar mixes clients, so each booking also says whose it is.
+  title: subject === "client" ? booking.room.name : `${booking.room.name} · ${booking.company.name}`,
   start: booking.startsAt,
   end: booking.endsAt,
   // A cancelled booking stays visible, faded and struck through, so a freed slot reads as freed.
@@ -72,23 +82,26 @@ const toEvent = (booking: OperatorBookingView): EventInput => ({
 });
 
 /**
- * The client's bookings in month, week and day views (spec 0007, AC-3), on the template's `EventCalendarViews`. Read
- * only: clicking a booking shows it. "Bloquear horario", or a range picked in the week or day view, opens the block
+ * The bookings of a client or a sede in month, week and day views (spec 0007, AC-3), on the template's
+ * `EventCalendarViews`. A client's filter narrows by sede, a sede's by room. Read only: clicking a booking shows it. "Bloquear horario", or a range picked in the week or day view, opens the block
  * dialog (prefilled when picked), never a booking: the operator does not book for a client (spec 0004).
  */
-export function ClientCalendar({
-  clientId,
+export function ActivityCalendar({
+  subject,
+  id,
   timeZone,
-  facilities,
+  options,
   targets,
 }: {
-  readonly clientId: string;
+  readonly subject: ActivitySubject;
+  /** The client's or the sede's id. */
+  readonly id: string;
   readonly timeZone: string;
-  /** Sedes where the client booked in the period, for the filter. */
-  readonly facilities: readonly string[];
+  /** For a client, the sedes where it booked in the period; for a sede, its rooms. By name, for the filter. */
+  readonly options: readonly string[];
   readonly targets: readonly OperatorBlockTarget[];
 }) {
-  const t = useTranslations("operator.client.activity.calendar");
+  const t = useTranslations("operator.activity.calendar");
   const home = useTranslations("home");
   const format = useFormatter();
   // Re-renders this component on every date or view change, so the title and the view come from it, never from a
@@ -96,7 +109,7 @@ export function ClientCalendar({
   // connects to it, so the calendar renders only once this component has mounted.
   const controller = useCalendarController();
   const mounted = useMounted();
-  const [facility, setFacility] = useState<string>(ALL);
+  const [narrow, setNarrow] = useState<string>(ALL);
   const [range, setRange] = useState<{ start: Date; end: Date } | null>(null);
   const [bookings, setBookings] = useState<readonly OperatorBookingView[]>([]);
   const [failed, setFailed] = useState(false);
@@ -108,7 +121,7 @@ export function ClientCalendar({
   useEffect(() => {
     if (!range) return;
     const controller = new AbortController();
-    fetchBookings(clientId, range, controller.signal)
+    fetchBookings(subject, id, range, controller.signal)
       .then((found) => {
         setBookings(found);
         setFailed(false);
@@ -117,13 +130,13 @@ export function ClientCalendar({
         if (!controller.signal.aborted) setFailed(error instanceof Error);
       });
     return () => controller.abort();
-  }, [clientId, range]);
+  }, [subject, id, range]);
 
   const visible = useMemo(
-    () => bookings.filter((booking) => facility === ALL || booking.room.facilityName === facility),
-    [bookings, facility],
+    () => bookings.filter((booking) => narrow === ALL || filterKey(subject, booking) === narrow),
+    [bookings, narrow, subject],
   );
-  const events = useMemo(() => visible.map(toEvent), [visible]);
+  const events = useMemo(() => visible.map((booking) => toEvent(subject, booking)), [visible, subject]);
   const count = visible.filter((booking) => booking.status === "confirmed").length;
 
   const view = controller.view;
@@ -151,15 +164,15 @@ export function ClientCalendar({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Select value={facility} onValueChange={setFacility}>
-              <SelectTrigger className="w-full sm:w-48" aria-label={t("facility")}>
-                <Building2 aria-hidden />
+            <Select value={narrow} onValueChange={setNarrow}>
+              <SelectTrigger className="w-full sm:w-48" aria-label={subject === "client" ? t("facility") : t("room")}>
+                {subject === "client" ? <Building2 aria-hidden /> : <DoorOpen aria-hidden />}
                 <SelectValue />
               </SelectTrigger>
               <SelectContent position="popper">
                 <SelectGroup>
-                  <SelectItem value={ALL}>{t("allFacilities")}</SelectItem>
-                  {facilities.map((name) => (
+                  <SelectItem value={ALL}>{subject === "client" ? t("allFacilities") : t("allRooms")}</SelectItem>
+                  {options.map((name) => (
                     <SelectItem key={name} value={name}>
                       {name}
                     </SelectItem>
@@ -246,7 +259,7 @@ export function ClientCalendar({
       {canBlock ? <p className="text-muted-foreground text-sm">{t("selectHint")}</p> : null}
 
       {blocking ? (
-        <ClientBlockDialog
+        <BlockSlotDialog
           targets={targets}
           open
           onOpenChange={(open) => (open ? null : setBlocking(null))}
@@ -260,7 +273,9 @@ export function ClientCalendar({
             <>
               <DialogHeader>
                 <DialogTitle>{shown.room.name}</DialogTitle>
-                <DialogDescription>{shown.room.facilityName}</DialogDescription>
+                <DialogDescription>
+                  {subject === "client" ? shown.room.facilityName : shown.company.name}
+                </DialogDescription>
               </DialogHeader>
               <Facts
                 items={[

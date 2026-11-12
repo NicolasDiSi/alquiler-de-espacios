@@ -15,7 +15,8 @@ import {
   signOf,
 } from "@/lib/operator/metric-format";
 
-import { DeltaBadge, delta } from "../../../_components/delta-badge";
+import { DeltaBadge, delta } from "../delta-badge";
+import type { ActivitySubject } from "./subject";
 
 function ActivityCard({
   label,
@@ -40,12 +41,18 @@ function ActivityCard({
 }
 
 /**
- * The client's period in three cards (spec 0007, AC-1): hours and their share of every company's hours, bookings done,
- * upcoming and cancelled with the rate, and the room it uses most. Each figure against the previous window where it
- * has one; a dash when there is nothing to measure.
+ * The period of a client or a sede in three cards (spec 0007, AC-1): hours and their share of everyone's hours,
+ * bookings done, upcoming and cancelled with the rate, and the room used most. Each figure against the previous window
+ * where it has one; a dash when there is nothing to measure.
  */
-export async function ActivityCards({ activity }: { readonly activity: ClientActivity }) {
-  const t = await getTranslations("operator.client.activity.cards");
+export async function ActivityCards({
+  activity,
+  subject,
+}: {
+  readonly activity: ClientActivity;
+  readonly subject: ActivitySubject;
+}) {
+  const t = await getTranslations("operator.activity.cards");
   const none = (await getTranslations("operator.dashboard"))("none");
   const comparison = (await getTranslations("operator.dashboard.period"))("comparison", { days: activity.period });
   const tDelta = await getTranslations("operator.dashboard.delta");
@@ -121,7 +128,7 @@ export async function ActivityCards({ activity }: { readonly activity: ClientAct
         </dl>
       </ActivityCard>
 
-      <ActivityCard label={t("room.label")} icon={Star}>
+      <ActivityCard label={t(`room.label.${subject}`)} icon={Star}>
         {preferredRoom ? (
           <>
             <div className="space-y-1">
@@ -129,7 +136,7 @@ export async function ActivityCards({ activity }: { readonly activity: ClientAct
               <p className="text-muted-foreground text-xs">{preferredRoom.facilityName}</p>
             </div>
             <div className="mt-auto flex items-baseline justify-between gap-3 border-t pt-3 text-xs">
-              <span className="text-muted-foreground">{t("room.share")}</span>
+              <span className="text-muted-foreground">{t(`room.share.${subject}`)}</span>
               <span className="text-primary text-base font-medium tabular-nums">
                 {preferredRoom.share === null ? none : formatPercent(preferredRoom.share)}
               </span>

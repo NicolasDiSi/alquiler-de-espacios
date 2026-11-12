@@ -488,85 +488,7 @@
         "confirm": "Reactivar cliente",
         "working": "Reactivando…"
       },
-      "search": "Buscar por nombre o código",
-      "activity": {
-        "facts": {
-          "facilities": "Sedes",
-          "since": "Cliente desde"
-        },
-        "tabs": {
-          "activity": "Reservas y actividad"
-        },
-        "cards": {
-          "hours": {
-            "label": "Horas reservadas",
-            "share": "Participación en el total",
-            "mean": "Duración media"
-          },
-          "bookings": {
-            "label": "Reservas del período",
-            "done": "realizadas",
-            "upcoming": "Próximas",
-            "cancelled": "Canceladas",
-            "rate": "Tasa de cancelación"
-          },
-          "room": {
-            "label": "Sala preferida",
-            "share": "De sus horas",
-            "hours": "{hours} reservadas en el período",
-            "empty": "Sin reservas en el período."
-          }
-        },
-        "upcoming": {
-          "title": "Próximas reservas confirmadas",
-          "description": "Las siguientes reservas del cliente, desde ahora.",
-          "count": "{count, plural, =0 {Nada en agenda} other {# en agenda}}",
-          "today": "Hoy",
-          "tomorrow": "Mañana",
-          "empty": "No tiene reservas próximas."
-        },
-        "weekly": {
-          "title": "Patrón semanal",
-          "description": "Horas reservadas por día de la semana en los últimos {days} días.",
-          "peak": "Mayor demanda:",
-          "mean": "Duración media por reserva:"
-        },
-        "calendar": {
-          "title": "Cronograma",
-          "description": "Las reservas del cliente por mes, semana o día. Las canceladas aparecen tachadas.",
-          "selectHint": "En la vista Semana o Día, seleccioná un rango para bloquear ese horario en una sala o en toda la sede.",
-          "loadError": "No pudimos cargar las reservas del calendario. Probá de nuevo cambiando de fecha.",
-          "summary": "{days, plural, one {# día} other {# días}} · {count, plural, one {# reserva} other {# reservas}}",
-          "facility": "Filtrar por sede",
-          "allFacilities": "Todas las sedes",
-          "previous": "Anterior",
-          "next": "Siguiente",
-          "today": "Hoy",
-          "view": "Vista del calendario",
-          "views": {
-            "dayGridMonth": "Mes",
-            "timeGridWeek": "Semana",
-            "timeGridDay": "Día"
-          },
-          "block": "Bloquear horario",
-          "goTo": "Ir a fecha"
-        },
-        "history": {
-          "title": "Historial del período",
-          "description": "Todas las reservas del cliente en el período elegido, de la más nueva a la más vieja.",
-          "search": "Buscar por sala, sede o solicitante",
-          "caption": "Reservas del cliente en el período",
-          "columns": {
-            "date": "Fecha y horario",
-            "room": "Sala y sede",
-            "bookedBy": "Solicitante",
-            "status": "Estado",
-            "hours": "Horas"
-          },
-          "empty": "El cliente no tuvo reservas en el período.",
-          "capped": "Se muestran las primeras 500 reservas del período."
-        }
-      }
+      "search": "Buscar por nombre o código"
     },
     "member": {
       "title": "Miembros",
@@ -707,6 +629,115 @@
           "action": "Ver cliente"
         },
         "empty": "No hay oportunidades para este período."
+      }
+    },
+    "activity": {
+      "facts": {
+        "facilities": "Sedes",
+        "since": "Cliente desde"
+      },
+      "tabs": {
+        "activity": "Reservas y actividad"
+      },
+      "cards": {
+        "hours": {
+          "label": "Horas reservadas",
+          "share": "Participación en el total",
+          "mean": "Duración media"
+        },
+        "bookings": {
+          "label": "Reservas del período",
+          "done": "realizadas",
+          "upcoming": "Próximas",
+          "cancelled": "Canceladas",
+          "rate": "Tasa de cancelación"
+        },
+        "room": {
+          "label": {
+            "client": "Sala preferida",
+            "facility": "Sala más usada"
+          },
+          "share": {
+            "client": "De sus horas",
+            "facility": "De las horas de la sede"
+          },
+          "hours": "{hours} reservadas en el período",
+          "empty": "Sin reservas en el período."
+        }
+      },
+      "upcoming": {
+        "title": "Próximas reservas confirmadas",
+        "description": {
+          "client": "Las siguientes reservas del cliente, desde ahora.",
+          "facility": "Las siguientes reservas en las salas de la sede, desde ahora."
+        },
+        "count": "{count, plural, =0 {Nada en agenda} other {# en agenda}}",
+        "today": "Hoy",
+        "tomorrow": "Mañana",
+        "empty": {
+          "client": "No tiene reservas próximas.",
+          "facility": "La sede no tiene reservas próximas."
+        }
+      },
+      "weekly": {
+        "title": "Patrón semanal",
+        "description": "Horas reservadas por día de la semana en los últimos {days} días.",
+        "peak": "Mayor demanda:",
+        "mean": "Duración media por reserva:"
+      },
+      "calendar": {
+        "title": "Cronograma",
+        "description": {
+          "client": "Las reservas del cliente por mes, semana o día. Las canceladas aparecen tachadas.",
+          "facility": "Las reservas de todas las salas de la sede por mes, semana o día. Las canceladas aparecen tachadas."
+        },
+        "selectHint": "En la vista Semana o Día, seleccioná un rango para bloquear ese horario en una sala o en toda la sede.",
+        "loadError": "No pudimos cargar las reservas del calendario. Probá de nuevo cambiando de fecha.",
+        "summary": "{days, plural, one {# día} other {# días}} · {count, plural, one {# reserva} other {# reservas}}",
+        "facility": "Filtrar por sede",
+        "allFacilities": "Todas las sedes",
+        "previous": "Anterior",
+        "next": "Siguiente",
+        "today": "Hoy",
+        "view": "Vista del calendario",
+        "views": {
+          "dayGridMonth": "Mes",
+          "timeGridWeek": "Semana",
+          "timeGridDay": "Día"
+        },
+        "block": "Bloquear horario",
+        "goTo": "Ir a fecha",
+        "room": "Filtrar por sala",
+        "allRooms": "Todas las salas",
+        "company": "Cliente"
+      },
+      "history": {
+        "title": "Historial del período",
+        "description": {
+          "client": "Todas las reservas del cliente en el período elegido, de la más nueva a la más vieja.",
+          "facility": "Todas las reservas de las salas de la sede en el período elegido, de la más nueva a la más vieja."
+        },
+        "search": {
+          "client": "Buscar por sala, sede o solicitante",
+          "facility": "Buscar por sala, cliente o solicitante"
+        },
+        "caption": {
+          "client": "Reservas del cliente en el período",
+          "facility": "Reservas de la sede en el período"
+        },
+        "columns": {
+          "date": "Fecha y horario",
+          "room": "Sala y sede",
+          "bookedBy": "Solicitante",
+          "status": "Estado",
+          "hours": "Horas",
+          "client": "Cliente"
+        },
+        "empty": {
+          "client": "El cliente no tuvo reservas en el período.",
+          "facility": "La sede no tuvo reservas en el período."
+        },
+        "capped": "Se muestran las primeras 500 reservas del período."
       }
     }
   },

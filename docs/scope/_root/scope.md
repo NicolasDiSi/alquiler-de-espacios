@@ -20,7 +20,7 @@ Build order, by what each feature needs. Numbers never change (specs refer to th
 | 5   | Book a room and see it in my bookings                                      | Slice 1    | in-progress | 2, 3, 4                                                   |
 | 15  | Operator administration: facilities, rooms, clients, blocks (data and API) | Slice 4    | in-progress | 2, 3, 4                                                   |
 | 8   | Operator metrics: queries and API                                          | Slice 4    | planned     | 15 (built together, verify and test with it)              |
-| 7   | Cancel a booking and free the slot                                         | Slice 3    | planned     | 5                                                         |
+| 7   | Cancel a booking and free the slot                                         | Slice 3    | in-progress | 5                                                         |
 | 6   | Room availability grid                                                     | Slice 2    | planned     | 2, 5, 15 (facility hours and blocks)                      |
 | 14  | Rooms list: every room, pick one to see it                                 | Slice 2    | planned     | 6 (the link target), 15                                   |
 | 10  | Operator global bookings view                                              | Slice 4    | planned     | 15 (API)                                                  |
@@ -105,15 +105,15 @@ A day view per room showing opening hours, other companies' busy intervals witho
 
 ## Slice 3: cancel
 
-### 7. Cancel a booking and free the slot
+### 7. Cancel a booking and free the slot · in-progress
 
 A member cancels any booking of their company before it starts, and the slot is free again immediately.
 **Done when:** cancel works only before the start, a second cancel returns `already_cancelled`, another company's booking is `not_found`, cancelling a started booking returns `cancel_not_allowed`, and a cancelled slot can be rebooked at once.
 - [x] Design it (spec): decided in spec 0001
-- [ ] Build it: `/develop cancel a booking`
+- [x] Build it: `/develop cancel a booking`
 - [ ] Verify it: `/check verify cancel a booking`
 - [ ] Test it: `/test cancel a booking`
-  Spec 0001 · code in `packages/domain/`, `packages/application/`, `packages/db/`, `apps/web/`
+  Spec 0001 · code in `packages/domain/src/booking/booking.ts`, `packages/application/src/use-cases/bookings.ts`, `packages/db/src/bookings.ts`, `apps/web/src/app/api/v1/bookings/[id]/cancel/`, `apps/web/src/app/(app)/(mis-reservas)/`
 
 ## Slice 4: operator view
 

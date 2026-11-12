@@ -21,8 +21,8 @@ Build order, by what each feature needs. Numbers never change (specs refer to th
 | 15  | Operator administration: facilities, rooms, clients, blocks (data and API) | Slice 4    | in-progress | 2, 3, 4                                                   |
 | 8   | Operator metrics: queries and API                                          | Slice 4    | planned     | 15 (built together, verify and test with it)              |
 | 7   | Cancel a booking and free the slot                                         | Slice 3    | in-progress | 5                                                         |
-| 6   | Room availability grid                                                     | Slice 2    | planned     | 2, 5, 15 (facility hours and blocks)                      |
-| 14  | Rooms list: every room, pick one to see it                                 | Slice 2    | planned     | 6 (the link target), 15                                   |
+| 6   | Room availability grid                                                     | Slice 2    | in-progress | 2, 5, 15 (facility hours and blocks)                      |
+| 14  | Rooms list: every room, pick one to see it                                 | Slice 2    | in-progress | 6 (the link target), 15                                   |
 | 10  | Operator global bookings view                                              | Slice 4    | planned     | 15 (API)                                                  |
 | 9   | Operator dashboard                                                         | Slice 4    | in-progress | 15 and 8 (metrics API)                                    |
 | 13  | Role based navigation in the sidebar                                       | Slice 1    | planned     | 5, 14, 10, 9 (an entry appears only when its page exists) |
@@ -90,17 +90,19 @@ The sidebar shows only the sections the signed in role can use, and only those t
 
 ## Slice 2: availability
 
-### 14. Rooms list: every room, pick one to see it · needs a decision
+### 14. Rooms list: every room, pick one to see it · in-progress, assumed decision (spec 0008)
 
 What the brief calls "see the rooms and their availability": every room with its name and capacity, and a way into its availability. Feature 6 only covers one room's day; this decides how a company finds and chooses the room (a list, or all rooms side by side for one day).
 **Done when:** a member sees all rooms with name and capacity, picks one and reaches its availability, the operator sees the same list, and an empty list explains itself.
-- [ ] Design it (spec): `/architect rooms list and availability grid` (one spec with feature 6 is fine)
+- [ ] Design it (spec): assumed in [spec 0008](../../specs/_root/0008-room-availability-screens/index.md) with feature 6, `/architect room availability` to ratify
+- [x] Build it: `/salas` for members, every room of a sede with its state now and today's slots, and a rebuilt `/reservas/nueva` that searches free rooms by day, time and people
 
-### 6. Room availability grid · needs a decision
+### 6. Room availability grid · in-progress, assumed decision (spec 0008)
 
 A day view per room showing opening hours, other companies' busy intervals without any company detail, the caller's own bookings marked, and the free slots to pick.
 **Done when:** a company sees that a room is taken without learning who holds it; closed days show no slots; an unknown room is 404; the operator can view it too through its own port.
-- [ ] Design it (spec): `/architect room availability grid`
+- [ ] Design it (spec): assumed in [spec 0008](../../specs/_root/0008-room-availability-screens/index.md), `/architect room availability` to ratify
+- [x] Build it: `/salas/[id]` calendar and `GET /api/v1/rooms/{id}/availability`, on `rooms_busy_intervals`
   Spec 0001 covers the function and the endpoint; the spec for this feature covers the screen.
 
 ## Slice 3: cancel

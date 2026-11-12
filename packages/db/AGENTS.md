@@ -35,7 +35,7 @@ pnpm --filter @espacios/db test                # needs Docker running (testconta
 
 ## Conventions
 
-- **Three logins (spec 0001, ADR 0003).** `DATABASE_URL` is `espacios_app` in `espacios_runtime`: the company edge, RLS applies, owns nothing. `DATABASE_OWNER_URL` is `espacios_owner`, a non superuser that owns the schema: migrations, seed, Studio, never the app. `DATABASE_OPERATOR_URL` is `espacios_operator`, `BYPASSRLS` with `SELECT` only: operator reads, wired only in `apps/web/src/composition`. The docker superuser `espacios` only creates roles.
+- **Three logins (spec 0001, ADR 0003).** `DATABASE_URL` is `espacios_app` in `espacios_runtime`: the company edge, RLS applies, owns nothing. `DATABASE_OWNER_URL` is `espacios_owner`, a non superuser that owns the schema: migrations, seed, Studio, never the app. `DATABASE_OPERATOR_URL` is `espacios_operator`, `BYPASSRLS`, read only on tenant data and allowed to write the catalog (`facility`, `room`, `company`, `block`, members in `app_user`; never `booking`, no `DELETE`, spec 0004): operator reads and administration, wired only in `apps/web/src/composition`. The docker superuser `espacios` only creates roles.
 - **Roles live outside migrations.** `CREATE ROLE` goes only in `infra/local/postgres/01-roles.sql`, which compose and `src/testing/global-setup.ts` both run, so tests use the real roles. Migrations only `GRANT`.
 - **`FORCE ROW LEVEL SECURITY` is on `booking`,** so the owner is filtered too. Seeds and fixtures set `app.tenant_id` per company before writing bookings.
 - **Two barriers.** Every repository filters by tenant, and RLS filters again. Keep both.

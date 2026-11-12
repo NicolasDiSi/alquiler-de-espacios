@@ -61,6 +61,20 @@ export function createBookingRepository(tx: TransactionClient, tenantId: TenantI
       return inserted.length > 0 ? findOwn({ id: booking.id }) : null;
     },
 
+    // Spec 0001: one statement that matches only a confirmed booking of this company that has not started, so a cancel
+    // racing a cancel (or the start) has exactly one winner. Bound parameters only.
+    cancel: async (id, now) => {
+      const updated = await tx.$queryRaw<{ id: string }[]>`
+        UPDATE booking
+           SET status = 'cancelled', cancelled_at = ${now}::timestamptz
+         WHERE id = ${id} AND tenant_id = ${tenantId}
+           AND status = 'confirmed' AND starts_at > ${now}::timestamptz
+        RETURNING id`;
+      return updated.length > 0 ? findOwn({ id }) : null;
+    },
+
+    find: (id) => findOwn({ id }),
+
     findExactConfirmed: (slot) =>
       findOwn({ roomId: slot.roomId, startsAt: slot.startsAt, endsAt: slot.endsAt, status: "confirmed" }),
   };

@@ -5,13 +5,12 @@ import { cn } from "cn";
 import { CalendarSearch, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { DayBar, SLOT_FILL } from "@/components/booking/day-bar";
 import { Badge } from "@/components/ui/badge";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { RoomOnDay } from "@/lib/bookings/month";
 import { timeOf } from "@/lib/bookings/search";
-
-import { DayBar, SLOT_FILL } from "./day-bar";
 
 type Window = { readonly start: number; readonly end: number };
 

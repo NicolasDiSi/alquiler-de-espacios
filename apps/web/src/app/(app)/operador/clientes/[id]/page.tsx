@@ -15,6 +15,7 @@ import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import { getFormatter, getTranslations } from "next-intl/server";
 
+import { Facts } from "@/components/facts";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,7 +29,6 @@ import { ActivityCards } from "../../_components/activity/activity-cards";
 import { BookingHistory } from "../../_components/activity/booking-history";
 import { UpcomingBookings } from "../../_components/activity/upcoming-bookings";
 import { WeeklyPattern } from "../../_components/activity/weekly-pattern";
-import { Facts } from "../../_components/facts";
 import { PeriodPicker } from "../../_components/period-picker";
 import { RecordStatusDot } from "../../_components/status";
 import { AddMemberDialog } from "../_components/add-member-dialog";

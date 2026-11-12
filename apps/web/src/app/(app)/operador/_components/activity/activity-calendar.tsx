@@ -14,6 +14,7 @@ import { useFormatter, useTranslations } from "next-intl";
 
 import { EventCalendarViews } from "@/components/calendar/event-calendar-views";
 import { DatePickerButton } from "@/components/date-picker-field";
+import { Facts } from "@/components/facts";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
@@ -22,7 +23,6 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMounted } from "@/hooks/use-mounted";
 
-import { Facts } from "../facts";
 import { BlockSlotDialog } from "./block-slot-dialog";
 import type { ActivitySubject } from "./subject";
 

@@ -6,6 +6,7 @@ export * from "./booking/slots";
 export * from "./catalog/block";
 export * from "./catalog/facility";
 export * from "./identity/actor";
+export * from "./metrics/dashboard";
 export * from "./metrics/metrics";
 export * from "./shared/brand";
 export * from "./shared/result";

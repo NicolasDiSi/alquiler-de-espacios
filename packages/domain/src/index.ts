@@ -3,6 +3,7 @@ export * from "./booking/calendar";
 export * from "./booking/facility";
 export * from "./booking/rules";
 export * from "./booking/slots";
+export * from "./catalog/block";
 export * from "./catalog/facility";
 export * from "./identity/actor";
 export * from "./metrics/metrics";

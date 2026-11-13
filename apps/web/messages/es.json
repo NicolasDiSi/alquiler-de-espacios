@@ -270,7 +270,8 @@
       "signInAgain": "Elegir usuario de nuevo",
       "confirm": "Confirmar",
       "working": "Procesando…",
-      "review": "Ver {total, plural, one {la reserva afectada} other {las # reservas afectadas}}"
+      "errorTitle": "No se pudo completar",
+      "understood": "Entendido"
     },
     "refusal": {
       "title": "{total, plural, one {# reserva confirmada lo impide} other {# reservas confirmadas lo impiden}}",

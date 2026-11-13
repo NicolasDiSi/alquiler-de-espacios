@@ -7,6 +7,7 @@ import { CalendarDays } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { es } from "react-day-picker/locale";
 
+import { FieldErrorText } from "@/components/field-error-text";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
@@ -150,6 +151,8 @@ export type DatePickerFieldProps = {
   readonly endMonth?: LocalDate;
   /** `aria-invalid` and the alert's id when a refusal named this field. */
   readonly mark?: { readonly "aria-invalid"?: true; readonly "aria-describedby"?: string };
+  /** The refusal's reason, under the field, when it names this one (its `id` is in `mark`). */
+  readonly error?: { readonly id: string; readonly message: string } | null;
 };
 
 /**
@@ -170,6 +173,7 @@ export function DatePickerField({
   startMonth,
   endMonth,
   mark,
+  error,
 }: DatePickerFieldProps) {
   const t = useTranslations("datePicker");
   const format = useFormatter();
@@ -224,6 +228,7 @@ export function DatePickerField({
           {hint}
         </p>
       ) : null}
+      <FieldErrorText error={error} />
     </div>
   );
 }

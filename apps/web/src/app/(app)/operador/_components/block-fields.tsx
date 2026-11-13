@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { DAY_MARKS } from "@/lib/operator/format";
 
 import { Field } from "./field";
-import { useFieldMark } from "./form-dialog";
+import { useFieldError } from "./form-dialog";
 
 /** Days as `YYYY-MM-DD` and times as `HH:MM` on the 30 minute marks, in the sede's zone. */
 export type BlockTimes = { startDate: string; startTime: string; endDate: string; endTime: string };
@@ -43,19 +43,19 @@ export function BlockFields({
     setTimes((current) => ({ ...current, [field]: date }));
   // Mounted only while the dialog is open, in the browser: today in the sede's zone, for display only.
   const [today] = useState(() => todayAt(new Date(), facility.timeZone));
-  const marks = {
-    roomId: useFieldMark("roomId"),
-    startDate: useFieldMark("startDate"),
-    startTime: useFieldMark("startTime"),
-    endDate: useFieldMark("endDate"),
-    endTime: useFieldMark("endTime"),
-    reason: useFieldMark("reason"),
+  const fields = {
+    roomId: useFieldError("roomId"),
+    startDate: useFieldError("startDate"),
+    startTime: useFieldError("startTime"),
+    endDate: useFieldError("endDate"),
+    endTime: useFieldError("endTime"),
+    reason: useFieldError("reason"),
   };
 
   return (
     <div className="flex flex-col gap-4">
-      <Field id="block-roomId" label={t("scope")}>
-        <NativeSelect id="block-roomId" name="roomId" defaultValue="" {...marks.roomId}>
+      <Field id="block-roomId" label={t("scope")} error={fields.roomId.error}>
+        <NativeSelect id="block-roomId" name="roomId" defaultValue="" {...fields.roomId.mark}>
           <option value="">{t("wholeFacility")}</option>
           {rooms.map((room) => (
             <option key={room.id} value={room.id}>
@@ -75,15 +75,16 @@ export function BlockFields({
           isDisabled={(date) => date < today}
           defaultMonth={today}
           startMonth={today}
-          mark={marks.startDate}
+          mark={fields.startDate.mark}
+          error={fields.startDate.error}
         />
-        <Field id="block-startTime" label={t("startTime")}>
+        <Field id="block-startTime" label={t("startTime")} error={fields.startTime.error}>
           <NativeSelect
             id="block-startTime"
             name="startTime"
             value={times.startTime}
             onChange={set("startTime")}
-            {...marks.startTime}
+            {...fields.startTime.mark}
           >
             {DAY_MARKS.slice(0, -1).map((time) => (
               <option key={time} value={time}>
@@ -102,15 +103,16 @@ export function BlockFields({
           isDisabled={(date) => date < (times.startDate || today)}
           defaultMonth={parseLocalDate(times.startDate) ?? today}
           startMonth={today}
-          mark={marks.endDate}
+          mark={fields.endDate.mark}
+          error={fields.endDate.error}
         />
-        <Field id="block-endTime" label={t("endTime")}>
+        <Field id="block-endTime" label={t("endTime")} error={fields.endTime.error}>
           <NativeSelect
             id="block-endTime"
             name="endTime"
             value={times.endTime}
             onChange={set("endTime")}
-            {...marks.endTime}
+            {...fields.endTime.mark}
           >
             {DAY_MARKS.slice(1).map((time) => (
               <option key={time} value={time}>
@@ -138,8 +140,8 @@ export function BlockFields({
           {t("allDay")}
         </Button>
       </div>
-      <Field id="block-reason" label={t("reason")} hint={t("reasonHint")}>
-        <Input id="block-reason" name="reason" maxLength={200} required {...marks.reason} />
+      <Field id="block-reason" label={t("reason")} hint={t("reasonHint")} error={fields.reason.error}>
+        <Input id="block-reason" name="reason" maxLength={200} required {...fields.reason.mark} />
       </Field>
     </div>
   );

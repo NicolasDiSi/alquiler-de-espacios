@@ -114,7 +114,7 @@ test.describe("operator administration screens (spec 0005)", () => {
     await expect(page.getByRole("row", { name: /Mantenimiento E2E/ }).getByText("Liberado")).toBeVisible();
   });
 
-  test("a duplicate sede name marks the field and says why", async ({ page }) => {
+  test("a duplicate sede name says why, then marks the field and keeps it", async ({ page }) => {
     const sede = unique("Sede duplicada");
     await page.goto("/operador/sedes");
     await waitForHydration(page);
@@ -124,7 +124,9 @@ test.describe("operator administration screens (spec 0005)", () => {
       await dialog(page).getByRole("button", { name: "Crear sede" }).click();
       await expect(page.getByText(expectation)).toBeVisible();
     }
-    await expect(dialog(page).getByRole("alert")).toBeFocused();
+    // The sede form does not show refusals under its fields yet, so the reason comes in an alert dialog on top.
+    await page.getByRole("alertdialog").getByRole("button", { name: "Entendido" }).click();
+    await expect(dialog(page).getByRole("button", { name: "Crear sede" })).toBeFocused();
     await expect(dialog(page).getByLabel("Nombre")).toHaveAttribute("aria-invalid", "true");
     await expect(dialog(page).getByLabel("Nombre")).toHaveValue(sede);
   });
@@ -135,7 +137,7 @@ test.describe("operator administration screens (spec 0005)", () => {
     await page.getByRole("link", { name: "Sede Central" }).first().click();
     await page.getByRole("button", { name: "Desactivar sede" }).click();
     await dialog(page).getByRole("button", { name: "Desactivar sede" }).click();
-    await expect(dialog(page).getByRole("alert")).toContainText("salas activas");
+    await expect(page.getByRole("alertdialog")).toContainText("salas activas");
   });
 
   test("a person who works alone has one member; a company can add more", async ({ page }) => {

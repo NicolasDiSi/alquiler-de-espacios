@@ -46,11 +46,19 @@ export function AdaptiveAlertDialog({
   );
 }
 
+/**
+ * Never taller than the screen: a column whose header and footer keep their size while the body takes what is left and
+ * scrolls. The alert dialog is a grid with no rows set, so each row would grow with its content past the cap; as a
+ * column, the body's `min-h-0` lets it shrink.
+ */
 export function AdaptiveAlertDialogContent({ className, ...props }: ComponentProps<typeof AlertDialogContent>) {
   return use(Mobile) ? (
     <DrawerContent className={cn("max-h-[90dvh]", className)} {...props} />
   ) : (
-    <AlertDialogContent className={cn("max-h-[90dvh] data-[size=default]:sm:max-w-lg", className)} {...props} />
+    <AlertDialogContent
+      className={cn("flex max-h-[90dvh] flex-col overflow-hidden data-[size=default]:sm:max-w-lg", className)}
+      {...props}
+    />
   );
 }
 
@@ -72,7 +80,7 @@ export function AdaptiveAlertDialogDescription(props: ComponentProps<typeof Aler
 
 /** The scrolling middle: the drawer pads it like its header and footer, the alert dialog already pads everything. */
 export function AdaptiveAlertDialogBody({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("min-h-0 overflow-y-auto", use(Mobile) && "px-4", className)} {...props} />;
+  return <div className={cn("min-h-0 flex-1 overflow-y-auto", use(Mobile) && "px-4", className)} {...props} />;
 }
 
 export function AdaptiveAlertDialogFooter({ className, ...props }: ComponentProps<"div">) {

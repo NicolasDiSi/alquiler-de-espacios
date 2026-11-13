@@ -40,7 +40,7 @@ Tracer Bullet: one thin, real thread through every layer first (a company books 
 
 ```bash
 pnpm install
-pnpm dev               # services:up, db:deploy, db:seed, then the web app on http://localhost:3000
+pnpm dev               # services:up, db:deploy, db:seed, db:seed:scale, then the web app on http://localhost:3000
 pnpm dev:app           # only the web app (turbo run dev), when the database is already up
 pnpm check:ai          # every quality gate, one PASS/FAIL line each. Use this to iterate.
 pnpm check:ai --gate=test --lines=60
@@ -53,6 +53,7 @@ pnpm knip              # unused files, exports and dependencies
 pnpm services:up       # local Postgres from compose.yaml (copy .env.example to .env.local first)
 pnpm db:deploy         # apply migrations
 pnpm db:seed           # demo companies, rooms, users and bookings (safe to run twice)
+pnpm db:seed:scale     # volume on top: 4 sedes, 42 rooms, 15 clients, ~3000 bookings (not run by e2e)
 pnpm db:studio         # data panel on http://localhost:5555
 ```
 

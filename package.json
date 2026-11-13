@@ -8,7 +8,7 @@
   },
   "type": "module",
   "scripts": {
-    "dev": "pnpm services:up && pnpm db:deploy && pnpm db:seed && turbo run dev",
+    "dev": "pnpm services:up && pnpm db:deploy && pnpm db:seed && pnpm db:seed:scale && turbo run dev",
     "dev:app": "turbo run dev",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
@@ -25,6 +25,7 @@
     "db:migrate": "pnpm --filter @espacios/db db:migrate",
     "db:deploy": "pnpm --filter @espacios/db db:deploy",
     "db:seed": "pnpm --filter @espacios/db db:seed",
+    "db:seed:scale": "pnpm --filter @espacios/db db:seed:scale",
     "db:studio": "pnpm --filter @espacios/db db:studio",
     "prepare": "husky"
   },

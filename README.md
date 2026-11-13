@@ -40,12 +40,13 @@ pnpm dev           # levanta todo y abre la app en http://localhost:3000
 pnpm services:up   # PostgreSQL 17 en localhost:5432; crea los roles de base la primera vez
 pnpm db:deploy     # aplica las migraciones como dueño del esquema
 pnpm db:seed       # 1 sede, 3 salas, 3 empresas, sus usuarios, un operador y unas 40 reservas (se puede correr dos veces)
+pnpm db:seed:scale # volumen: 3 sedes más, 42 salas, 15 clientes y unas 3000 reservas en ±4 semanas (después de db:seed)
 pnpm dev:app       # solo la app web, cuando la base ya está levantada
 ```
 
 `pnpm services:down` detiene la base y conserva los datos.
 
-**Ingresar.** Abrí la app y elegí un usuario del seed en `/ingresar` ("ingresar como"): Ana o Bruno (Acme), Carla (Globex), Diego (Initech) u Operador. No hay contraseñas: reemplaza a la autenticación, no lo es. Los miembros de una empresa llegan a sus reservas y el operador a `/operador`. La app no deja ingresar a nadie mientras `SESSION_SECRET` falte, tenga menos de 32 bytes o siga siendo el valor de ejemplo.
+**Ingresar.** Abrí la app y elegí un usuario del seed en `/ingresar` ("ingresar como"): Ana o Bruno (Acme), Carla (Globex), Diego (Initech) u Operador; con el seed de volumen aparecen también los miembros de los otros 12 clientes. No hay contraseñas: reemplaza a la autenticación, no lo es. Los miembros de una empresa llegan a sus reservas y el operador a `/operador`. La app no deja ingresar a nadie mientras `SESSION_SECRET` falte, tenga menos de 32 bytes o siga siendo el valor de ejemplo.
 
 > **Si cambian los roles de la base** (`infra/local/postgres/`), recreá la base local una vez con `docker compose down -v` y repetí los pasos. Postgres corre esos scripts solo con un volumen nuevo. Esto borra los datos locales.
 

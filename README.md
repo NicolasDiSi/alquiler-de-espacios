@@ -95,6 +95,8 @@ packages/domain        reglas de negocio puras: validez de una reserva, cancelac
 packages/db            adaptador PostgreSQL: esquema Prisma, migraciones, seguridad por fila, unidad de trabajo
 ```
 
+**El backend es Node.js + TypeScript.** Los casos de uso (`packages/application`), las reglas (`packages/domain`) y el adaptador PostgreSQL (`packages/db`) son TypeScript sobre Node 24 y no dependen de Next.js; dependency cruiser lo hace cumplir. Next.js solo los expone, por Server Actions y por la API REST `/api/v1`, y todo el servidor corre en el runtime de Node, no en Edge. Pasarlos a un servicio aparte cambia el adaptador HTTP, no las reglas.
+
 | Decisión                                                                                                                 | Alternativa descartada                                                        | Por qué                                                                                              | Dónde                                                                                                     |
 | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | Puertos y adaptadores en un monorepo; dependency cruiser rompe el build si una capa importa a otra que no debe           | Capas por convención, sin control                                             | Las reglas no conocen Next.js ni Prisma y se prueban solas                                           | [ADR 0001](docs/adr/0001-monorepo-pnpm-turborepo.md), [ADR 0002](docs/adr/0002-hexagonal-architecture.md) |
@@ -172,6 +174,7 @@ Reglas que el enunciado deja abiertas, decididas en las specs de `docs/specs/`. 
 
 - Resúmenes diarios de uso guardados si las métricas en vivo se vuelven lentas.
 - Un servicio API separado, caché compartida y un pool de conexiones si aparece un segundo cliente de la API (por ejemplo una app móvil).
+- El [plan inicial](docs/specs/_root/0001-booking-platform-architecture/rationale.md#option-2-the-first-plan-nextjs-bffs-a-hono-service-with-two-pools-separate-admin-app-pgbouncer-valkey-idempotency-keys-capability-flags) describe esa arquitectura completa, pensada para un equipo más grande y para producción: un servicio Hono dueño de la base con un pool por empresa y otro de administración, una app de administración desplegada aparte, PgBouncer, Valkey, claves de idempotencia y _flags_ por empresa. Quedó descartado para esta versión por costo, no por estar mal. Al adoptarlo, la empresa tiene que viajar en un token firmado por usuario y no en un encabezado `X-Tenant-Id` con un token compartido, que cualquiera que lo tenga puede falsificar.
 - Un nivel de organización por encima de la sede si el producto pasa a servir a varios operadores.
 
 ## Uso de IA

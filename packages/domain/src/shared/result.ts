@@ -18,6 +18,7 @@ export const REASONS = [
   "already_exists",
   "has_future_bookings",
   "block_has_bookings",
+  "block_overlaps_block",
   "facility_has_active_rooms",
   "facility_inactive",
   "individual_is_single",

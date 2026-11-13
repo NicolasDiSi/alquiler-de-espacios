@@ -15,6 +15,7 @@ const STATUS = {
   already_exists: 409,
   has_future_bookings: 409,
   block_has_bookings: 409,
+  block_overlaps_block: 409,
   facility_has_active_rooms: 409,
   facility_inactive: 409,
   individual_is_single: 409,

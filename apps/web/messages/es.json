@@ -21,6 +21,7 @@
     "already_exists": "Ya existe un registro con ese nombre o código. Elegí otro.",
     "has_future_bookings": "Hay reservas confirmadas que quedan afectadas por este cambio. Cancelalas primero o elegí otro momento.",
     "block_has_bookings": "Hay reservas confirmadas en ese período. Cancelalas antes de crear el bloqueo.",
+    "block_overlaps_block": "Ya hay un bloqueo en ese horario. Liberalo antes de crear otro, o elegí otro horario.",
     "facility_has_active_rooms": "La sede todavía tiene salas activas. Dá de baja las salas antes de dar de baja la sede.",
     "facility_inactive": "La sede está dada de baja, así que no admite salas ni bloqueos nuevos.",
     "individual_is_single": "Un cliente individual tiene un solo usuario. Para sumar más usuarios, registralo como empresa.",

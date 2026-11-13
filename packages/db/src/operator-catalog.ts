@@ -1,5 +1,6 @@
 import {
   type BlockRecord,
+  type BlockTarget,
   type BookingScope,
   type ClientRecord,
   type FacilityRecord,
@@ -116,6 +117,18 @@ function transactionCatalog(tx: TransactionClient): OperatorCatalogTransaction {
         affected({ ...bookingWhere(scope), startsAt: { gt: after } }),
       overlappingBookings: (scope: BookingScope, startsAt: Date, endsAt: Date) =>
         affected({ ...bookingWhere(scope), startsAt: { lt: endsAt }, endsAt: { gt: startsAt } }),
+      overlappingBlocks: (target: BlockTarget, startsAt: Date, endsAt: Date) =>
+        tx.block.findMany({
+          where: {
+            facilityId: target.facilityId,
+            releasedAt: null,
+            startsAt: { lt: endsAt },
+            endsAt: { gt: startsAt },
+            // A room is closed by its own blocks and by the whole sede's; the whole sede, by every block of it.
+            ...(target.roomId === null ? {} : { OR: [{ roomId: target.roomId }, { roomId: null }] }),
+          },
+          orderBy: [{ startsAt: "asc" }, { id: "asc" }],
+        }) as Promise<readonly BlockRecord[]>,
       countActiveRooms: (facilityId: string) => tx.room.count({ where: { facilityId, deactivatedAt: null } }),
       setFacilityDeactivation: (id: string, at: Date | null) =>
         orNull(tx.facility.update({ where: { id }, data: { deactivatedAt: at } })),

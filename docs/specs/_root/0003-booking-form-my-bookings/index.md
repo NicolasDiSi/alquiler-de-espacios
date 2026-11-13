@@ -203,3 +203,7 @@ Tracer Bullet: tasks 1 to 5 build one thin real thread (book through a minimal f
 - [ ] Feature 7 adds the cancel action to Próximas rows and moves cancelled bookings to Canceladas.
 - [ ] README "Supuestos": the default date rule, and that the whole company shares one bookings list.
 - [ ] README "next version": a subject per booking, a "solo las mías" filter, showing busy times in the form.
+
+## Amendment (2026-11-13): where a refusal is shown
+
+Spec 0011 replaces the alert slot at the top of the form: a refusal that names a field shows its reason under that field (which takes the focus), and any other refusal opens an alert dialog on top with the same actions ("Reintentar", "Elegir usuario de nuevo"). The reasons, their texts and the fields each one marks stay as written here.

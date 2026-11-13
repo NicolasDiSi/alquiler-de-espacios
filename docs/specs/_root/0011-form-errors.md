@@ -41,6 +41,6 @@ form, `apps/web/src/styles/overlays.css`, `apps/web/messages/es.json` (`formErro
 
 ## Open
 
-- No e2e covers a reason under a field on the block form, a refused cancel or a refused sign in yet.
-- `apps/web/e2e/bookings.spec.ts` still drives the booking form of spec 0003 (Sala, Fecha, Inicio, Fin), which the
-  search of spec 0008 replaced; its refusal tests have to be rewritten against the summary and this dialog.
+- No e2e covers a reason under a field on the block form, a refused cancel or a refused sign in yet. The booking
+  refusals (a room taken meanwhile, an ended session) and the operator's (a taken sede name, bookings or a block in
+  the way, a sede with active rooms) are covered in `bookings.spec.ts`, `operator.spec.ts` and `conflicts.spec.ts`.

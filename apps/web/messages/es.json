@@ -41,6 +41,7 @@
   },
   "session": {
     "label": "Sesión actual",
+    "menu": "Cuenta de {name}",
     "operator": "Operador",
     "switchUser": "Cambiar de usuario"
   },
@@ -58,10 +59,8 @@
       "admin": "Administración",
       "sedes": "Sedes",
       "clientes": "Clientes",
-      "rooms": "Salas"
-    },
-    "header": {
-      "moreOptions": "Más opciones"
+      "rooms": "Salas",
+      "navigation": "Navegación"
     },
     "mode": {
       "label": "Modo",
@@ -113,18 +112,35 @@
           "offcanvas": "Oculto"
         }
       }
+    },
+    "search": {
+      "open": "Buscar",
+      "title": "Buscar en la aplicación",
+      "description": "Escribí para buscar una sección y abrirla.",
+      "placeholder": "Buscar secciones…",
+      "empty": "No hay resultados.",
+      "keys": "⌘ J"
     }
   },
   "signIn": {
     "metaTitle": "Ingresar",
-    "title": "¿Con qué usuario querés entrar?",
-    "description": "Esta demo no usa contraseñas: elegí un usuario de ejemplo. Las empresas reservan salas y el operador ve cómo se usan.",
-    "companies": "Empresas clientes",
+    "title": "Ingresar",
+    "version": "v{version}",
+    "description": "Elegí con qué usuario querés probar la aplicación.",
+    "profiles": "{count, plural, one {# perfil} other {# perfiles}}",
+    "companies": "Empresas y profesionales independientes",
+    "companyMember": "Empresa, {count, plural, one {# integrante} other {# integrantes}}",
+    "individual": "Individual",
+    "individualMember": "Profesional independiente",
     "operator": {
-      "title": "Operador",
-      "description": "Ve la ocupación de las salas y el uso de todas las empresas."
+      "title": "Operador del edificio",
+      "role": "Operador",
+      "description": "Administra sedes y salas, y ve la ocupación de todos los clientes."
     },
-    "enterAs": "Entrar como {name}",
+    "enter": "Ingresar",
+    "enterAs": "como {name}",
+    "demoNotice": "Es una demo: no hay contraseña.",
+    "simulateError": "Simular error",
     "unknownUser": "Ese usuario ya no existe. Elegí otro de la lista.",
     "empty": {
       "title": "No hay usuarios cargados",

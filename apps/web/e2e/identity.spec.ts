@@ -11,24 +11,30 @@ test.describe("signed out", () => {
   test("a shell page sends you to the picker", async ({ page }) => {
     await page.goto("/");
     await expect(page).toHaveURL(/\/ingresar$/);
-    await expect(page.getByRole("heading", { level: 1, name: "¿Con qué usuario querés entrar?" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Ingresar" })).toBeVisible();
   });
 
   test("the picker lists each company with its users, and the operator apart", async ({ page }) => {
     await page.goto("/ingresar");
-    const acme = page.getByRole("listitem").filter({ has: page.getByRole("heading", { name: "Acme SA" }) });
-    await expect(acme.getByRole("button", { name: `Entrar como ${USERS.ana.name}` })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Operador" })).toBeVisible();
-    await expect(page.getByRole("button", { name: `Entrar como ${USERS.operador.name}` })).toBeVisible();
+    const companies = page.getByRole("region", { name: "Empresas y profesionales independientes" });
+    const ana = companies.getByRole("listitem").filter({ hasText: USERS.ana.name });
+    await expect(ana).toContainText(USERS.ana.company);
+    await expect(ana.getByRole("button", { name: `Ingresar como ${USERS.ana.name}` })).toBeVisible();
+    const operator = page.getByRole("region", { name: "Operador del edificio" });
+    await expect(operator.getByRole("button", { name: `Ingresar como ${USERS.operador.name}` })).toBeVisible();
   });
 
   test("picking a member sets a signed, httpOnly cookie and lands on the member home", async ({ page, context }) => {
     await page.goto("/ingresar");
-    await page.getByRole("button", { name: `Entrar como ${USERS.ana.name}` }).click();
+    await page.getByRole("button", { name: `Ingresar como ${USERS.ana.name}` }).click();
 
     await expect(page).toHaveURL(`${BASE_URL}/`);
     await expect(page.getByRole("heading", { level: 1, name: "Mis reservas" })).toBeVisible();
-    await expect(page.locator("main header").getByText(USERS.ana.company)).toBeVisible();
+    await page
+      .locator("main header")
+      .getByRole("button", { name: `Cuenta de ${USERS.ana.name}` })
+      .click();
+    await expect(page.getByRole("menu").getByText(USERS.ana.company)).toBeVisible();
 
     const cookie = (await context.cookies()).find((c) => c.name === "espacios_session");
     expect(cookie?.httpOnly).toBe(true);
@@ -39,7 +45,7 @@ test.describe("signed out", () => {
 
   test("picking the operator lands on the operator home", async ({ page }) => {
     await page.goto("/ingresar");
-    await page.getByRole("button", { name: `Entrar como ${USERS.operador.name}` }).click();
+    await page.getByRole("button", { name: `Ingresar como ${USERS.operador.name}` }).click();
     await expect(page).toHaveURL(`${BASE_URL}/operador`);
     await expect(page.getByRole("heading", { level: 1, name: "Panel del operador" })).toBeVisible();
   });
@@ -105,7 +111,8 @@ test.describe("signed in as a member", () => {
 
   test("switching user clears the cookie and returns to the picker", async ({ page, context }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Cambiar de usuario" }).click();
+    await page.getByRole("button", { name: `Cuenta de ${USERS.ana.name}` }).click();
+    await page.getByRole("menuitem", { name: "Cambiar de usuario" }).click();
     await expect(page).toHaveURL(/\/ingresar$/);
     expect((await context.cookies()).some((c) => c.name === "espacios_session")).toBe(false);
 

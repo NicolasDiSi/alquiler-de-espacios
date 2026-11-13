@@ -17,8 +17,11 @@ test.describe("shell", () => {
     await expect(sidebar.locator('a[href^="/operador"]')).toHaveCount(0);
     await expect(sidebar.locator('a[href="/design-system"]')).toHaveCount(0);
 
-    await expect(page.getByRole("radiogroup", { name: "Densidad" })).toBeVisible();
-    await expect(page.getByRole("button", { name: /^Modo: / })).toBeVisible();
+    const header = page.locator("main header");
+    await expect(header.getByRole("button", { name: "Buscar" })).toBeVisible();
+    await expect(header.getByRole("button", { name: "Preferencias de diseño" })).toBeVisible();
+    await expect(header.getByRole("button", { name: /^Modo: / })).toBeVisible();
+    await expect(header.getByRole("button", { name: /^Cuenta de / })).toBeVisible();
   });
 
   test("the sidebar toggle lives in the header and reopens a hidden sidebar", async ({ page, context }) => {
@@ -139,10 +142,11 @@ test.describe("preferences before the first paint", () => {
     expect(await measure()).toEqual({ button: 40, small: 35, header: 50, text: "14px" });
   });
 
-  test("the density switch changes the density and stores it", async ({ page }) => {
+  test("the density switch in the preferences changes the density and stores it", async ({ page }) => {
     await page.goto("/");
     await waitForHydration(page);
-    await page.getByRole("radio", { name: "Cómoda" }).click();
+    await page.getByRole("button", { name: "Preferencias de diseño" }).click();
+    await page.getByRole("radiogroup", { name: "Densidad" }).getByRole("radio", { name: "Cómoda" }).click();
     await expect(page.locator("html")).toHaveAttribute("data-density", "comfortable");
 
     await page.reload();

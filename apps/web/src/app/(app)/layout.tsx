@@ -4,23 +4,23 @@ import { type ReactNode, Suspense } from "react";
 import { cn } from "cn";
 import { useTranslations } from "next-intl";
 
+import { Separator } from "@/components/ui/separator";
 import { SidebarInset } from "@/components/ui/sidebar";
 
 import { AppSidebar } from "./_components/app-sidebar";
 import { AppSidebarTrigger } from "./_components/app-sidebar-trigger";
 import { BrandLink } from "./_components/brand-link";
 import { CurrentBrand, CurrentNav } from "./_components/current-nav";
-import { CurrentUser } from "./_components/current-user";
+import { CurrentSearch, CurrentUser } from "./_components/current-user";
 import { DashboardSidebarProvider } from "./_components/dashboard-sidebar-provider";
-import { DensitySwitch } from "./_components/density-switch";
-import { HeaderOverflowMenu } from "./_components/header-overflow-menu";
 import { LayoutControls } from "./_components/layout-controls";
 import { ModeSwitch } from "./_components/mode-switch";
+import { SearchDialog } from "./_components/search-dialog";
 
 const MAIN_ID = "contenido";
 
 // The layout reads no cookies itself: each page checks its own edge (requireMember, requireOperator), and only the
-// CurrentUser leaf reads the session, inside its own Suspense boundary. Preferences are restored on the client.
+// CurrentSearch and CurrentUser leaves read the session, each inside its own Suspense boundary. Preferences are restored on the client.
 export default function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
   const t = useTranslations("shell");
 
@@ -59,15 +59,22 @@ export default function AppLayout({ children }: Readonly<{ children: ReactNode }
           )}
         >
           <div className="flex w-full items-center justify-between gap-2 px-4 lg:px-6">
-            <AppSidebarTrigger className="-ml-1" />
-            <div className="ml-auto flex items-center gap-2">
+            <div className="flex items-center gap-1 lg:gap-2">
+              <AppSidebarTrigger className="-ml-1" />
+              <Separator
+                orientation="vertical"
+                className="mx-2 data-[orientation=vertical]:h-4 data-[orientation=vertical]:self-center"
+              />
+              <Suspense fallback={<SearchDialog viewer={null} />}>
+                <CurrentSearch />
+              </Suspense>
+            </div>
+            <div className="flex items-center gap-2">
+              <LayoutControls />
+              <ModeSwitch />
               <Suspense fallback={null}>
                 <CurrentUser />
               </Suspense>
-              <DensitySwitch className="hidden md:flex" />
-              <ModeSwitch className="hidden md:inline-flex" />
-              <LayoutControls />
-              <HeaderOverflowMenu className="md:hidden" />
             </div>
           </div>
         </header>

@@ -53,13 +53,14 @@ export function slugify(name: string): string {
     .replace(/-+$/g, "");
 }
 
-/** The first letters of up to two words, for an avatar without a logo. */
+/** The first letters of up to two words, for an avatar without a logo. Punctuation is skipped ("Ana (Acme)" is AA). */
 export function initialsOf(name: string): string {
   return name
     .split(/\s+/)
+    .map((word) => word.match(/\p{L}|\p{N}/u)?.[0] ?? "")
     .filter(Boolean)
     .slice(0, 2)
-    .map((word) => word.charAt(0).toUpperCase())
+    .map((letter) => letter.toUpperCase())
     .join("");
 }
 

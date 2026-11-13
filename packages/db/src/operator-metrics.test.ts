@@ -248,7 +248,10 @@ describe("client activity (spec 0007)", () => {
   });
 });
 
-describe("overlapping blocks in the metrics (spec 0004: their union applies)", () => {
+// `createBlock` refuses a block over another one (commit 60a05f6, `block_overlaps_block`), but only in the use case
+// under the facility lock: the database has no constraint for it, so a row written outside the use case can still
+// overlap. The metrics must not depend on that rule, so these rows are inserted directly.
+describe("blocks that overlap in the table, outside the use case (defense in depth)", () => {
   /**
    * A sede of its own, Mon 9 to 17 in Buenos Aires, Monday 2030-01-14 (480 open minutes). Its room has a block 10 to 12
    * and another 11 to 13, and the whole sede one 12 to 14: 360 minutes if summed, 240 as a union (10 to 14). One

@@ -176,7 +176,9 @@ describe("the booking guard trigger (spec 0004, P-17 and P-18)", () => {
       await expect(insertBooking({ ...s, roomId: otherFacilityRoom }, at(10), at(11))).resolves.toBeDefined();
     });
 
-    describe("overlapping blocks (spec 0004: allowed, their union applies)", () => {
+    // The use case refuses a block over another (`block_overlaps_block`), but no constraint does: the guard must still
+    // refuse every minute under any unreleased block when rows overlap, so these are inserted directly.
+    describe("blocks that overlap in the table, outside the use case (defense in depth)", () => {
       const release = (blockId: string) =>
         operator.block.update({ where: { id: blockId }, data: { releasedAt: new Date() } });
 

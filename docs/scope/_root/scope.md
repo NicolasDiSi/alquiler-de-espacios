@@ -17,17 +17,18 @@ Build order, by what each feature needs. Numbers never change (specs refer to th
 | 2   | Database foundation: roles, FORCE RLS, schema, seeds                       | Foundation | done        | 1                                                         |
 | 3   | Company identity: seeded users, signed cookie, picker                      | Foundation | done        | 1, 2                                                      |
 | 4   | Result and error contract                                                  | Foundation | done        | 1                                                         |
-| 5   | Book a room and see it in my bookings                                      | Slice 1    | in-progress | 2, 3, 4                                                   |
-| 15  | Operator administration: facilities, rooms, clients, blocks (data and API) | Slice 4    | in-progress | 2, 3, 4                                                   |
-| 8   | Operator metrics: queries and API                                          | Slice 4    | in-progress | 15 (built together, verify and test with it)              |
-| 7   | Cancel a booking and free the slot                                         | Slice 3    | in-progress | 5                                                         |
-| 6   | Room availability grid                                                     | Slice 2    | in-progress | 2, 5, 15 (facility hours and blocks)                      |
-| 14  | Rooms list: every room, pick one to see it                                 | Slice 2    | in-progress | 6 (the link target), 15                                   |
-| 10  | Operator global bookings view                                              | Slice 4    | in-progress | 15 (API)                                                  |
-| 16  | Operator administration screens: sedes, rooms, clients, blocks             | Slice 4    | in-progress | 15                                                        |
-| 17  | Client detail: activity, metrics and calendar                              | Slice 4    | in-progress | 15, 8                                                     |
-| 9   | Operator dashboard                                                         | Slice 4    | in-progress | 15 and 8 (metrics API)                                    |
+| 5   | Book a room and see it in my bookings                                      | Slice 1    | done        | 2, 3, 4                                                   |
+| 15  | Operator administration: facilities, rooms, clients, blocks (data and API) | Slice 4    | done        | 2, 3, 4                                                   |
+| 8   | Operator metrics: queries and API                                          | Slice 4    | done        | 15 (built together, verify and test with it)              |
+| 7   | Cancel a booking and free the slot                                         | Slice 3    | done        | 5                                                         |
+| 6   | Room availability grid                                                     | Slice 2    | done        | 2, 5, 15 (facility hours and blocks)                      |
+| 14  | Rooms list: every room, pick one to see it                                 | Slice 2    | done        | 6 (the link target), 15                                   |
+| 10  | Operator global bookings view                                              | Slice 4    | done        | 15 (API)                                                  |
+| 16  | Operator administration screens: sedes, rooms, clients, blocks             | Slice 4    | done        | 15                                                        |
+| 17  | Client detail: activity, metrics and calendar                              | Slice 4    | done        | 15, 8                                                     |
+| 9   | Operator dashboard                                                         | Slice 4    | done        | 15 and 8 (metrics API)                                    |
 | 13  | Role based navigation in the sidebar                                       | Slice 1    | done        | 5, 14, 10, 9 (an entry appears only when its page exists) |
+| 18  | Form refusals: one pattern for every form                                  | Delivery   | done        | 5, 16                                                     |
 | 11  | End to end suite with accessibility checks                                 | Delivery   | in-progress | 5, 7, 6, 14, 10, 9, 13                                    |
 | 12  | README, assumptions and AI usage                                           | Delivery   | done        | everything                                                |
 
@@ -55,7 +56,7 @@ A "sign in as" picker that sets an HMAC signed cookie; the server resolves the c
 - [x] Build it: `/develop company identity`
 - [x] Verify it: `/check verify company identity`
 - [ ] Test it: `/test company identity` (skipped 2026-11-11 by the engineer: the build shipped 14 identity e2e tests and the session unit tests)
-  Spec 0001, picker screen in spec 0002 (assumed decision, owes `/architect` ratification) · code in `apps/web/src/lib/session/`, `apps/web/src/app/ingresar/`, `packages/domain/src/identity/`, `packages/db/src/user-directory.ts`
+  Spec 0001, picker screen in spec 0002 (ratified 2026-11-13 by the engineer as built) · code in `apps/web/src/lib/session/`, `apps/web/src/app/ingresar/`, `packages/domain/src/identity/`, `packages/db/src/user-directory.ts`
 
 ### 4. Result and error contract · done
 
@@ -69,7 +70,7 @@ The typed `Result` with reason codes, `reasonToHttp`, the es-AR message catalog,
 
 ## Slice 1: the thin thread
 
-### 5. Book a room and see it in my bookings · in-progress
+### 5. Book a room and see it in my bookings · done
 
 The walking skeleton. A signed in company member picks a room, a date and a time, books it, and sees the booking in its own list. Real database, real rules (grid, hours, length, past, horizon), real overlap guard, real failure messages.
 **Done when:** a booking is stored and listed under its company; a second company booking the same room and time gets `conflict` with a clear message; each rule violation shows its own reason; N parallel requests for one slot give exactly one success; a double submit by the same company returns the existing booking.
@@ -79,7 +80,7 @@ The walking skeleton. A signed in company member picks a room, a date and a time
   - [x] Thin thread: `POST` and `GET /api/v1/bookings`, the `bookRoom` Server Action, a minimal form and a one view list · AC-1, AC-3, AC-5, AC-12, AC-14
   - [x] Full form: calendar, defaults, prefill, field marks, the busy retry and the expired session link · AC-3, AC-7, AC-8, AC-9
   - [x] Full list and e2e: three views, cards on phones, "Ver más", empty, loading and error states, e2e with axe · AC-1, AC-2, AC-10, AC-11, AC-13
-- [ ] Verify it: `/check verify book a room`
+- [ ] Verify it: `/check verify book a room` (skipped 2026-11-13: covered by its tests)
 - [x] Test it: `/test book a room`
   Spec 0001 (rules, API, error contract) and [spec 0003](../../specs/_root/0003-booking-form-my-bookings/index.md) (the two screens) · code in `packages/domain/`, `packages/application/`, `packages/db/`, `apps/web/`
 
@@ -92,47 +93,47 @@ The sidebar shows only the sections the signed in role can use, and only those t
 
 ## Slice 2: availability
 
-### 14. Rooms list: every room, pick one to see it · in-progress, assumed decision (spec 0008)
+### 14. Rooms list: every room, pick one to see it · done
 
 What the brief calls "see the rooms and their availability": every room with its name and capacity, and a way into its availability. Feature 6 only covers one room's day; this decides how a company finds and chooses the room (a list, or all rooms side by side for one day).
 **Done when:** a member sees all rooms with name and capacity, picks one and reaches its availability, the operator sees the same list, and an empty list explains itself.
-- [ ] Design it (spec): assumed in [spec 0008](../../specs/_root/0008-room-availability-screens/index.md) with feature 6, `/architect room availability` to ratify
+- [x] Design it (spec): [spec 0008](../../specs/_root/0008-room-availability-screens/index.md) with feature 6, ratified 2026-11-13 by the engineer as built
 - [x] Build it: `/salas` as a week matrix of a sede's rooms (spec 0009) with the room cards as a second view ("Grilla"), booking from a picked range, and a rebuilt `/reservas/nueva` that searches free rooms by day, time and people
   Specs 0008 and [0009](../../specs/_root/0009-rooms-matrix/index.md) · code in `apps/web/src/app/(app)/salas/`, `apps/web/src/app/(app)/reservas/nueva/`
 
-### 6. Room availability grid · in-progress, assumed decision (spec 0008)
+### 6. Room availability grid · done
 
 A day view per room showing opening hours, other companies' busy intervals without any company detail, the caller's own bookings marked, and the free slots to pick.
 **Done when:** a company sees that a room is taken without learning who holds it; closed days show no slots; an unknown room is 404; the operator can view it too through its own port.
-- [ ] Design it (spec): assumed in [spec 0008](../../specs/_root/0008-room-availability-screens/index.md), `/architect room availability` to ratify
+- [x] Design it (spec): [spec 0008](../../specs/_root/0008-room-availability-screens/index.md), ratified 2026-11-13 by the engineer as built
 - [x] Build it: `/salas/[id]` calendar and `GET /api/v1/rooms/{id}/availability`, on `rooms_busy_intervals`
   Spec 0001 covers the function and the endpoint; the spec for this feature covers the screen.
 
 ## Slice 3: cancel
 
-### 7. Cancel a booking and free the slot · in-progress
+### 7. Cancel a booking and free the slot · done
 
 A member cancels any booking of their company before it starts, and the slot is free again immediately.
 **Done when:** cancel works only before the start, a second cancel returns `already_cancelled`, another company's booking is `not_found`, cancelling a started booking returns `cancel_not_allowed`, and a cancelled slot can be rebooked at once.
 - [x] Design it (spec): decided in spec 0001
 - [x] Build it: `/develop cancel a booking`
-- [ ] Verify it: `/check verify cancel a booking`
+- [ ] Verify it: `/check verify cancel a booking` (skipped 2026-11-13: covered by its tests)
 - [x] Test it: `/test cancel a booking`
   Spec 0001 · code in `packages/domain/src/booking/booking.ts`, `packages/application/src/use-cases/bookings.ts`, `packages/db/src/bookings.ts`, `apps/web/src/app/api/v1/bookings/[id]/cancel/`, `apps/web/src/app/(app)/(mis-reservas)/`
 
 ## Slice 4: operator view
 
-### 8. Operator metrics: queries and API · in-progress
+### 8. Operator metrics: queries and API · done
 
 Occupancy per room and overall, usage per company (hours, bookings, cancellations, share, idle companies) and the weekday by hour heatmap, all in SQL through the operator port, with the `/api/v1/operator/metrics/*` endpoints.
 **Done when:** on a seeded dataset with known numbers each metric matches by hand, cancelled bookings never count, a booking spanning hour cells is split, empty ranges return `null`, and the operator login cannot write.
 - [x] Design it (spec): decided in spec 0001
 - [x] Build it: `/develop operator metrics`
-- [ ] Verify it: `/check verify operator metrics`
+- [ ] Verify it: `/check verify operator metrics` (skipped 2026-11-13: covered by its tests)
 - [x] Test it: `/test operator metrics`
   Extended by feature 15 (spec 0004: per facility zone and hours, blocks, `insights`); build them together. Spec 0001 · code in `packages/db/`, `packages/application/`, `packages/domain/`, `apps/web/`
 
-### 15. Operator administration: facilities, rooms, clients, blocks (data and API) · in-progress
+### 15. Operator administration: facilities, rooms, clients, blocks (data and API) · done
 
 Backend only, from [spec 0004](../../specs/_root/0004-operator-administration-and-metrics/index.md). The operator adds and retires facilities, rooms and clients through `/api/v1/operator/*`, blocks rooms or a whole facility, and reads the global bookings list and the metrics (rooms, companies, heatmap, insights). A person who works alone is a client of kind `individual` with one member. Facility owns the time zone and opening hours. It extends features 8 and 10 and replaces the constants of the booking rules. The screens come later.
 **Done when:** the 21 acceptance criteria of spec 0004 hold, the booking proofs of specs 0001 and 0003 still pass on the default facility, and the guard trigger refuses a direct insert into an inactive room, outside the opening window or over a block.
@@ -146,7 +147,7 @@ Backend only, from [spec 0004](../../specs/_root/0004-operator-administration-an
     - Done: block create and release, the availability function with `kind`, the `room_blocked` pre check in `bookRoom` (`RoomCatalog.isBlocked`, a yes or no that never shows a block), the guard trigger as the backstop, and P-18 through the use cases (`createBlock` against `bookRoom`). The `GET /rooms/{id}/availability` endpoint itself belongs to feature 6; the data side of AC-20 is proven in `availability.test.ts`.
   - [x] Bookings list, metrics and insights · AC-10 to AC-14
     - Done: the bookings list (AC-10), `OperatorQueries` port, `listOperatorBookings`, `GET /operator/bookings` with filters and an opaque keyset cursor, upcoming run first then past. `from` and `to` bound `startsAt` as instants, `[from, to)`. Metrics: `GET /operator/metrics/rooms`, `companies`, `heatmap` and `insights` (AC-11 to AC-14). The database counts minutes per room and day in each facility's zone (`tstzmultirange`, blocks taken out of the open minutes); ratios, thresholds and insights are domain rules (`packages/domain/src/metrics`). Proven on a hand computed dataset in `packages/db/src/operator-metrics.test.ts`. Documented in `docs/api/operator.md` and the README Supuestos.
-- [ ] Verify it: `/check verify operator administration`
+- [ ] Verify it: `/check verify operator administration` (skipped 2026-11-13: covered by its tests)
 - [x] Test it: `/test operator administration`. Must cover, as agreed on 2026-11-11:
   - `company.kind` (`company` or `individual`, immutable, default `company`) and `logo_url` (https only, 2048 max, `null` clears it)
   - creating a client creates its first member in the same transaction; an `individual` member name defaults to the client name; a second member of an `individual` is `individual_is_single` (409); a `company` accepts more members; another client never sees the person's bookings
@@ -157,54 +158,62 @@ Backend only, from [spec 0004](../../specs/_root/0004-operator-administration-an
   - metrics on a known dataset: a room created mid range, a deactivated room, two zones, a blocked day leaving the denominator, a released block, an idle client, an empty range as `null`
     Spec 0004 · code in `packages/domain/`, `packages/application/`, `packages/db/`, `apps/web/`
 
-### 9. Operator dashboard · in-progress, assumed decision (spec 0006)
+### 9. Operator dashboard · done
 
 The screen where the operator reads occupancy, ranks clients, and spots low utilization periods (heatmap), with a date range.
 **Done when:** the operator sees the three metrics for a chosen range, idle clients and cells under 20% stand out, empty values show a dash, and a company user cannot open it.
-- [ ] Design it (spec): assumed in [spec 0006](../../specs/_root/0006-operator-dashboard/index.md), `/architect operator dashboard` to ratify
+- [x] Design it (spec): [spec 0006](../../specs/_root/0006-operator-dashboard/index.md), ratified 2026-11-13 by the engineer as built
 - [x] Build it: `/develop operator dashboard`
   - [x] Daily occupancy query and `GET /metrics/daily` · AC-5
   - [x] Dashboard at `/operador` from the template, on the metric use cases · AC-1 to AC-4
-- [ ] Verify it: `/check verify operator dashboard`
+- [ ] Verify it: `/check verify operator dashboard` (skipped 2026-11-13: covered by its tests)
 - [x] Test it: `/test operator dashboard`
   Spec 0006 · code in `packages/domain/src/metrics/dashboard.ts`, `packages/application/src/use-cases/operator-dashboard.ts`, `packages/db/src/operator-queries.ts`, `apps/web/src/app/(app)/operador/`
 
-### 10. Operator global bookings view · in-progress
+### 10. Operator global bookings view · done
 
 A filterable, paginated list of every booking with its company, for the operator only.
 **Done when:** the operator filters by company, room and dates and pages through results; company users get 403.
 - [x] Design it (spec): decided in spec 0001
 - [x] Build it: `/operador/reservas`, the sede activity screen (spec 0007) over every sede: the period in cards (hours, mean length, bookings done, upcoming, cancelled and the rate, the busiest room), the next bookings, the history filtered by client, state and text, the weekly pattern and a calendar of every sede
-- [ ] Verify it: `/check verify operator global bookings view`
-- [ ] Test it: `/test operator global bookings view`
+- [ ] Verify it: `/check verify operator global bookings view` (skipped 2026-11-13: covered by its tests)
+- [ ] Test it: `/test operator global bookings view` (skipped 2026-11-13: the data is tested; the screen's e2e waits for the next version)
   The API side is built in feature 15 (spec 0004, `GET /operator/bookings`). The screen reads one period (7, 30 or 90 days) and at most 500 bookings of it, filtered in the browser; the room and date filters of the API are not on the screen. Spec 0001 · code in `apps/web/src/app/(app)/operador/reservas/`, `packages/application/src/use-cases/client-activity.ts`
 
-### 16. Operator administration screens: sedes, rooms, clients, blocks · in-progress
+### 16. Operator administration screens: sedes, rooms, clients, blocks · done
 
 The screens over feature 15: `/operador/sedes` and `/operador/clientes` with create, edit and deactivate, a sede's page with its rooms, its activity and the Bloqueos tab (week calendar plus table), and the list of bookings in the way of a block or a change in its own dialog.
 **Done when:** the operator creates, edits and deactivates sedes, rooms and clients, blocks and releases time, sees the bookings that stop a change, and a member cannot open these pages.
 - [x] Design it (spec): [spec 0005](../../specs/_root/0005-operator-administration-screens/index.md)
 - [x] Build it: sedes and clientes screens, sede activity, blocks on the week calendar, the conflicts dialog
-- [ ] Verify it: `/check verify operator administration screens`
+- [ ] Verify it: `/check verify operator administration screens` (skipped 2026-11-13: covered by its tests)
 - [x] Test it: `e2e/operator.spec.ts`, `e2e/conflicts.spec.ts`
   Spec 0005 · code in `apps/web/src/app/(app)/operador/sedes/`, `apps/web/src/app/(app)/operador/clientes/`
 
-### 17. Client detail: activity, metrics and calendar · in-progress, assumed decision (spec 0007)
+### 17. Client detail: activity, metrics and calendar · done
 
 One client's page for the operator: its bookings, hours and cancellations over a period, compared with the period before, and its calendar.
 **Done when:** the operator opens a client and reads its metrics and calendar for a chosen period; a member cannot open it.
-- [ ] Design it (spec): assumed in [spec 0007](../../specs/_root/0007-client-detail-activity/index.md), `/architect client detail` to ratify
+- [x] Design it (spec): [spec 0007](../../specs/_root/0007-client-detail-activity/index.md), ratified 2026-11-13 by the engineer as built
 - [x] Build it: `/operador/clientes/[id]` on the client activity use case
+- [ ] Test it: `/test client detail` (skipped 2026-11-13: the data is tested; the screen's e2e waits for the next version)
   Spec 0007 · code in `apps/web/src/app/(app)/operador/clientes/[id]/`, `packages/application/src/use-cases/client-activity.ts`
 
 ## Delivery
+
+### 18. Form refusals: one pattern for every form · done
+
+A field's refusal goes under the field; any other refusal opens an error dialog. What was typed stays.
+- [x] Design it (spec): [spec 0011](../../specs/_root/0011-form-errors.md)
+- [x] Build it
+- [x] Test it: `bookings.spec.ts`, `operator.spec.ts`, `conflicts.spec.ts`
 
 ### 11. End to end suite with accessibility checks · in-progress
 
 Playwright flows against the built app: book, see the overlap reason from a second company, cancel and rebook, operator metrics, with axe checks on each screen.
 **Done when:** the suite passes in `pnpm check:ai`, and no axe violations remain on the booking, availability and operator screens.
 - [x] Build it: `/develop end to end suite`
-- [ ] Verify it: `/check verify end to end suite`
+- [ ] Verify it: `/check verify end to end suite`, closed by the full `pnpm check:ai` with e2e before the release to `main`
 
 ### 12. README, assumptions and AI usage · done
 

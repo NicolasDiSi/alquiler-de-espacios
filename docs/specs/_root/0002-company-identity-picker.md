@@ -1,6 +1,6 @@
 # 0002 · Company identity: the picker screen and the edges
 
-**Status**: Assumed
+**Status**: Accepted (ratified 2026-11-13)
 **Date**: 2026-11-11
 **Authorized by**: Nicolas Di si, during /develop
 
@@ -30,4 +30,4 @@ Spec 0001 decides the identity mechanism (seeded users, an HMAC signed cookie, t
 
 ## Ratify
 
-This decision was recorded by /develop, not deliberated. Run `/architect company identity picker` to deliberate and ratify it. Until then it stays flagged as an owed decision; it does not block marking the feature `done`.
+Decided during /develop and ratified as built on 2026-11-13.

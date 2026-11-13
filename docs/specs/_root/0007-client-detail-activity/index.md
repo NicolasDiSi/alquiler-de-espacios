@@ -1,6 +1,6 @@
 # 0007 · Client detail: activity, metrics and calendar
 
-**Status**: Assumed
+**Status**: Accepted (ratified 2026-11-13)
 **Date**: 2026-11-12
 **Authorized by**: Nicolas Di si, during /develop
 
@@ -60,4 +60,4 @@ What the operator sees on one client's page (scope backlog: "Operator detail vie
 
 ## Ratify
 
-This decision was recorded by /develop, not deliberated. Run `/architect client detail` to deliberate and ratify it. Until then it stays flagged as an owed decision; it does not block marking the feature `done`.
+Decided during /develop and ratified as built on 2026-11-13.

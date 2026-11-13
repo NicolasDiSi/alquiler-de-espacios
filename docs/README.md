@@ -23,18 +23,19 @@ Qué hay en cada carpeta. Para correr y probar el proyecto, empezá por el [READ
 
 ## Specs
 
-Estados: `Accepted` decidida y verificada, `In Progress` construida y con verificación pendiente, `Assumed` decidida durante la construcción, sin ronda de diseño previa.
+Todas están construidas. Las 0002 y 0006 a 0009 se decidieron durante la construcción y se ratificaron después. No hay spec 0010.
 
-| #                                                                     | Funcionalidad                                                                      | Estado      |
-| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ----------- |
-| [0001](specs/_root/0001-booking-platform-architecture/index.md)       | Arquitectura: una app Next.js, reglas garantizadas por la base, resultados tipados | Accepted    |
-| [0002](specs/_root/0002-company-identity-picker.md)                   | Identidad de la empresa: pantalla de ingreso                                       | Assumed     |
-| [0003](specs/_root/0003-booking-form-my-bookings/index.md)            | Formulario de reserva y "Mis reservas"                                             | In Progress |
-| [0004](specs/_root/0004-operator-administration-and-metrics/index.md) | Administración del operador, sedes y métricas (datos y API)                        | In Progress |
-| [0005](specs/_root/0005-operator-administration-screens/index.md)     | Pantallas de administración del operador                                           | In Progress |
-| [0006](specs/_root/0006-operator-dashboard/index.md)                  | Tablero del operador                                                               | Assumed     |
-| [0007](specs/_root/0007-client-detail-activity/index.md)              | Detalle de un cliente: actividad, métricas y calendario                            | Assumed     |
-| [0008](specs/_root/0008-room-availability-screens/index.md)           | Salas, disponibilidad y reserva por horario libre                                  | Assumed     |
-| [0009](specs/_root/0009-rooms-matrix/index.md)                        | Matriz semanal de salas en `/salas`                                                | Assumed     |
+| #                                                                     | Funcionalidad                                                                      | Estado   |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | -------- |
+| [0001](specs/_root/0001-booking-platform-architecture/index.md)       | Arquitectura: una app Next.js, reglas garantizadas por la base, resultados tipados | Accepted |
+| [0002](specs/_root/0002-company-identity-picker.md)                   | Identidad de la empresa: pantalla de ingreso                                       | Accepted |
+| [0003](specs/_root/0003-booking-form-my-bookings/index.md)            | Formulario de reserva y "Mis reservas"                                             | Accepted |
+| [0004](specs/_root/0004-operator-administration-and-metrics/index.md) | Administración del operador, sedes y métricas (datos y API)                        | Accepted |
+| [0005](specs/_root/0005-operator-administration-screens/index.md)     | Pantallas de administración del operador                                           | Accepted |
+| [0006](specs/_root/0006-operator-dashboard/index.md)                  | Tablero del operador                                                               | Accepted |
+| [0007](specs/_root/0007-client-detail-activity/index.md)              | Detalle de un cliente: actividad, métricas y calendario                            | Accepted |
+| [0008](specs/_root/0008-room-availability-screens/index.md)           | Salas, disponibilidad y reserva por horario libre                                  | Accepted |
+| [0009](specs/_root/0009-rooms-matrix/index.md)                        | Matriz semanal de salas en `/salas`                                                | Accepted |
+| [0011](specs/_root/0011-form-errors.md)                               | Cómo explica cada formulario y por qué se rechazó                                  | Accepted |
 
 Las specs y los ADR están en inglés porque son el contexto de trabajo de los agentes de IA; el README y la interfaz están en español.

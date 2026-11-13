@@ -1,6 +1,6 @@
 # 0006 · Operator dashboard
 
-**Status**: Assumed
+**Status**: Accepted (ratified 2026-11-13)
 **Date**: 2026-11-12
 **Authorized by**: Nicolas Di si, during /develop
 
@@ -61,4 +61,4 @@ Seeds carried from the scope "Done when" of feature 9:
 
 ## Ratify
 
-This decision was recorded by /develop, not deliberated. Run `/architect operator dashboard` to deliberate and ratify it. Until then it stays flagged as an owed decision; it does not block marking the feature `done`.
+Decided during /develop and ratified as built on 2026-11-13.

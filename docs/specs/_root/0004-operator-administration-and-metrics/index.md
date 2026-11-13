@@ -1,7 +1,7 @@
 # 0004. Operator administration, facilities and metrics (data model and API)
 
 **Date**: 2026-11-11
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 

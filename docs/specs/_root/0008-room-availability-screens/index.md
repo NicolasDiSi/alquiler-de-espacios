@@ -1,6 +1,6 @@
 # 0008 · Rooms, room availability and a new booking by free time
 
-**Status**: Assumed
+**Status**: Accepted (ratified 2026-11-13)
 **Date**: 2026-11-12
 **Authorized by**: Nicolas Di si, during /develop
 
@@ -53,7 +53,7 @@ How a client company sees the rooms and their availability, and books from it (s
 
 ## Ratify
 
-This decision was recorded by /develop, not deliberated. Run `/architect room availability` to deliberate and ratify it. Until then it stays flagged as an owed decision; it does not block marking the features `done`.
+Decided during /develop and ratified as built on 2026-11-13.
 
 ## Amendment (2026-11-13): the booking search in three columns
 

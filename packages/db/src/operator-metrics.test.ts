@@ -247,3 +247,60 @@ describe("client activity (spec 0007)", () => {
     expect(await queries.clientActivity(range, idle, now)).toEqual({ rooms: [], weekdays: [], upcoming: 0 });
   });
 });
+
+describe("overlapping blocks in the metrics (spec 0004: their union applies)", () => {
+  /**
+   * A sede of its own, Mon 9 to 17 in Buenos Aires, Monday 2030-01-14 (480 open minutes). Its room has a block 10 to 12
+   * and another 11 to 13, and the whole sede one 12 to 14: 360 minutes if summed, 240 as a union (10 to 14). One
+   * booking 15 to 16. Blocked time must count once, or occupancy would rise for a room that is simply closed.
+   */
+  const OVERLAP = id("facility-overlap");
+  const ROOM = id("room-overlap");
+  const day = { from: "2030-01-14" as LocalDate, to: "2030-01-14" as LocalDate };
+
+  beforeAll(async () => {
+    await owner.facility.create({
+      data: {
+        id: OVERLAP,
+        name: OVERLAP,
+        timeZone: "America/Argentina/Buenos_Aires",
+        opensAt: 540,
+        closesAt: 1020,
+        openWeekdays: [1, 2, 3, 4, 5],
+      },
+    });
+    await owner.room.create({
+      data: { id: ROOM, name: ROOM, capacity: 4, facilityId: OVERLAP, activeFrom: new Date("2029-01-01T00:00:00Z") },
+    });
+    const block = (roomId: string | null, from: number, to: number) =>
+      owner.block.create({
+        data: {
+          id: `block-${crypto.randomUUID()}`,
+          facilityId: OVERLAP,
+          roomId,
+          startsAt: ba(14, from),
+          endsAt: ba(14, to),
+          reason: "x",
+          createdBy: id("operator"),
+        },
+      });
+    await block(ROOM, 10, 12);
+    await block(ROOM, 11, 13);
+    await block(null, 12, 14);
+    await book(x, ROOM, ba(14, 15), ba(14, 16));
+  });
+
+  it("takes the union of the blocks out of the open time, never their sum", async () => {
+    const row = (await queries.roomUsage(day)).find((usage) => usage.roomId === ROOM);
+    expect(row).toMatchObject({ openMinutes: 240, blockedMinutes: 240, bookedMinutes: 60 });
+    expect(await queries.dailyUsage(day, { facilityId: OVERLAP })).toEqual([
+      { date: "2030-01-14", openMinutes: 240, bookedMinutes: 60 },
+    ]);
+  });
+
+  it("leaves every hour under any of the blocks out of the heatmap", async () => {
+    const cells = await queries.heatmap(day, { facilityId: OVERLAP });
+    expect(cells.map((cell) => cell.hour).sort((a, b) => a - b)).toEqual([9, 14, 15, 16]);
+    expect(cells.find((cell) => cell.hour === 15)).toMatchObject({ openMinutes: 60, bookedMinutes: 60 });
+  });
+});

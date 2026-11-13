@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { type BusyInterval, busySpans, daySlots, roomNow, windowFit } from "./availability";
+import { type BusyInterval, busySpans, daySlots, freeStarts, roomNow, windowFit } from "./availability";
 import type { LocalDate } from "./calendar";
 import type { FacilityRules } from "./facility";
 
@@ -100,5 +100,76 @@ describe("roomNow", () => {
     expect(roomNow(facility, busy, at(7, 13))).toEqual({ state: "free", until: 900 });
     expect(roomNow(facility, busy, at(7, 21))).toEqual({ state: "closed", until: null });
     expect(roomNow(facility, [], at(12, 10))).toEqual({ state: "closed", until: null });
+  });
+});
+
+describe("overlapping blocks (spec 0004: allowed, their union applies)", () => {
+  const blocked = (from: [number, number], to: [number, number]): BusyInterval => ({
+    startsAt: at(7, ...from),
+    endsAt: at(7, ...to),
+    kind: "blocked",
+    mine: false,
+  });
+  // 10:00 to 12:00 and 11:00 to 13:00: one closed stretch, 10:00 to 13:00.
+  const chained = [blocked([10, 0], [12, 0]), blocked([11, 0], [13, 0])];
+  // 14:00 to 18:00 with 15:00 to 16:00 inside it.
+  const nested = [blocked([14, 0], [18, 0]), blocked([15, 0], [16, 0])];
+
+  it("marks every slot of the union blocked, and the slots around it free", () => {
+    const slots = daySlots(monday, facility, [...chained, ...nested], now);
+    const state = (minutes: number) => slots.find((slot) => slot.start === minutes)?.state;
+    expect([570, 600, 630, 660, 690, 720, 750, 780].map(state)).toEqual([
+      "free",
+      "blocked",
+      "blocked",
+      "blocked",
+      "blocked",
+      "blocked",
+      "blocked",
+      "free",
+    ]);
+    expect([810, 840, 900, 960, 1050, 1080].map(state)).toEqual([
+      "free",
+      "blocked",
+      "blocked",
+      "blocked",
+      "blocked",
+      "free",
+    ]);
+  });
+
+  it("keeps a block over a booking blocked, whatever the order they come in", () => {
+    const booking: BusyInterval = { startsAt: at(7, 10), endsAt: at(7, 11), kind: "booked", mine: true };
+    for (const order of [
+      [booking, ...chained],
+      [...chained, booking],
+    ]) {
+      expect(daySlots(monday, facility, order, now).find((slot) => slot.start === 600)?.state).toBe("blocked");
+    }
+  });
+
+  it("says the room is blocked until the whole union ends, not the first block", () => {
+    expect(roomNow(facility, chained, at(7, 10, 15))).toEqual({ state: "blocked", until: 780 });
+    expect(roomNow(facility, chained, at(7, 12, 30))).toEqual({ state: "blocked", until: 780 });
+    // Inside the short block nested in the long one: free again only when the long one ends.
+    expect(roomNow(facility, nested, at(7, 15, 30))).toEqual({ state: "blocked", until: 1080 });
+    expect(roomNow(facility, chained, at(7, 9, 30))).toEqual({ state: "free", until: 600 });
+  });
+
+  it("frees a window only after the union, and lists each block it touches", () => {
+    const fit = windowFit(monday, facility, chained, now, 690, 720);
+    expect(fit.state).toBe("conflict");
+    expect(fit.conflicts.map((span) => [span.start, span.end])).toEqual([
+      [600, 720],
+      [660, 780],
+    ]);
+    expect(fit.freeFrom).toBe(780);
+    expect(windowFit(monday, facility, nested, now, 1080, 1140)).toMatchObject({ state: "free", conflicts: [] });
+  });
+
+  it("offers no start whose booking would touch any of the blocks", () => {
+    const starts = freeStarts(monday, facility, [...chained, ...nested], now, 60);
+    // 09:00 has passed (the clock reads 09:10) and 09:30 would run into the first block at 10:00.
+    expect(starts.filter((start) => start <= 1080)).toEqual([780, 1080]);
   });
 });

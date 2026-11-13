@@ -11,3 +11,12 @@ export type Vista = keyof typeof VISTAS;
 export function vistaOf(value: unknown): Vista {
   return typeof value === "string" && Object.hasOwn(VISTAS, value) ? (value as Vista) : "proximas";
 }
+
+/** The fourth tab of Mis reservas: every confirmed booking on a calendar, read through the same API views. */
+export const CALENDARIO = "calendario";
+export type PageVista = Vista | typeof CALENDARIO;
+
+/** `calendario` opens the calendar; anything else is a list view, as `vistaOf` reads it. */
+export function pageVistaOf(value: unknown): PageVista {
+  return value === CALENDARIO ? CALENDARIO : vistaOf(value);
+}

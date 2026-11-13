@@ -3,16 +3,16 @@ import Link from "next/link";
 import { cn } from "cn";
 import { getTranslations } from "next-intl/server";
 
-import { VISTAS, type Vista } from "@/lib/bookings/views";
+import { CALENDARIO, type PageVista, VISTAS } from "@/lib/bookings/views";
 
-/** The three views as links styled as tabs (spec 0003): each is a URL rendered on the server. */
-export async function ViewTabs({ current }: { current: Vista }) {
+/** The three lists and the calendar as links styled as tabs (spec 0003): each is a URL rendered on the server. */
+export async function ViewTabs({ current }: { current: PageVista }) {
   const t = await getTranslations("home");
 
   return (
     <nav aria-label={t("viewsLabel")} className="border-b">
       <ul className="-mb-px flex gap-1">
-        {Object.entries(VISTAS).map(([vista, view]) => {
+        {[...Object.entries(VISTAS), [CALENDARIO, "calendar"] as const].map(([vista, view]) => {
           const active = vista === current;
           return (
             <li key={vista}>

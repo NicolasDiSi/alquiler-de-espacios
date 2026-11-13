@@ -13,7 +13,7 @@ Plataforma de reserva de salas de reuniones para empresas clientes, con métrica
 | Pantalla                                        | Quién    | Qué hace                                                                                                  |
 | ----------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------- |
 | `/ingresar`                                     | todos    | Elegir un usuario del seed ("ingresar como")                                                              |
-| `/`                                             | empresa  | Mis reservas: próximas, pasadas y canceladas; cancelar                                                    |
+| `/`                                             | empresa  | Mis reservas: próximas, pasadas y canceladas (buscar, filtrar, paginar) y un calendario; cancelar         |
 | `/reservas/nueva`                               | empresa  | Buscar sala libre por día, hora y personas, y reservar                                                    |
 | `/salas`, `/salas/[id]`                         | empresa  | Matriz semanal de las salas de una sede, o grilla de tarjetas; calendario de una sala y reservar desde él |
 | `/operador`                                     | operador | Tablero: ocupación, uso por cliente, mapa de calor, franjas bajas, candidatos a promoción                 |

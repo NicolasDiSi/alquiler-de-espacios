@@ -180,7 +180,8 @@
     "views": {
       "upcoming": "Próximas",
       "past": "Pasadas",
-      "cancelled": "Canceladas"
+      "cancelled": "Canceladas",
+      "calendar": "Calendario"
     },
     "captions": {
       "upcoming": "Próximas reservas de tu empresa, la más cercana primero",
@@ -192,6 +193,25 @@
       "upcoming": "Se muestran las 500 reservas más cercanas.",
       "past": "Se muestran las 500 reservas más recientes.",
       "cancelled": "Se muestran las 500 cancelaciones más recientes."
+    },
+    "calendar": {
+      "summary": "{days, plural, one {# día} other {# días}} · {count, plural, one {# reserva} other {# reservas}}",
+      "loadError": "No pudimos cargar las reservas del calendario. Probá de nuevo cambiando de fecha.",
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "today": "Hoy",
+      "goTo": "Ir a fecha",
+      "view": "Vista del calendario",
+      "views": {
+        "dayGridMonth": "Mes",
+        "timeGridWeek": "Semana",
+        "timeGridDay": "Día"
+      },
+      "legend": {
+        "active": "Confirmada o en curso",
+        "finished": "Finalizada",
+        "past": "Ya pasó"
+      }
     },
     "empty": {
       "upcoming": {

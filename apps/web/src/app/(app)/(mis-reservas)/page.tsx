@@ -16,11 +16,12 @@ import { getTranslations } from "next-intl/server";
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { companyEdge } from "@/composition";
-import { VISTAS, vistaOf } from "@/lib/bookings/views";
+import { CALENDARIO, pageVistaOf, VISTAS } from "@/lib/bookings/views";
 import { requireMember } from "@/lib/session/session";
 
 import { BookingCreatedToast } from "./_components/booking-created-toast";
 import { BookingList } from "./_components/booking-list";
+import { MyBookingsCalendar } from "./_components/my-bookings-calendar";
 import { ViewTabs } from "./_components/view-tabs";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -54,7 +55,7 @@ async function readView(actor: MemberActor, view: MyBookingsView) {
 export default async function MyBookingsPage({ searchParams }: { searchParams: SearchParams }) {
   const { actor } = await requireMember();
   const [t, params] = await Promise.all([getTranslations("home"), searchParams]);
-  const vista = vistaOf(params.vista);
+  const vista = pageVistaOf(params.vista);
   const newId = typeof params.nueva === "string" ? params.nueva : null;
 
   const newBooking = (
@@ -66,7 +67,8 @@ export default async function MyBookingsPage({ searchParams }: { searchParams: S
     </Button>
   );
 
-  const content = await listView(actor, VISTAS[vista], newId, newBooking);
+  const content =
+    vista === CALENDARIO ? <MyBookingsCalendar /> : await listView(actor, VISTAS[vista], newId, newBooking);
 
   return (
     <div className="flex flex-col gap-6">

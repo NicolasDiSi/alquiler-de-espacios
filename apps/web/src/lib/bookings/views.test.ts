@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { VISTAS, vistaOf } from "./views";
+import { pageVistaOf, VISTAS, vistaOf } from "./views";
 
 describe("vistaOf (spec 0003, the views of Mis reservas)", () => {
   it("maps each vista to its API view", () => {
@@ -13,5 +13,11 @@ describe("vistaOf (spec 0003, the views of Mis reservas)", () => {
     expect(vistaOf("todas")).toBe("proximas");
     expect(vistaOf("toString")).toBe("proximas");
     expect(vistaOf(["pasadas"])).toBe("proximas");
+  });
+
+  it("opens the calendar only for calendario, and any other value as a list view", () => {
+    expect(pageVistaOf("calendario")).toBe("calendario");
+    expect(pageVistaOf("canceladas")).toBe("canceladas");
+    expect(pageVistaOf(["calendario"])).toBe("proximas");
   });
 });

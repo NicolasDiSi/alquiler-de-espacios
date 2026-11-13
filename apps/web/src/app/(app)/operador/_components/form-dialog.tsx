@@ -44,18 +44,18 @@ type FieldErrors = {
   readonly register: (field: string) => () => void;
 };
 
+const FOCUSABLE = "input:not([type=hidden]), select, textarea, button";
+
 const FieldErrors = createContext<FieldErrors>({
   mark: () => ({}),
   error: () => null,
   register: () => () => undefined,
 });
 
-/** `aria-invalid` when the last refusal named this field, nothing otherwise. The reason is shown elsewhere. */
-export const useFieldMark = (field: string): FieldMark => use(FieldErrors).mark(field);
-
 /**
- * The marks of a field that shows its own refusal: render `error` under the control (`FieldErrorText`). The first
- * field a refusal names that uses this hook holds the reason; the others it names are only marked.
+ * The marks of a field that shows its own refusal: spread `mark` on the control and render `error` under it
+ * (`FieldErrorText`). The first field a refusal names that uses this hook holds the reason; the others it names are
+ * only marked. A refusal that names no such field opens the error dialog instead.
  */
 export function useFieldError(field: string): { readonly mark: FieldMark; readonly error: FieldError | null } {
   const { mark, error, register } = use(FieldErrors);
@@ -79,7 +79,7 @@ export type FormDialogProps = {
   readonly timeZone: string;
   /** Posted with the form and never edited (the record's id, the sede's id). */
   readonly hidden?: Readonly<Record<string, string>>;
-  /** The fields; each reads its marks with `useFieldError` (or `useFieldMark`). */
+  /** The fields; each reads its marks and its reason with `useFieldError`. */
   readonly children?: ReactNode;
 };
 
@@ -157,10 +157,12 @@ function FormBody({
       toast.success(state.result.message);
       onClose();
     } else if (inlineField) {
-      // The first field the reason describes, in the order they are shown, then the reason under it.
-      const control = formRef.current?.querySelector<HTMLElement>(`[aria-describedby~="${CSS.escape(errorId)}"]`);
+      // The first field the reason describes, in the order they are shown, then the reason under it. A group (the
+      // weekdays) is marked as a whole and takes the focus on its first control.
+      const marked = formRef.current?.querySelector<HTMLElement>(`[aria-describedby~="${CSS.escape(errorId)}"]`);
+      const control = marked?.matches(FOCUSABLE) ? marked : marked?.querySelector<HTMLElement>(FOCUSABLE);
       control?.focus({ preventScroll: true });
-      control?.scrollIntoView({ block: "nearest" });
+      marked?.scrollIntoView({ block: "nearest" });
       document.getElementById(errorId)?.scrollIntoView({ block: "nearest" });
     } else {
       setErrorOpen(true);

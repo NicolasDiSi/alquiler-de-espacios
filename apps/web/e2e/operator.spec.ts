@@ -114,7 +114,7 @@ test.describe("operator administration screens (spec 0005)", () => {
     await expect(page.getByRole("row", { name: /Mantenimiento E2E/ }).getByText("Liberado")).toBeVisible();
   });
 
-  test("a duplicate sede name says why, then marks the field and keeps it", async ({ page }) => {
+  test("a duplicate sede name says why under the field, which keeps the focus and the value", async ({ page }) => {
     const sede = unique("Sede duplicada");
     await page.goto("/operador/sedes");
     await waitForHydration(page);
@@ -124,11 +124,11 @@ test.describe("operator administration screens (spec 0005)", () => {
       await dialog(page).getByRole("button", { name: "Crear sede" }).click();
       await expect(page.getByText(expectation)).toBeVisible();
     }
-    // The sede form does not show refusals under its fields yet, so the reason comes in an alert dialog on top.
-    await page.getByRole("alertdialog").getByRole("button", { name: "Entendido" }).click();
-    await expect(dialog(page).getByRole("button", { name: "Crear sede" })).toBeFocused();
-    await expect(dialog(page).getByLabel("Nombre")).toHaveAttribute("aria-invalid", "true");
-    await expect(dialog(page).getByLabel("Nombre")).toHaveValue(sede);
+    const name = dialog(page).getByLabel("Nombre");
+    await expect(name).toBeFocused();
+    await expect(name).toHaveAttribute("aria-invalid", "true");
+    await expect(name).toHaveAccessibleDescription(/Ya existe un registro con ese nombre o código/);
+    await expect(name).toHaveValue(sede);
   });
 
   test("a sede cannot be deactivated while it has active rooms, and the dialog says so", async ({ page }) => {

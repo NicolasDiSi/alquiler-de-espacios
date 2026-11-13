@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { TIME_ZONE } from "@/i18n/config";
 
 import { Field } from "../../_components/field";
-import { FormDialog, useFieldMark } from "../../_components/form-dialog";
+import { FormDialog, useFieldError } from "../../_components/form-dialog";
 import { updateClientAction } from "../_actions/client";
 import { LogoField } from "./logo-field";
 
@@ -40,10 +40,10 @@ export function EditClientDialog({ client }: { readonly client: OperatorClientVi
 
 function NameField({ defaultValue }: { readonly defaultValue: string }) {
   const t = useTranslations("operator.client.form");
-  const mark = useFieldMark("name");
+  const field = useFieldError("name");
   return (
-    <Field id="client-name" label={t("name")}>
-      <Input id="client-name" name="name" defaultValue={defaultValue} required {...mark} />
+    <Field id="client-name" label={t("name")} error={field.error}>
+      <Input id="client-name" name="name" defaultValue={defaultValue} required {...field.mark} />
     </Field>
   );
 }

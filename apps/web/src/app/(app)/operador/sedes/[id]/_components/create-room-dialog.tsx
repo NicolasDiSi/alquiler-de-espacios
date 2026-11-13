@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 import { Field } from "../../../_components/field";
-import { FormDialog, useFieldMark } from "../../../_components/form-dialog";
+import { FormDialog, useFieldError } from "../../../_components/form-dialog";
 import { createRoomAction } from "../_actions/rooms";
 import { RoomFields } from "./room-fields";
 
@@ -38,10 +38,10 @@ export function CreateRoomDialog({ facilityId, timeZone }: { readonly facilityId
 
 function ActiveFromField() {
   const t = useTranslations("operator.room.form");
-  const mark = useFieldMark("activeFrom");
+  const field = useFieldError("activeFrom");
   return (
-    <Field id="room-activeFrom" label={t("activeFrom")} hint={t("activeFromHint")}>
-      <Input id="room-activeFrom" name="activeFrom" type="date" {...mark} />
+    <Field id="room-activeFrom" label={t("activeFrom")} hint={t("activeFromHint")} error={field.error}>
+      <Input id="room-activeFrom" name="activeFrom" type="date" {...field.mark} />
     </Field>
   );
 }

@@ -1,12 +1,12 @@
 "use client";
 
-import { type ReactNode, useActionState, useId } from "react";
+import { type ReactNode, useActionState, useEffect, useId, useState } from "react";
 
 import type { SignInChoicesView } from "@espacios/application";
 import { ArrowRight, Info } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ErrorDialog } from "@/components/error-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { initialsOf } from "@/lib/operator/format";
@@ -20,21 +20,20 @@ const SIMULATED_ERROR_ID = "simulated-unknown-user";
 
 /**
  * One form for every profile: the pressed button sends its `userId`. While the action runs every button is disabled,
- * so a double click signs in once.
+ * so a double click signs in once. A refusal (the user no longer exists) opens its reason in an `ErrorDialog`.
  */
 export function SignInForm({ choices }: { choices: SignInChoicesView }) {
   const t = useTranslations("signIn");
   const [state, formAction, pending] = useActionState(signInAs, INITIAL_STATE);
+  const [errorOpen, setErrorOpen] = useState(false);
+  // Each answer is a new object, so a second refusal opens the dialog again.
+  useEffect(() => setErrorOpen(state.error !== null), [state]);
   const companyCount = choices.companies.reduce((sum, company) => sum + company.users.length, 0);
 
   return (
     <form action={formAction} aria-busy={pending}>
       <div className="flex flex-col gap-5 px-6 pt-3 pb-5">
-        {state.error ? (
-          <Alert variant="destructive" role="alert">
-            <AlertDescription>{t(state.error)}</AlertDescription>
-          </Alert>
-        ) : null}
+        {state.error ? <ErrorDialog open={errorOpen} onOpenChange={setErrorOpen} message={t(state.error)} /> : null}
 
         {companyCount > 0 ? (
           <ProfileGroup title={t("companies")} aside={t("profiles", { count: companyCount })}>

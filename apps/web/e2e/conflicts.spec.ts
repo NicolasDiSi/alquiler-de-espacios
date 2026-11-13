@@ -61,18 +61,18 @@ test.describe("nothing overlaps anything, and a refusal says why (operator)", ()
 
     // The list is an alert dialog of its own on top of the form, never a table inside the form's alert.
     await expect(page.getByRole("alertdialog", { name: /reservas? confirmadas? lo impide/ })).toBeVisible();
-    const dialog = page.getByTestId("conflict-dialog");
+    const dialog = page.getByTestId("error-dialog");
     const client = dialog.getByRole("region", { name: "Reservas de Globex SRL" });
     await expect(client.getByRole("listitem").filter({ hasText: `${start} a ${end}` })).toContainText("Sala Luna");
     await expect(client.getByRole("link", { name: "Contactar al cliente" })).toHaveAttribute(
       "href",
       "/operador/clientes/company-globex",
     );
-    await expectNoViolations(page, "[data-testid=conflict-dialog]");
+    await expectNoViolations(page, "[data-testid=error-dialog]");
 
     await dialog.getByRole("button", { name: "Volver y cambiar los datos" }).click();
     await expect(dialog).toBeHidden();
-    await expect(form.getByRole("alert")).toBeFocused();
+    await expect(form.getByRole("button", { name: "Crear bloqueo" })).toBeFocused();
     await expect(form.getByLabel("Motivo")).toHaveValue("Pintura");
     await expect(form.getByLabel("Desde (día)")).toHaveValue(typed);
   });
@@ -84,7 +84,11 @@ test.describe("nothing overlaps anything, and a refusal says why (operator)", ()
     await expect(page.getByText("Bloqueo creado")).toBeVisible();
 
     const form = await blockSalaLuna(page, typed, "Segundo");
-    await expect(form.getByRole("alert")).toContainText("Ya hay un bloqueo en ese horario");
+    // No field holds this reason, so it comes in an alert dialog on top that has to be answered.
+    const refusal = page.getByRole("alertdialog", { name: "No se pudo completar" });
+    await expect(refusal).toContainText("Ya hay un bloqueo en ese horario");
+    await refusal.getByRole("button", { name: "Entendido" }).click();
+    await expect(refusal).toBeHidden();
     await expect(form.getByLabel("Motivo")).toHaveValue("Segundo");
     await form.getByRole("button", { name: "Cancelar" }).click();
 

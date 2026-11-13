@@ -197,3 +197,7 @@ Tracer Bullet: tasks 1 and 2 are one thin real thread (the operator opens Sedes,
 ## Amendment (2026-11-13): the Bloqueos tab opens on the week calendar
 
 The hand drawn "Esta semana" strip (`WeekStrip`, built from `toOperatorWeekView`) is removed. It was hidden from screen readers, showed only the current week and could not be paged, clicked or selected. The Bloqueos tab of an active sede now opens the spec 0007 `ActivityCalendar` (FullCalendar 7 through `EventCalendarViews`) in week view (`initialView="timeGridWeek"`; Actividad keeps the month): the sede's blocks with its bookings, the room filter, a click on a block for its details, and a picked range or "Bloquear horario" for the block dialog. The AC-7 table stays under it unchanged, as the place for "Liberar", the released blocks and the keyboard path to "Nuevo bloqueo", because a range cannot be picked with the keyboard on the calendar (spec 0009). A resource timeline (rooms by hours) was set aside: it is a paid FullCalendar plugin.
+
+## Amendment (2026-11-13): where a refusal is shown
+
+Spec 0011 replaces the alert slot at the top of the form: a refusal that names a field shows its reason under that field (which takes the focus), and any other refusal opens an alert dialog on top with the same actions ("Reintentar", "Elegir usuario de nuevo"). The reasons, their texts and the fields each one marks stay as written here.

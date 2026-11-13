@@ -112,7 +112,7 @@ test.describe("operator administration screens (spec 0005)", () => {
     await expect(page.getByRole("row", { name: /Mantenimiento E2E/ }).getByText("Liberado")).toBeVisible();
   });
 
-  test("a duplicate sede name marks the field and says why", async ({ page }) => {
+  test("a duplicate sede name says why under the field, which keeps the focus and the value", async ({ page }) => {
     const sede = unique("Sede duplicada");
     await page.goto("/operador/sedes");
     await waitForHydration(page);
@@ -122,18 +122,21 @@ test.describe("operator administration screens (spec 0005)", () => {
       await dialog(page).getByRole("button", { name: "Crear sede" }).click();
       await expect(page.getByText(expectation)).toBeVisible();
     }
-    await expect(dialog(page).getByRole("alert")).toBeFocused();
-    await expect(dialog(page).getByLabel("Nombre")).toHaveAttribute("aria-invalid", "true");
-    await expect(dialog(page).getByLabel("Nombre")).toHaveValue(sede);
+    const name = dialog(page).getByLabel("Nombre");
+    await expect(name).toBeFocused();
+    await expect(name).toHaveAttribute("aria-invalid", "true");
+    await expect(name).toHaveAccessibleDescription(/Ya existe un registro con ese nombre o código/);
+    await expect(name).toHaveValue(sede);
   });
 
-  test("a sede cannot be deactivated while it has active rooms, and the page says why", async ({ page }) => {
+  test("a sede cannot be deactivated while it has active rooms, and the error dialog says why", async ({ page }) => {
     await page.goto("/operador/sedes");
     await waitForHydration(page);
     await page.getByRole("link", { name: "Sede Central" }).first().click();
-    // The button is off before any request, and the reason sits under it; the use case still refuses it on its own.
-    await expect(page.getByRole("button", { name: "Desactivar sede" })).toBeDisabled();
-    await expect(page.getByText(/salas activas: desactivalas primero/)).toBeVisible();
+    await page.getByRole("button", { name: "Desactivar sede" }).click();
+    await dialog(page).getByRole("button", { name: "Desactivar sede" }).click();
+    // The use case refuses it (facility_has_active_rooms) and the reason opens on top of the confirmation (spec 0011).
+    await expect(page.getByRole("alertdialog")).toContainText("salas activas");
   });
 
   test("a person who works alone has one member; a company can add more", async ({ page }) => {

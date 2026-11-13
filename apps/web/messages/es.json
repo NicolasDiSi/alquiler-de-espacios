@@ -7,6 +7,12 @@
     "close": "Cerrar",
     "notifications": "Notificaciones"
   },
+  "formError": {
+    "title": "No se pudo completar",
+    "understood": "Entendido",
+    "retry": "Reintentar",
+    "signInAgain": "Elegir usuario de nuevo"
+  },
   "errors": {
     "invalid_input": "La solicitud no tiene el formato esperado. Revisá los datos y probá de nuevo.",
     "not_on_grid": "Los horarios van de media hora en media hora: elegí un inicio y un fin en punto o y media, por ejemplo 10:00 o 10:30.",
@@ -266,11 +272,8 @@
       "memberAdded": "Miembro agregado"
     },
     "form": {
-      "retry": "Reintentar",
-      "signInAgain": "Elegir usuario de nuevo",
       "confirm": "Confirmar",
-      "working": "Procesando…",
-      "review": "Ver {total, plural, one {la reserva afectada} other {las # reservas afectadas}}"
+      "working": "Procesando…"
     },
     "refusal": {
       "title": "{total, plural, one {# reserva confirmada lo impide} other {# reservas confirmadas lo impiden}}",
@@ -363,8 +366,7 @@
         "title": "¿Desactivar la sede?",
         "description": "{name} se da de baja y no vuelve a abrir: para usarla de nuevo vas a tener que crear otra sede. Su historial y sus reservas pasadas se conservan.",
         "confirm": "Desactivar sede",
-        "working": "Desactivando…",
-        "blockedByRooms": "{count, plural, one {Tiene # sala activa: desactivala primero.} other {Tiene # salas activas: desactivalas primero.}}"
+        "working": "Desactivando…"
       },
       "search": "Buscar por nombre o dirección"
     },

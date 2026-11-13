@@ -14,7 +14,7 @@ import { TIME_ZONE } from "@/i18n/config";
 import { slugify } from "@/lib/operator/format";
 
 import { Field } from "../../_components/field";
-import { FormDialog, useFieldMark } from "../../_components/form-dialog";
+import { FormDialog, useFieldError } from "../../_components/form-dialog";
 import { createClientAction } from "../_actions/client";
 import { LogoField } from "./logo-field";
 
@@ -49,7 +49,7 @@ function NewClientFields() {
   const [kind, setKind] = useState<ClientKind>("company");
   const [name, setName] = useState("");
   const [slug, setSlug] = useState<string | null>(null);
-  const marks = { name: useFieldMark("name"), slug: useFieldMark("slug"), memberName: useFieldMark("memberName") };
+  const fields = { name: useFieldError("name"), slug: useFieldError("slug"), memberName: useFieldError("memberName") };
 
   return (
     <div className="flex flex-col gap-4">
@@ -64,17 +64,17 @@ function NewClientFields() {
           ))}
         </RadioGroup>
       </fieldset>
-      <Field id="client-name" label={t("name")}>
+      <Field id="client-name" label={t("name")} error={fields.name.error}>
         <Input
           id="client-name"
           name="name"
           value={name}
           onChange={(event) => setName(event.target.value)}
           required
-          {...marks.name}
+          {...fields.name.mark}
         />
       </Field>
-      <Field id="client-slug" label={t("slug")} hint={t("slugHint")}>
+      <Field id="client-slug" label={t("slug")} hint={t("slugHint")} error={fields.slug.error}>
         {/* `null` until the operator types here: the code follows the name until then. */}
         <Input
           id="client-slug"
@@ -82,13 +82,18 @@ function NewClientFields() {
           value={slug ?? slugify(name)}
           onChange={(event) => setSlug(event.target.value)}
           required
-          {...marks.slug}
+          {...fields.slug.mark}
         />
       </Field>
       <LogoField />
       {kind === "company" ? (
-        <Field id="client-memberName" label={t("firstMember")} hint={t("firstMemberHint")}>
-          <Input id="client-memberName" name="memberName" required {...marks.memberName} />
+        <Field
+          id="client-memberName"
+          label={t("firstMember")}
+          hint={t("firstMemberHint")}
+          error={fields.memberName.error}
+        >
+          <Input id="client-memberName" name="memberName" required {...fields.memberName.mark} />
         </Field>
       ) : null}
     </div>

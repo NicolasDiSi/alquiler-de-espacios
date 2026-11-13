@@ -4,7 +4,7 @@
 
 alquiler-de-espacios is a technical challenge (Fontanella SRL, Senior Full Stack, 72 hours): a web app where client companies see meeting room availability, book rooms and cancel their own bookings, and the operator sees utilization metrics overall and per client company. The full brief is in [docs/challenge.md](docs/challenge.md); read it before planning.
 
-**Status:** the foundations, booking, cancelling, room availability, the operator's administration (sedes, rooms, clients, blocks), its metrics API and dashboard, and the client and sede activity pages are built (specs 0001 to 0009). The company API is in [docs/api/company.md](docs/api/company.md), the operator's in [docs/api/operator.md](docs/api/operator.md). [docs/scope/_root/scope.md](docs/scope/_root/scope.md) holds the build order and each feature's status. The README covers run and test, architecture, assumptions, limitations, next version and AI usage. Left for delivery: the full `pnpm check:ai` with e2e and the release to `main`.
+**Status:** the foundations, booking, cancelling, room availability, the operator's administration (sedes, rooms, clients, blocks), its metrics API and dashboard, and the client and sede activity pages are built (specs 0001 to 0009), and every form shows its refusals the same way (spec 0011). The company API is in [docs/api/company.md](docs/api/company.md), the operator's in [docs/api/operator.md](docs/api/operator.md). [docs/scope/_root/scope.md](docs/scope/_root/scope.md) holds the build order and each feature's status. The README covers run and test, architecture, assumptions, limitations, next version and AI usage. Left for delivery: the full `pnpm check:ai` with e2e and the release to `main`.
 
 ## Non negotiables from the brief
 

@@ -30,6 +30,7 @@ pnpm check:ai --gate=strings             # no visible text written in code
 - **The theme is token values, not overrides.** Change colors, radius, shadows and fonts through the variables in `globals.css`; density changes only `--spacing` (`html[data-density]`). Status colors (`destructive`, `success`, `warning`, `info`) are fixed and never derived from a brand color.
 - **Two Biome exceptions, and only these:** `src/scripts/theme-boot.tsx` may use `dangerouslySetInnerHTML` (the inline boot script) and `src/lib/cookie.client.ts` may write `document.cookie`. Both are scoped overrides in `biome.json`.
 - **Server or Client Component, Server Action or Route Handler:** follow the `nextjs-server-client` skill.
+- **A form says why it was refused in one of two places** (spec 0011). A refusal that names a field shows its reason under that field: read the field with `useFieldError` inside a `FormDialog`, spread `mark` on the control and pass `error` to `Field` or `FieldErrorText`. Any other refusal opens `ErrorDialog` (`src/components/error-dialog.tsx`) on top of the form, never an alert inside it or a toast. Toasts are for successes only. Dialogs never pass `90dvh`: header and buttons fixed, only the body scrolls.
 
 ## Tests
 

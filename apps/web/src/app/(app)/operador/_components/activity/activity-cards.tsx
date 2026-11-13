@@ -41,7 +41,7 @@ function ActivityCard({
 }
 
 /**
- * The period of a client or a sede in three cards (spec 0007, AC-1): hours and their share of everyone's hours,
+ * The period of a client, a sede or every sede in three cards (spec 0007, AC-1): hours and their share of everyone's hours,
  * bookings done, upcoming and cancelled with the rate, and the room used most. Each figure against the previous window
  * where it has one; a dash when there is nothing to measure.
  */
@@ -71,11 +71,16 @@ export async function ActivityCards({
           <span className="text-muted-foreground text-xs">{comparison}</span>
         </div>
         <div className="mt-auto flex flex-col gap-1.5 border-t pt-3 text-xs">
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="text-muted-foreground">{t("hours.share")}</span>
-            <span className="tabular-nums">{totals.share === null ? none : formatPercent(totals.share)}</span>
-          </div>
-          <Progress aria-label={t("hours.share")} className="h-1.5" value={(totals.share ?? 0) * 100} />
+          {/* Every sede's share of every sede's hours is always 100%. */}
+          {subject === "all" ? null : (
+            <>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-muted-foreground">{t("hours.share")}</span>
+                <span className="tabular-nums">{totals.share === null ? none : formatPercent(totals.share)}</span>
+              </div>
+              <Progress aria-label={t("hours.share")} className="h-1.5" value={(totals.share ?? 0) * 100} />
+            </>
+          )}
           <div className="flex items-baseline justify-between gap-3">
             <span className="text-muted-foreground">{t("hours.mean")}</span>
             <span className="tabular-nums">

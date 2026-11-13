@@ -48,8 +48,11 @@ const ALL = "all";
 const HIDDEN_DAYS = [0];
 const DAY_MS = 86_400_000;
 
-/** The operator API's filter for each subject. */
-const SCOPE_PARAM = { client: "companyId", facility: "facilityId" } as const satisfies Record<ActivitySubject, string>;
+/** The operator API's filter for each subject; every sede needs none. */
+const SCOPE_PARAM = { client: "companyId", facility: "facilityId", all: null } as const satisfies Record<
+  ActivitySubject,
+  string | null
+>;
 
 /** Every booking of the subject starting in `[start, end)`, through the documented operator API, page by page. */
 async function fetchBookings(
@@ -61,8 +64,9 @@ async function fetchBookings(
   const bookings: OperatorBookingView[] = [];
   let cursor: string | null = null;
   for (let page = 0; page < MAX_PAGES; page += 1) {
+    const scope = SCOPE_PARAM[subject];
     const params = new URLSearchParams({
-      [SCOPE_PARAM[subject]]: id,
+      ...(scope ? { [scope]: id } : {}),
       from: range.start.toISOString(),
       to: range.end.toISOString(),
       limit: "100",
@@ -118,9 +122,9 @@ async function fetchBlocks(
   return lists.flat().filter((block) => new Date(block.startsAt) < range.end && new Date(block.endsAt) > range.start);
 }
 
-/** What the filter narrows by: a client's sedes, a sede's rooms. */
+/** What the filter narrows by: a client's (or every) sede, a sede's rooms. */
 const filterKey = (subject: ActivitySubject, booking: OperatorBookingView) =>
-  subject === "client" ? booking.room.facilityName : booking.room.name;
+  subject === "facility" ? booking.room.name : booking.room.facilityName;
 
 /** A booking on the operator's calendar: quiet like any booking, its card naming the client (or the room) and who booked. */
 const toEvent = (subject: ActivitySubject, booking: OperatorBookingView, phase: string): EventInput => ({
@@ -158,10 +162,10 @@ export function ActivityCalendar({
   initialView = "dayGridMonth",
 }: {
   readonly subject: ActivitySubject;
-  /** The client's or the sede's id. */
+  /** The client's or the sede's id; ignored for every sede. */
   readonly id: string;
   readonly timeZone: string;
-  /** For a client, the sedes where it booked in the period; for a sede, its rooms. By name, for the filter. */
+  /** For a client (or every sede), the sedes booked in the period; for a sede, its rooms. By name, for the filter. */
   readonly options: readonly string[];
   readonly targets: readonly OperatorBlockTarget[];
   /** The view it opens on: the month on Actividad, the week on the sede's Bloqueos tab. */
@@ -213,7 +217,7 @@ export function ActivityCalendar({
     const shownBlocks = blocks.filter(
       (block) =>
         narrow === ALL ||
-        (subject === "client" ? block.facilityName === narrow : block.roomName === null || block.roomName === narrow),
+        (subject === "facility" ? block.roomName === null || block.roomName === narrow : block.facilityName === narrow),
     );
     return [
       ...shownBlocks.map(
@@ -265,13 +269,13 @@ export function ActivityCalendar({
 
           <div className="flex flex-wrap items-center gap-2">
             <Select value={narrow} onValueChange={setNarrow}>
-              <SelectTrigger className="w-full sm:w-48" aria-label={subject === "client" ? t("facility") : t("room")}>
-                {subject === "client" ? <Building2 aria-hidden /> : <DoorOpen aria-hidden />}
+              <SelectTrigger className="w-full sm:w-48" aria-label={subject === "facility" ? t("room") : t("facility")}>
+                {subject === "facility" ? <DoorOpen aria-hidden /> : <Building2 aria-hidden />}
                 <SelectValue />
               </SelectTrigger>
               <SelectContent position="popper">
                 <SelectGroup>
-                  <SelectItem value={ALL}>{subject === "client" ? t("allFacilities") : t("allRooms")}</SelectItem>
+                  <SelectItem value={ALL}>{subject === "facility" ? t("allRooms") : t("allFacilities")}</SelectItem>
                   {options.map((name) => (
                     <SelectItem key={name} value={name}>
                       {name}

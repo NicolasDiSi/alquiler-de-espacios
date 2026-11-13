@@ -1,5 +1,14 @@
 // Adapted from Studio Admin (nextjs-templates, develop f19e0ef), src/navigation/sidebar/sidebar-items.ts.
-import { Building2, CalendarDays, CalendarPlus, ChartColumn, DoorOpen, type LucideIcon, Users } from "lucide-react";
+import {
+  Building2,
+  CalendarDays,
+  CalendarPlus,
+  CalendarRange,
+  ChartColumn,
+  DoorOpen,
+  type LucideIcon,
+  Users,
+} from "lucide-react";
 import type { Messages } from "next-intl";
 
 /** A key under `shell.nav` in the catalog. */
@@ -36,7 +45,10 @@ export const sidebarItems: NavGroup[] = [
   {
     id: "operator-home",
     role: "operator",
-    items: [{ id: "panel", label: "panel", url: "/operador", icon: ChartColumn, match: "exact" }],
+    items: [
+      { id: "panel", label: "panel", url: "/operador", icon: ChartColumn, match: "exact" },
+      { id: "reservas", label: "reservas", url: "/operador/reservas", icon: CalendarRange, match: "section" },
+    ],
   },
   {
     id: "operator-admin",

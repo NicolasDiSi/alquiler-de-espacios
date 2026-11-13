@@ -29,9 +29,9 @@ const hoursOf = (booking: OperatorBookingView) =>
   (Date.parse(booking.endsAt) - Date.parse(booking.startsAt)) / 3_600_000;
 
 /**
- * Every booking of a client or a sede in the period, newest first (spec 0007, AC-4): search by room, sede (or client,
- * for a sede) or member, filter by state, sort by date or hours. A cancelled booking computes no hours and reads struck
- * through.
+ * Every booking of a client, a sede or every sede in the period, newest first (spec 0007, AC-4): search by room, sede
+ * (or client, for a sede or every sede) or member, filter by state and client, sort by date or hours. A cancelled
+ * booking computes no hours and reads struck through.
  */
 export function BookingHistory({
   bookings,
@@ -46,6 +46,10 @@ export function BookingHistory({
   const t = useTranslations("operator.activity.history");
   const home = useTranslations("home");
   const format = useFormatter();
+  const clients = useMemo(
+    () => [...new Set(bookings.map((booking) => booking.company.name))].sort((a, b) => a.localeCompare(b)),
+    [bookings],
+  );
 
   const columns = useMemo(
     () =>
@@ -77,15 +81,20 @@ export function BookingHistory({
           ),
         }),
         // A sede's history mixes clients, so it says whose each booking is; a client's would repeat its own name.
-        ...(subject === "facility"
-          ? [
+        ...(subject === "client"
+          ? []
+          : [
               helper.accessor((row) => row.company.name, {
                 id: "company",
                 sortFn: "text",
-                meta: { label: t("columns.client"), searchable: true },
+                filterFn: "oneOf",
+                meta: {
+                  label: t("columns.client"),
+                  searchable: true,
+                  filter: { options: clients.map((name) => ({ value: name, label: name })) },
+                },
               }),
-            ]
-          : []),
+            ]),
         helper.accessor((row) => row.bookedBy.name, {
           id: "bookedBy",
           sortFn: "text",
@@ -111,7 +120,7 @@ export function BookingHistory({
           ),
         }),
       ]),
-    [t, home, format, subject],
+    [t, home, format, subject, clients],
   );
 
   const table = useAppTable({
@@ -147,6 +156,7 @@ export function BookingHistory({
         <DataTableToolbar>
           <DataTableSearch label={t(`search.${subject}`)} />
           <DataTableFacetFilter columnId="phase" />
+          <DataTableFacetFilter columnId="company" />
         </DataTableToolbar>
         <DataTableContent caption={t(`caption.${subject}`)} />
         <DataTablePagination />

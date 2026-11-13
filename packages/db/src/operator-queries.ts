@@ -287,10 +287,10 @@ export function createPrismaOperatorQueries(db: DatabaseClient): OperatorQueries
 
     facilityActivity: async (range, facilityId, now) => {
       const [rows, totals] = await Promise.all([
-        activityRows(range, Prisma.sql`r.facility_id = ${facilityId}`, now),
+        activityRows(range, facilityId === null ? Prisma.sql`TRUE` : Prisma.sql`r.facility_id = ${facilityId}`, now),
         db.$queryRaw<{ cancelled: number; all_booked: number }[]>`
           SELECT
-            (COUNT(*) FILTER (WHERE bk.status = 'cancelled' AND r.facility_id = ${facilityId}))::int AS cancelled,
+            (COUNT(*) FILTER (WHERE bk.status = 'cancelled' AND (${facilityId}::text IS NULL OR r.facility_id = ${facilityId})))::int AS cancelled,
             COALESCE(SUM(EXTRACT(EPOCH FROM bk.ends_at - bk.starts_at) / 60)
               FILTER (WHERE bk.status = 'confirmed'), 0)::float8 AS all_booked
           FROM booking bk

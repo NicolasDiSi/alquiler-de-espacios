@@ -60,7 +60,8 @@
       "sedes": "Sedes",
       "clientes": "Clientes",
       "rooms": "Salas",
-      "navigation": "Navegación"
+      "navigation": "Navegación",
+      "reservas": "Reservas"
     },
     "mode": {
       "label": "Modo",
@@ -663,11 +664,13 @@
         "room": {
           "label": {
             "client": "Sala preferida",
-            "facility": "Sala más usada"
+            "facility": "Sala más usada",
+            "all": "Sala más usada"
           },
           "share": {
             "client": "De sus horas",
-            "facility": "De las horas de la sede"
+            "facility": "De las horas de la sede",
+            "all": "De las horas de todas las sedes"
           },
           "hours": "{hours} reservadas en el período",
           "empty": "Sin reservas en el período."
@@ -677,14 +680,16 @@
         "title": "Próximas reservas confirmadas",
         "description": {
           "client": "Las siguientes reservas del cliente, desde ahora.",
-          "facility": "Las siguientes reservas en las salas de la sede, desde ahora."
+          "facility": "Las siguientes reservas en las salas de la sede, desde ahora.",
+          "all": "Las siguientes reservas en todas las sedes, desde ahora."
         },
         "count": "{count, plural, =0 {Nada en agenda} other {# en agenda}}",
         "today": "Hoy",
         "tomorrow": "Mañana",
         "empty": {
           "client": "No tiene reservas próximas.",
-          "facility": "La sede no tiene reservas próximas."
+          "facility": "La sede no tiene reservas próximas.",
+          "all": "No hay reservas próximas."
         }
       },
       "weekly": {
@@ -697,7 +702,8 @@
         "title": "Cronograma",
         "description": {
           "client": "Las reservas del cliente por mes, semana o día. Las canceladas aparecen tachadas y los bloqueos, con borde punteado.",
-          "facility": "Las reservas de todas las salas de la sede por mes, semana o día. Las canceladas aparecen tachadas y los bloqueos, con borde punteado."
+          "facility": "Las reservas de todas las salas de la sede por mes, semana o día. Las canceladas aparecen tachadas y los bloqueos, con borde punteado.",
+          "all": "Las reservas de todas las sedes por mes, semana o día. Las canceladas aparecen tachadas y los bloqueos, con borde punteado."
         },
         "selectHint": "En la vista Semana o Día, seleccioná un rango para bloquear ese horario en una sala o en toda la sede.",
         "loadError": "No pudimos cargar las reservas del calendario. Probá de nuevo cambiando de fecha.",
@@ -725,15 +731,18 @@
         "title": "Historial del período",
         "description": {
           "client": "Todas las reservas del cliente en el período elegido, de la más nueva a la más vieja.",
-          "facility": "Todas las reservas de las salas de la sede en el período elegido, de la más nueva a la más vieja."
+          "facility": "Todas las reservas de las salas de la sede en el período elegido, de la más nueva a la más vieja.",
+          "all": "Todas las reservas de todos los clientes en el período elegido, de la más nueva a la más vieja."
         },
         "search": {
           "client": "Buscar por sala, sede o solicitante",
-          "facility": "Buscar por sala, cliente o solicitante"
+          "facility": "Buscar por sala, cliente o solicitante",
+          "all": "Buscar por sala, sede, cliente o solicitante"
         },
         "caption": {
           "client": "Reservas del cliente en el período",
-          "facility": "Reservas de la sede en el período"
+          "facility": "Reservas de la sede en el período",
+          "all": "Reservas de todas las sedes en el período"
         },
         "columns": {
           "date": "Fecha y horario",
@@ -745,10 +754,15 @@
         },
         "empty": {
           "client": "El cliente no tuvo reservas en el período.",
-          "facility": "La sede no tuvo reservas en el período."
+          "facility": "La sede no tuvo reservas en el período.",
+          "all": "No hubo reservas en el período."
         },
         "capped": "Se muestran las primeras 500 reservas del período."
       }
+    },
+    "bookings": {
+      "title": "Reservas",
+      "description": "Todas las reservas de todos los clientes y sedes, con sus métricas del período."
     }
   },
   "notFound": {

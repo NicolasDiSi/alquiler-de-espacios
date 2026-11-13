@@ -143,8 +143,8 @@ export interface OperatorQueries {
   heatmap(range: MetricRange, scope: HeatmapScope): Promise<readonly HeatmapRow[]>;
   /** Spec 0007: one client's bookings by room and weekday in the range, and how many are still to come. */
   clientActivity(range: MetricRange, companyId: string, now: Date): Promise<ClientActivityRows>;
-  /** The same reading for one sede: its rooms' bookings by room and weekday, and how many are still to come. */
-  facilityActivity(range: MetricRange, facilityId: string, now: Date): Promise<FacilityActivityRows>;
+  /** The same reading for one sede (`null`: every sede): its rooms' bookings by room and weekday, and how many are still to come. */
+  facilityActivity(range: MetricRange, facilityId: string | null, now: Date): Promise<FacilityActivityRows>;
   /** One row per local day of the range, closed days included (zero open minutes). */
   dailyUsage(range: MetricRange, scope: HeatmapScope): Promise<readonly DailyUsageRow[]>;
   /** Whether the facility and the room of a scope exist (a heatmap of an unknown one is 404). */

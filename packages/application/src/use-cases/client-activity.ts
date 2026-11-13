@@ -224,21 +224,22 @@ function shape(
 /**
  * One sede's activity for the operator: the same screen as a client's (spec 0007), over the bookings of the sede's
  * rooms, every client together. The share is of every sede's booked time; the preferred room is the sede's busiest.
+ * Without a sede it reads every sede: the operator's global bookings view (feature 10), whose share is always 1.
  */
 export async function getFacilityActivity(
   deps: Deps,
   actor: Actor,
-  input: { readonly facilityId: string; readonly period: DashboardPeriod; readonly timeZone: string },
+  input: { readonly facilityId: string | null; readonly period: DashboardPeriod; readonly timeZone: string },
 ): Promise<Result<ClientActivity>> {
   const operator = authorizeOperator(actor);
   if (!operator.ok) return operator;
   const now = deps.clock.now();
   const ranges = dashboardRanges(todayAt(now, input.timeZone), input.period);
-  const { facilityId } = input;
+  const facilityId = input.facilityId ?? undefined;
 
   const [current, previous, next, history] = await Promise.all([
-    withRaceHandling(async () => ok(await deps.queries.facilityActivity(ranges.current, facilityId, now))),
-    withRaceHandling(async () => ok(await deps.queries.facilityActivity(ranges.previous, facilityId, now))),
+    withRaceHandling(async () => ok(await deps.queries.facilityActivity(ranges.current, input.facilityId, now))),
+    withRaceHandling(async () => ok(await deps.queries.facilityActivity(ranges.previous, input.facilityId, now))),
     listOperatorBookings(deps, actor, {
       filter: { facilityId, status: "confirmed" },
       after: null,

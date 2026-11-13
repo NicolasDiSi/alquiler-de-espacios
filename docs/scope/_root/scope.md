@@ -23,7 +23,7 @@ Build order, by what each feature needs. Numbers never change (specs refer to th
 | 7   | Cancel a booking and free the slot                                         | Slice 3    | in-progress | 5                                                         |
 | 6   | Room availability grid                                                     | Slice 2    | in-progress | 2, 5, 15 (facility hours and blocks)                      |
 | 14  | Rooms list: every room, pick one to see it                                 | Slice 2    | in-progress | 6 (the link target), 15                                   |
-| 10  | Operator global bookings view                                              | Slice 4    | planned     | 15 (API)                                                  |
+| 10  | Operator global bookings view                                              | Slice 4    | in-progress | 15 (API)                                                  |
 | 9   | Operator dashboard                                                         | Slice 4    | in-progress | 15 and 8 (metrics API)                                    |
 | 13  | Role based navigation in the sidebar                                       | Slice 1    | planned     | 5, 14, 10, 9 (an entry appears only when its page exists) |
 | 11  | End to end suite with accessibility checks                                 | Delivery   | planned     | 5, 7, 6, 14, 10, 9, 13                                    |
@@ -166,15 +166,15 @@ The screen where the operator reads occupancy, ranks clients, and spots low util
 - [ ] Test it: `/test operator dashboard`
   Spec 0006 · code in `packages/domain/src/metrics/dashboard.ts`, `packages/application/src/use-cases/operator-dashboard.ts`, `packages/db/src/operator-queries.ts`, `apps/web/src/app/(app)/operador/`
 
-### 10. Operator global bookings view
+### 10. Operator global bookings view · in-progress
 
 A filterable, paginated list of every booking with its company, for the operator only.
 **Done when:** the operator filters by company, room and dates and pages through results; company users get 403.
 - [x] Design it (spec): decided in spec 0001
-- [ ] Build it: `/develop operator global bookings view`
+- [x] Build it: `/operador/reservas`, the sede activity screen (spec 0007) over every sede: the period in cards (hours, mean length, bookings done, upcoming, cancelled and the rate, the busiest room), the next bookings, the history filtered by client, state and text, the weekly pattern and a calendar of every sede
 - [ ] Verify it: `/check verify operator global bookings view`
 - [ ] Test it: `/test operator global bookings view`
-  The API side is in feature 15 (spec 0004, `GET /operator/bookings`); this feature is the screen. Spec 0001 · code in `apps/web/`
+  The API side is built in feature 15 (spec 0004, `GET /operator/bookings`). The screen reads one period (7, 30 or 90 days) and at most 500 bookings of it, filtered in the browser; the room and date filters of the API are not on the screen. Spec 0001 · code in `apps/web/src/app/(app)/operador/reservas/`, `packages/application/src/use-cases/client-activity.ts`
 
 ## Delivery
 

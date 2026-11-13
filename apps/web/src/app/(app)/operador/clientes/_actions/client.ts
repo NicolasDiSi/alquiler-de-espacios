@@ -21,9 +21,7 @@ export async function createClientAction(_previous: OperatorFormState, formData:
     schema: clientCreateForm,
     success: "clientCreated",
     revalidate: PAGES,
-    // The code is the only unique field; a company without a first member is refused as `invalid_input`.
-    marks: (reason: Reason) =>
-      reason === "already_exists" ? ["slug"] : reason === "invalid_input" ? ["memberName"] : [],
+    marks: createMarks,
     run: (actor, { memberName, ...input }) =>
       createClient(operatorEdge(), actor, memberName === undefined ? input : { ...input, memberName }),
   });

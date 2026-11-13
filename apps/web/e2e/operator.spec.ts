@@ -105,10 +105,8 @@ test.describe("operator administration screens (spec 0005)", () => {
     await expect(page.getByText("Bloqueo liberado")).toBeVisible();
     // Active blocks are the default view; a released one is reached through the state filter.
     await expect(page.getByRole("row", { name: /Mantenimiento E2E/ })).toHaveCount(0);
-    await page
-      .getByRole("button", { name: /^Estado/ })
-      .last()
-      .click();
+    // The filter's own button: "Estado: Activo Quitar" (its chip) and the column header start with "Estado" too.
+    await page.getByRole("region", { name: "Bloqueos" }).getByRole("button", { name: "Estado 1 elegido" }).click();
     await page.getByRole("checkbox", { name: "Liberado" }).check();
     await page.keyboard.press("Escape");
     await expect(page.getByRole("row", { name: /Mantenimiento E2E/ }).getByText("Liberado")).toBeVisible();
@@ -131,12 +129,13 @@ test.describe("operator administration screens (spec 0005)", () => {
     await expect(name).toHaveValue(sede);
   });
 
-  test("a sede cannot be deactivated while it has active rooms, and the dialog says so", async ({ page }) => {
+  test("a sede cannot be deactivated while it has active rooms, and the error dialog says why", async ({ page }) => {
     await page.goto("/operador/sedes");
     await waitForHydration(page);
     await page.getByRole("link", { name: "Sede Central" }).first().click();
     await page.getByRole("button", { name: "Desactivar sede" }).click();
     await dialog(page).getByRole("button", { name: "Desactivar sede" }).click();
+    // The use case refuses it (facility_has_active_rooms) and the reason opens on top of the confirmation (spec 0011).
     await expect(page.getByRole("alertdialog")).toContainText("salas activas");
   });
 

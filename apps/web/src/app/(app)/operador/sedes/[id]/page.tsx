@@ -136,12 +136,14 @@ export default async function FacilityPage({
 
       <Tabs defaultValue="activity" className="flex flex-col gap-4">
         <TabsList variant="line">
-          <TabsTrigger value="activity">{a("tabs.activity")}</TabsTrigger>
-          <TabsTrigger value="rooms">
+          <TabsTrigger className="text-muted-foreground" value="activity">
+            {a("tabs.activity")}
+          </TabsTrigger>
+          <TabsTrigger className="text-muted-foreground" value="rooms">
             {rooms("title")}
             <Badge className="ml-1">{roomViews.length}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="blocks">
+          <TabsTrigger className="text-muted-foreground" value="blocks">
             {blocks("title")}
             <Badge className="ml-1">{blockViews.length}</Badge>
           </TabsTrigger>

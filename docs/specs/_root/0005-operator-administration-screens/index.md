@@ -1,7 +1,7 @@
 # 0005. Operator administration screens
 
 **Date**: 2026-11-12
-**Status**: Proposed
+**Status**: In Progress
 
 ## Summary
 
@@ -31,7 +31,7 @@ The operator gets the screens for everything spec 0004 built behind the API: a S
 - **AC-11**: Every operator list and detail page is read on the server at request time and is never cached. After a successful action the affected pages show the new state without a manual reload. Two operators editing the same record get the server's answer (`not_found`, `has_future_bookings`, `already_released`...), never a silent overwrite of a closed record.
 - **AC-12**: The operator sees "Sedes" and "Clientes" in the sidebar and as links on `/operador`; a member never sees them. The current entry is marked for screen readers.
 - **AC-13**: Tables are real tables with a caption on `md` and wider and turn into cards below `md` (room and time first, as in spec 0003). Dialogs keep the focus inside, return it to the button that opened them, and close with Escape. Every control has a visible label. Axe finds no violations on any of the four pages or their dialogs.
-- **AC-14**: Each page has a loading skeleton (`loading.tsx`) and an error state with "Reintentar" (`error.tsx`). A failed read never shows an empty list as if there were no data.
+- **AC-14**: Each page has a loading skeleton (`loading.tsx`) and an error state with "Reintentar" (`error.tsx`). A failed read never shows an empty list as if there were no data. Amended 2026-11-13: the skeleton covers the list pages only (route groups `(panel)`, `sedes/(lista)`, `clientes/(lista)`, plus `reservas`). A detail page reads its record before anything streams, so an unknown id answers a real 404 and a member a real 403 (Next.js streaming guide, "Status codes").
 
 ## Decision
 

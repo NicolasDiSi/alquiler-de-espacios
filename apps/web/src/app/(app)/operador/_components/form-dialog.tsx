@@ -91,7 +91,7 @@ export type FormDialogProps = {
  * A refusal keeps it open with the values typed, and says why in one of two places. When it names a field that shows
  * its own refusals, the reason goes under that field, which scrolls into view and takes the focus. Anything else (no
  * field named, bookings in the way, a session that ended) opens an `ErrorDialog` on top (with the bookings in the way as its body), which has to be answered
- * and gives the focus back to the submit button. A success closes it and shows a toast.
+ * and gives the focus back to the submit button. A success shows a toast as the action answers and closes it.
  */
 export function FormDialog({ trigger, open: controlled, onOpenChange, ...props }: FormDialogProps) {
   const [own, setOwn] = useState(false);
@@ -126,7 +126,13 @@ function FormBody({
 }: Omit<FormDialogProps, "trigger" | "open" | "onOpenChange"> & { readonly onClose: () => void }) {
   const common = useTranslations("common");
   const refusal = useTranslations("operator.refusal");
-  const [state, formAction, pending] = useActionState<OperatorFormState, FormData>(action, null);
+  // The toast fires when the action answers, not in an effect: a success can revalidate away the row that holds this
+  // dialog (a released block leaves the active list), and an unmounted body would never show it.
+  const [state, formAction, pending] = useActionState<OperatorFormState, FormData>(async (previous, formData) => {
+    const next = await action(previous, formData);
+    if (next?.result.ok) toast.success(next.result.message);
+    return next;
+  }, null);
   const formRef = useRef<HTMLFormElement>(null);
   const submitRef = useRef<HTMLButtonElement>(null);
   const handled = useRef<OperatorFormState>(null);
@@ -156,7 +162,6 @@ function FormBody({
     handled.current = state;
     if (state.result.ok) {
       setClosing(true);
-      toast.success(state.result.message);
       onClose();
     } else if (inlineField) {
       // The first field the reason describes, in the order they are shown, then the reason under it. A group (the

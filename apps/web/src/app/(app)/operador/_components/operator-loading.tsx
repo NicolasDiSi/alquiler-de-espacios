@@ -1,7 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
 /** The operator pages read on the server; this is what paints while they do (spec 0005, AC-14). */
-export default function OperatorLoading() {
+export function OperatorLoading() {
   return (
     <div className="flex flex-col gap-4" aria-hidden>
       <Skeleton className="h-8 w-64" />

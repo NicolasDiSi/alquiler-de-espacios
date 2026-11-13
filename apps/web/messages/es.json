@@ -252,15 +252,17 @@
       "retry": "Reintentar",
       "signInAgain": "Elegir usuario de nuevo",
       "confirm": "Confirmar",
-      "working": "Procesando…"
+      "working": "Procesando…",
+      "review": "Ver {total, plural, one {la reserva afectada} other {las # reservas afectadas}}"
     },
     "refusal": {
-      "caption": "Reservas confirmadas que lo impiden",
-      "room": "Sala",
-      "company": "Empresa",
-      "start": "Inicio",
-      "end": "Fin",
-      "shown": "Se muestran {shown} de {total} reservas."
+      "title": "{total, plural, one {# reserva confirmada lo impide} other {# reservas confirmadas lo impiden}}",
+      "clientLabel": "Reservas de {client}",
+      "clientCount": "{count, plural, one {# reserva} other {# reservas}}",
+      "contact": "Contactar al cliente",
+      "range": "{from} a {to}",
+      "more": "Y {count, plural, one {# reserva más} other {# reservas más}}, que no entran en la lista.",
+      "back": "Volver y cambiar los datos"
     },
     "status": {
       "active": "{gender, select, f {Activa} other {Activo}}",

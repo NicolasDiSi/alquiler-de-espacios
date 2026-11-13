@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import type { OperatorFormState } from "@/lib/operator/form-action";
 
-import { RefusalTable } from "./refusal-table";
+import { ConflictDialog } from "./conflict-dialog";
 
 type FieldMark = { "aria-invalid"?: true; "aria-describedby"?: string };
 
@@ -64,8 +64,9 @@ export type FormDialogProps = {
 
 /**
  * A dialog with one form and one Server Action (spec 0005). The body mounts only while it is open, so every opening
- * starts clean. A refusal keeps it open with the values typed, shows the reason in one focused alert, marks the fields
- * it names and lists the bookings in the way. A success closes it and shows a toast.
+ * starts clean. A refusal keeps it open with the values typed, shows the reason in one focused alert and marks the
+ * fields it names. When bookings are in the way, they open in their own `ConflictDialog` on top (the alert can open it
+ * again). A success closes it and shows a toast.
  */
 export function FormDialog({ trigger, open: controlled, onOpenChange, ...props }: FormDialogProps) {
   const [own, setOwn] = useState(false);
@@ -104,6 +105,7 @@ function FormBody({
   const alertRef = useRef<HTMLDivElement>(null);
   const handled = useRef<OperatorFormState>(null);
   const [closing, setClosing] = useState(false);
+  const [conflictOpen, setConflictOpen] = useState(false);
   const errorId = useId();
 
   useEffect(() => {
@@ -113,6 +115,9 @@ function FormBody({
       setClosing(true);
       toast.success(state.result.message);
       onClose();
+    } else if (state.result.details) {
+      // The list opens over the form; closing it returns focus to the alert that names the reason.
+      setConflictOpen(true);
     } else {
       alertRef.current?.focus();
     }
@@ -141,7 +146,11 @@ function FormBody({
         <Alert ref={alertRef} id={errorId} variant="destructive" tabIndex={-1} className="outline-none">
           <AlertDescription className="flex flex-col items-start gap-2">
             <span>{failure.message}</span>
-            {failure.details ? <RefusalTable details={failure.details} timeZone={timeZone} /> : null}
+            {failure.details ? (
+              <Button type="button" variant="outline" size="sm" onClick={() => setConflictOpen(true)}>
+                {t("review", { total: failure.details.total })}
+              </Button>
+            ) : null}
             {failure.reason === "busy" ? (
               <Button type="submit" variant="outline" size="sm" disabled={pending}>
                 {t("retry")}
@@ -160,6 +169,19 @@ function FormBody({
         <input key={name} type="hidden" name={name} value={value} />
       ))}
       <FieldMarks value={mark}>{children}</FieldMarks>
+
+      {failure?.details ? (
+        <ConflictDialog
+          open={conflictOpen}
+          onOpenChange={(next) => {
+            setConflictOpen(next);
+            if (!next) requestAnimationFrame(() => alertRef.current?.focus());
+          }}
+          message={failure.message}
+          details={failure.details}
+          timeZone={timeZone}
+        />
+      ) : null}
 
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onClose}>

@@ -12,7 +12,7 @@
     "e2e": "playwright test",
     "e2e:bookings": "playwright test e2e/bookings.spec.ts e2e/my-bookings.spec.ts",
     "e2e:shell": "playwright test e2e/shell.spec.ts e2e/keyboard.spec.ts e2e/accessibility.spec.ts",
-    "e2e:operator": "playwright test e2e/operator.spec.ts"
+    "e2e:operator": "playwright test e2e/operator.spec.ts e2e/conflicts.spec.ts"
   },
   "dependencies": {
     "@espacios/application": "workspace:*",
@@ -33,6 +33,7 @@
     "recharts": "3.8.0",
     "sonner": "2.0.8",
     "temporal-polyfill": "1.0.8",
+    "vaul": "1.1.2",
     "zod": "4.6.7",
     "zustand": "5.0.16"
   },

@@ -92,6 +92,7 @@ function transactionCatalog(tx: TransactionClient): OperatorCatalogTransaction {
       id: row.id,
       roomId: row.roomId,
       roomName: row.room.name,
+      companyId: row.tenantId,
       companyName: row.company.name,
       startsAt: row.startsAt,
       endsAt: row.endsAt,

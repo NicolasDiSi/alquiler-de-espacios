@@ -40,6 +40,8 @@ export type AffectedBooking = {
   readonly id: string;
   readonly roomId: string;
   readonly roomName: string;
+  /** The client, so the operator can reach it from the refusal. */
+  readonly companyId: string;
   readonly companyName: string;
   readonly startsAt: Date;
   readonly endsAt: Date;

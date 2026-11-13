@@ -37,10 +37,11 @@ export function reasonToHttp(reason: Reason): (typeof STATUS)[Reason] {
   return STATUS[reason];
 }
 
-const bookingBody = ({ id, roomId, roomName, companyName, startsAt, endsAt }: AffectedBooking) => ({
+const bookingBody = ({ id, roomId, roomName, companyId, companyName, startsAt, endsAt }: AffectedBooking) => ({
   id,
   roomId,
   roomName,
+  companyId,
   companyName,
   startsAt: startsAt.toISOString(),
   endsAt: endsAt.toISOString(),

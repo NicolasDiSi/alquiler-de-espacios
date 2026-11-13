@@ -83,6 +83,7 @@ describe("failureResponse with bookings in the way", () => {
       id: "b-1",
       roomId: "r-1",
       roomName: "Sala 1",
+      companyId: "acme",
       companyName: "Acme",
       startsAt: new Date("2030-01-07T12:00:00Z"),
       endsAt: new Date("2030-01-07T13:00:00Z"),

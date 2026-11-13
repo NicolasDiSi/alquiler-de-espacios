@@ -1,21 +1,12 @@
 "use client";
 
-import {
-  addDays,
-  type FacilityRules,
-  type LocalDate,
-  lastBookableDay,
-  nextOpenDay,
-  todayAt,
-  weekdayOf,
-} from "@espacios/domain";
+import { addDays, type FacilityRules, type LocalDate, lastBookableDay, todayAt, weekdayOf } from "@espacios/domain";
 import { cn } from "cn";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 
 import { AvailabilityCalendar } from "@/components/booking/availability-calendar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { monthOf } from "@/lib/bookings/search";
 
 const noon = (date: LocalDate) => new Date(`${date}T12:00:00Z`);
@@ -48,16 +39,11 @@ function WeekStrip({
   };
 
   return (
-    <section className="flex flex-col gap-3 lg:hidden" aria-labelledby="day-step">
-      <div className="flex items-end justify-between gap-2">
-        <div>
-          <h2 id="day-step" className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
-            {t("step")}
-          </h2>
-          <p className="font-semibold first-letter:uppercase">
-            {format.dateTime(noon(date), { month: "long", year: "numeric", timeZone: "UTC" })}
-          </p>
-        </div>
+    <div className="flex flex-col gap-3 lg:hidden">
+      <div className="flex items-center justify-between gap-2">
+        <p className="font-semibold first-letter:uppercase">
+          {format.dateTime(noon(date), { month: "long", year: "numeric", timeZone: "UTC" })}
+        </p>
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -117,13 +103,13 @@ function WeekStrip({
           );
         })}
       </ul>
-    </section>
+    </div>
   );
 }
 
 /**
  * The day (spec 0008): the month always in view from `lg`, the week on a phone. Only days with room for the search are
- * enabled; moving to another month is the one move that reads new data.
+ * enabled; moving to another month is the one move that reads new data. "Hoy" sits in the group's header.
  */
 export function DayPicker({
   date,
@@ -147,40 +133,31 @@ export function DayPicker({
   const first = todayAt(now, facility.timeZone);
   const last = lastBookableDay(now, facility.timeZone);
   const inMonth = available.filter((day) => monthOf(day) === month);
-  const today = nextOpenDay(now, facility);
 
   return (
     <>
       <WeekStrip date={date} available={new Set(available)} first={first} last={last} onSelect={onSelect} />
 
-      <Card className="hidden lg:flex">
-        <CardHeader className="flex flex-row items-center justify-between gap-2">
-          <CardTitle>{t("title")}</CardTitle>
-          <Button variant="secondary" size="sm" className="h-9" onClick={() => onSelect(today)}>
-            {t("today")}
-          </Button>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <AvailabilityCalendar
-            month={month}
-            selected={date}
-            available={inMonth}
-            onSelect={onSelect}
-            onMonthChange={onMonth}
-            bounds={{ first: monthOf(first), last: monthOf(last) }}
-          />
-          <ul className="text-muted-foreground flex justify-between border-t pt-3 text-xs">
-            <li className="flex items-center gap-1.5">
-              <span aria-hidden className="bg-primary size-1.5 rounded-full" />
-              {t("legendAvailable")}
-            </li>
-            <li className="flex items-center gap-1.5">
-              <span aria-hidden className="bg-muted-foreground/40 size-1.5 rounded-full" />
-              {t("legendUnavailable")}
-            </li>
-          </ul>
-        </CardContent>
-      </Card>
+      <div className="hidden flex-col gap-3 lg:flex">
+        <AvailabilityCalendar
+          month={month}
+          selected={date}
+          available={inMonth}
+          onSelect={onSelect}
+          onMonthChange={onMonth}
+          bounds={{ first: monthOf(first), last: monthOf(last) }}
+        />
+        <ul className="text-muted-foreground flex justify-between border-t pt-3 text-xs">
+          <li className="flex items-center gap-1.5">
+            <span aria-hidden className="bg-primary size-1.5 rounded-full" />
+            {t("legendAvailable")}
+          </li>
+          <li className="flex items-center gap-1.5">
+            <span aria-hidden className="bg-muted-foreground/40 size-1.5 rounded-full" />
+            {t("legendUnavailable")}
+          </li>
+        </ul>
+      </div>
     </>
   );
 }

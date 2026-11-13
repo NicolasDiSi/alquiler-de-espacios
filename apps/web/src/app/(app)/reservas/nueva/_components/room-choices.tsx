@@ -56,7 +56,8 @@ function HoursAxis({ facility, window }: { readonly facility: FacilityRules; rea
 /**
  * Every room of the sede with room for the people, over the chosen day (spec 0008): each one a card with its day as a
  * bar and the chosen window marked on it. With a start chosen, the free rooms are one choice (the whole card is the
- * target, the smallest is recommended) and the busy ones follow, unless "solo libres" hides them.
+ * target, the smallest is recommended) and the busy ones follow, unless "solo libres" hides them. From `lg` the list
+ * has a height limit and scrolls.
  */
 export function RoomChoices({
   rooms,
@@ -140,11 +141,13 @@ export function RoomChoices({
             <span />
             <HoursAxis facility={facility} window={window} />
           </div>
+          {/* From lg the list scrolls inside the card, so the header, the hours and the summary stay in view. The
+              padding gives the focus rings room inside the scrolling area. */}
           <RadioGroup
             aria-label={t("label")}
             value={selectedId ?? ""}
             onValueChange={onSelect}
-            className="flex flex-col gap-3"
+            className="flex flex-col gap-3 lg:-m-1 lg:max-h-[min(40rem,calc(100dvh-18rem))] lg:overflow-y-auto lg:p-1"
           >
             {shown.map((item) => {
               const id = `room-choice-${item.room.id}`;

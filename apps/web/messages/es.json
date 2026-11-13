@@ -1120,10 +1120,8 @@
       "peopleMin": "Mín. {people} pers."
     },
     "calendar": {
-      "title": "Elegí el día",
       "description": "Los días con punto tienen al menos una sala libre para lo que buscás.",
       "descriptionRoom": "Los días con punto tienen al menos un horario libre en esta sala.",
-      "step": "1. Elegí el día",
       "today": "Hoy",
       "legendAvailable": "Con disponibilidad",
       "legendUnavailable": "Sin lugar",
@@ -1140,13 +1138,8 @@
       "emptyTitle": "Sin horarios libres",
       "emptyDescription": "Ninguna sala tiene lugar ese día con estos filtros. Probá otro día o cambiá la duración o las personas.",
       "emptyDescriptionRoom": "La sala no tiene lugar ese día para esta duración. Probá otro día o una duración más corta.",
-      "step": "2. Horario de inicio",
       "suggested": "Horario de inicio",
-      "length": "{minutes} min de reserva",
-      "previousDay": "Día con lugar anterior",
-      "nextDay": "Día con lugar siguiente",
-      "available": "{count, plural, one {# sala disponible} other {# salas disponibles}}",
-      "dayDescription": "{count, plural, one {# sala disponible} other {# salas disponibles}} con lugar para {people, plural, one {# persona} other {# personas o más}}"
+      "length": "{minutes} min de reserva"
     },
     "rooms": {
       "title": "Salas libres de {start} a {end}",
@@ -1205,14 +1198,23 @@
       "subtitle": "Elegí sede, día, horario y sala.",
       "back": "Volver a Mis reservas",
       "allRoomsShort": "Ver todas",
-      "hours": "{opens} a {closes} · {zone}",
-      "facilityHours": "Abre de {opens} a {closes} hs"
+      "hours": "{opens} a {closes} · {zone}"
     },
     "bar": {
       "allFree": "Libre todo el horario",
       "span": "{state} de {start} a {end}",
       "label": "{room}: {spans}",
       "selection": "Selección ({start} a {end})"
+    },
+    "groups": {
+      "place": "Sede y fecha",
+      "meeting": "Reunión y horario",
+      "day": "Fecha",
+      "time": "Horario",
+      "ends": "Termina: {time}",
+      "filters": "Filtros",
+      "filtersDescription": "Sede, personas y duración de la reunión.",
+      "showRooms": "Ver salas"
     }
   },
   "calendar": {

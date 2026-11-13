@@ -54,3 +54,7 @@ How a client company sees the rooms and their availability, and books from it (s
 ## Ratify
 
 This decision was recorded by /develop, not deliberated. Run `/architect room availability` to deliberate and ratify it. Until then it stays flagged as an owed decision; it does not block marking the features `done`.
+
+## Amendment (2026-11-13): the booking search in three columns
+
+`/reservas/nueva` groups its controls as the steps a member takes. From `2xl`, three columns: "1 Sede y fecha" (the sede and the month calendar, with "Hoy"), "2 Reunión y horario" (people, length, the day's starts with when the booking ends, and "Solo salas libres"), and the summary with "Confirmar reserva" above every room, in a list with a height limit that scrolls. Between `lg` and `2xl` the first two groups share the left column. On a phone the sede, the people, the length and "Solo salas libres" open in a filters sheet from a button that says what is chosen; the week, the starts and the rooms stay on the page and the summary stays fixed at the bottom. The room cards do not change. The arrows to the previous and next day with room are gone: the calendar is beside the starts.

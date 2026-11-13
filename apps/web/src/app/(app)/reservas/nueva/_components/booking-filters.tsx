@@ -101,10 +101,17 @@ export function OnlyFreeSwitch({ search, go }: SearchProps) {
     <FieldLabel htmlFor="filter-only-free" className="min-h-11 cursor-pointer">
       <Field orientation="horizontal">
         <FieldContent>
-          <FieldTitle>{t("onlyFree")}</FieldTitle>
-          <FieldDescription>{t("onlyFreeHint")}</FieldDescription>
+          <FieldTitle id="filter-only-free-title">{t("onlyFree")}</FieldTitle>
+          <FieldDescription id="filter-only-free-hint">{t("onlyFreeHint")}</FieldDescription>
         </FieldContent>
-        <Switch id="filter-only-free" checked={search.onlyFree} onCheckedChange={(onlyFree) => go({ onlyFree })} />
+        {/* A switch is a button, and a button is not named by its label element: it points at its texts. */}
+        <Switch
+          id="filter-only-free"
+          aria-labelledby="filter-only-free-title"
+          aria-describedby="filter-only-free-hint"
+          checked={search.onlyFree}
+          onCheckedChange={(onlyFree) => go({ onlyFree })}
+        />
       </Field>
     </FieldLabel>
   );

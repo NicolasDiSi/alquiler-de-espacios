@@ -10,10 +10,11 @@ test.describe("shell", () => {
 
     const sidebar = page.locator("[data-slot=sidebar]");
     await expect(sidebar.getByText("alquiler-de-espacios")).toBeVisible();
-    // The product link and the member's sections (spec 0005): never an operator entry nor the gallery.
-    await expect(sidebar.getByRole("link")).toHaveCount(3);
+    // The product link and the member's sections (Salas since spec 0008): never an operator entry nor the gallery.
+    await expect(sidebar.getByRole("link")).toHaveCount(4);
     await expect(sidebar.getByRole("link", { name: "Mis reservas" })).toHaveAttribute("aria-current", "page");
     await expect(sidebar.getByRole("link", { name: "Nueva reserva" })).toBeVisible();
+    await expect(sidebar.getByRole("link", { name: "Salas", exact: true })).toHaveAttribute("href", "/salas");
     await expect(sidebar.locator('a[href^="/operador"]')).toHaveCount(0);
     await expect(sidebar.locator('a[href="/design-system"]')).toHaveCount(0);
 

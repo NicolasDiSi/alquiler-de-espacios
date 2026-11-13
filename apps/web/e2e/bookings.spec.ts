@@ -3,7 +3,7 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { CENTRAL, START_TIMES } from "./facility";
 import { waitForHydration } from "./fixtures";
-import { sessionCookie, USERS } from "./session";
+import { sessionCookie, sessionCookieState, USERS } from "./session";
 
 /**
  * A weekday 30 to 58 days ahead and a start between 08:00 and 19:00, picked at random: the seed only fills the
@@ -16,61 +16,106 @@ function freeSlot(): { date: LocalDate; start: string; end: string } {
   return { date, start: START_TIMES[index] ?? "08:00", end: START_TIMES[index + 1] ?? "08:30" };
 }
 
-/** `2026-12-21` as the list shows it and the form takes it typed, `21/12/2026`. */
-const shown = (date: LocalDate) => date.split("-").reverse().join("/");
-
-/** The room option as the form lists it. Tests that run in parallel book different rooms. */
-const ROOMS = { mar: "Sala Mar · 16 personas", luna: "Sala Luna · 10 personas" } as const;
-
-async function book(page: Page, slot: ReturnType<typeof freeSlot>, room: string = ROOMS.mar) {
-  await page.goto("/reservas/nueva");
-  await waitForHydration(page);
-  await page.getByLabel("Sala", { exact: true }).selectOption({ label: room });
-  await page.getByLabel("Fecha", { exact: true }).fill(shown(slot.date));
-  await page.getByLabel("Inicio", { exact: true }).selectOption(slot.start);
-  await page.getByLabel("Fin", { exact: true }).selectOption(slot.end);
-  await page.getByRole("button", { name: "Reservar" }).click();
+/**
+ * An open weekday from 3 to 40 days ahead whose next week's same weekday is in the same month, so a move of one week in
+ * the calendar stays on the data the page has.
+ */
+function keyboardDay(): LocalDate {
+  let date = addDays(localDateOf(new Date(), CENTRAL.timeZone), 3);
+  while (!isOpenWeekday(date, CENTRAL) || Number(date.slice(8)) > 21) date = addDays(date, 1);
+  return date;
 }
 
-test.describe("book a room (spec 0003)", () => {
-  test("a member books a room and sees it in Mis reservas", async ({ page }) => {
-    const slot = freeSlot();
-    await book(page, slot);
+/** `2026-12-21` as the lists show it, `21/12/2026`. */
+const shown = (date: LocalDate) => date.split("-").reverse().join("/");
 
-    await expect(page).toHaveURL(/\/\?vista=proximas&nueva=/);
-    const row = page
-      .getByRole("row")
-      .filter({ hasText: "Sala Mar" })
-      .filter({ hasText: shown(slot.date) })
-      .filter({ hasText: `${slot.start} a ${slot.end}` });
+/** The seeded sede of every room the tests book. */
+const SEDE = "facility-central";
+
+/**
+ * The search for one half hour window as the page mirrors it in its address (spec 0008), optionally with the room
+ * already chosen. Tests that run in parallel book different rooms.
+ */
+const searchLink = (slot: Slot, roomId?: string) =>
+  `/reservas/nueva?sede=${SEDE}&fecha=${slot.date}&duracion=30&inicio=${slot.start}${roomId ? `&sala=${roomId}` : ""}`;
+
+type Slot = ReturnType<typeof freeSlot>;
+
+const confirmButton = (page: Page) => page.getByRole("button", { name: "Confirmar reserva" });
+/** The summary card of the choice; the phone's copy is hidden on a desktop viewport. */
+const summary = (page: Page) => page.getByRole("region", { name: "Tu reserva" });
+const refusal = (page: Page) => page.getByRole("alertdialog", { name: "No se pudo completar" });
+
+/** Opens the search on the window and the room and confirms it. The caller checks how it ended. */
+async function book(page: Page, slot: Slot, roomId: string) {
+  await page.goto(searchLink(slot, roomId));
+  await waitForHydration(page);
+  await confirmButton(page).click();
+}
+
+/** The booking's row in Mis reservas (Próximas). */
+const bookingRow = (page: Page, slot: Slot, room: string) =>
+  page
+    .getByRole("row")
+    .filter({ hasText: room })
+    .filter({ hasText: shown(slot.date) })
+    .filter({ hasText: `${slot.start} a ${slot.end}` });
+
+test.describe("book a room (specs 0003, 0008 and 0011)", () => {
+  test("a member picks a room in the search, confirms it and sees it in Mis reservas", async ({ page }) => {
+    const slot = freeSlot();
+    await page.goto(searchLink(slot));
+    await waitForHydration(page);
+    await page.getByRole("radio", { name: /^Sala Mar/ }).click();
+    await expect(summary(page)).toContainText(`${slot.start} a ${slot.end}`);
+    await confirmButton(page).click();
+
+    // The booking keeps the user on the search; the toast leads to Mis reservas.
+    await expect(page.getByText("Reserva confirmada")).toBeVisible();
+    await expect(page).toHaveURL(/\/reservas\/nueva\?/);
+    await page.getByRole("button", { name: "Ver en Mis reservas" }).click();
+    await expect(page).toHaveURL(/\/\?vista=proximas/);
+    const row = bookingRow(page, slot, "Sala Mar");
     await expect(row).toHaveCount(1);
     await expect(row).toContainText(USERS.ana.name);
     await expect(row).toContainText("Confirmada");
   });
 
-  test("another company booking the same slot is told the room is taken, and keeps its values", async ({
+  test("a room taken while the search was open is refused in the error dialog, and the choice stays", async ({
     page,
     context,
+    browser,
   }) => {
     const slot = freeSlot();
-    await book(page, slot, ROOMS.luna);
-    await expect(page).toHaveURL(/nueva=/);
-
     await context.clearCookies();
     await context.addCookies([sessionCookie(USERS.carla.id)]);
-    await book(page, slot, ROOMS.luna);
+    await page.goto(searchLink(slot, "room-luna"));
+    await waitForHydration(page);
 
-    const alert = page.getByRole("alert").filter({ hasText: "La sala ya está reservada en ese horario" });
-    await expect(alert).toBeVisible();
-    await expect(alert).toBeFocused();
-    await expect(page).toHaveURL(/\/reservas\/nueva$/);
-    await expect(page.getByLabel("Inicio", { exact: true })).toHaveValue(slot.start);
-    await expect(page.getByLabel("Inicio", { exact: true })).toHaveAttribute("aria-invalid", "true");
-    await expect(page.getByLabel("Fin", { exact: true })).toHaveValue(slot.end);
-    await expect(page.getByLabel("Fecha", { exact: true })).toHaveValue(shown(slot.date));
+    // Ana takes the same window through the API while Carla's page still shows it free.
+    const ana = await browser.newContext({
+      storageState: { cookies: [sessionCookieState(USERS.ana.id)], origins: [] },
+    });
+    const taken = await ana.request.post("/api/v1/bookings", {
+      data: {
+        roomId: "room-luna",
+        startsAt: `${slot.date}T${slot.start}:00-03:00`,
+        endsAt: `${slot.date}T${slot.end}:00-03:00`,
+      },
+    });
+    expect([200, 201], await taken.text()).toContain(taken.status());
+    await ana.close();
+
+    await confirmButton(page).click();
+    await expect(refusal(page)).toContainText("La sala ya está reservada en ese horario");
     // Nothing about the other booking: no company, no user.
-    await expect(alert).not.toContainText(USERS.ana.company);
-    await expect(alert).not.toContainText(USERS.ana.name);
+    await expect(refusal(page)).not.toContainText(USERS.ana.company);
+    await expect(refusal(page)).not.toContainText(USERS.ana.name);
+    await refusal(page).getByRole("button", { name: "Entendido" }).click();
+    await expect(refusal(page)).toBeHidden();
+    await expect(confirmButton(page)).toBeFocused();
+    await expect(summary(page)).toContainText("Sala Luna");
+    await expect(summary(page)).toContainText(`${slot.start} a ${slot.end}`);
   });
 
   test("a member cancels a booking, it moves to Canceladas, and another company can take the slot", async ({
@@ -78,14 +123,11 @@ test.describe("book a room (spec 0003)", () => {
     context,
   }) => {
     const slot = freeSlot();
-    await book(page, slot, ROOMS.luna);
-    await expect(page).toHaveURL(/nueva=/);
+    await book(page, slot, "room-luna");
+    await expect(page.getByText("Reserva confirmada")).toBeVisible();
 
-    const row = page
-      .getByRole("row")
-      .filter({ hasText: "Sala Luna" })
-      .filter({ hasText: shown(slot.date) })
-      .filter({ hasText: `${slot.start} a ${slot.end}` });
+    await page.goto("/?vista=proximas");
+    const row = bookingRow(page, slot, "Sala Luna");
     await row.getByRole("button", { name: /^Cancelar la reserva de Sala Luna/ }).click();
     const dialog = page.getByRole("dialog", { name: "¿Cancelar esta reserva?" });
     await expect(dialog).toBeVisible();
@@ -108,8 +150,8 @@ test.describe("book a room (spec 0003)", () => {
 
     await context.clearCookies();
     await context.addCookies([sessionCookie(USERS.carla.id)]);
-    await book(page, slot, ROOMS.luna);
-    await expect(page).toHaveURL(/nueva=/);
+    await book(page, slot, "room-luna");
+    await expect(page.getByText("Reserva confirmada")).toBeVisible();
   });
 
   test("the operator gets 403 on both pages and the API", async ({ page, context }) => {
@@ -133,72 +175,56 @@ test.describe("book a room (spec 0003)", () => {
     await expect(api.json()).resolves.toMatchObject({ code: "unauthenticated" });
   });
 
-  test("a prefill link fills the form, and values the form would not offer fall back", async ({ page }) => {
+  test("a search link chooses the window and the room, and values it would not offer fall back", async ({ page }) => {
     const slot = freeSlot();
-    await page.goto(`/reservas/nueva?sala=room-mar&fecha=${slot.date}&inicio=${slot.start}&fin=${slot.end}`);
-    await expect(page.getByLabel("Sala", { exact: true })).toHaveValue("room-mar");
-    await expect(page.getByLabel("Fecha", { exact: true })).toHaveValue(shown(slot.date));
-    await expect(page.getByLabel("Inicio", { exact: true })).toHaveValue(slot.start);
-    await expect(page.getByLabel("Fin", { exact: true })).toHaveValue(slot.end);
+    await page.goto(searchLink(slot, "room-mar"));
+    await expect(summary(page)).toContainText("Sala Mar");
+    await expect(summary(page)).toContainText(`${slot.start} a ${slot.end}`);
 
-    await page.goto(`/reservas/nueva?sala=room-nope&fecha=${slot.date}&inicio=10:15&fin=${slot.end}`);
-    await expect(page.getByLabel("Sala", { exact: true })).toHaveValue("");
-    await expect(page.getByLabel("Fecha", { exact: true })).toHaveValue(shown(slot.date));
-    await expect(page.getByLabel("Inicio", { exact: true })).toHaveValue("");
-    await expect(page.getByLabel("Fin", { exact: true })).toHaveValue("");
+    // An unknown room and a start off the 30 minute grid leave nothing chosen.
+    await page.goto(`/reservas/nueva?sede=${SEDE}&fecha=${slot.date}&duracion=30&inicio=10:15&sala=room-nope`);
+    await expect(page.getByText("Elegí un día, un horario y una sala para ver el resumen.")).toBeVisible();
+    await expect(summary(page)).toHaveCount(0);
   });
 
-  test("a date is picked with the keyboard only, and focus returns to the calendar button", async ({ page }) => {
-    await page.goto("/reservas/nueva");
+  test("a day is picked with the keyboard only in the month calendar", async ({ page }) => {
+    const day = keyboardDay();
+    await page.goto(`/reservas/nueva?sede=${SEDE}&fecha=${day}`);
     await waitForHydration(page);
-    const initial = (await page.locator('input[name="date"]').inputValue()) as LocalDate;
-
-    const trigger = page.getByRole("button", { name: /^Cambiar fecha/ });
-    await trigger.focus();
-    await page.keyboard.press("Enter");
-    await expect(page.getByRole("grid")).toBeVisible();
-    // One week later is the same weekday, so it is always bookable.
+    const grid = page.getByRole("grid");
+    const selected = grid.getByRole("button", { name: /seleccionado$/ });
+    await selected.focus();
+    // One week later is the same weekday, in the same month, so it is always bookable.
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("Enter");
 
-    const picked = addDays(initial, 7);
-    await expect(page.getByRole("grid")).toBeHidden();
-    await expect(page.getByLabel("Fecha", { exact: true })).toHaveValue(shown(picked));
-    await expect(page.locator('input[name="date"]')).toHaveValue(picked);
-    await expect(trigger).toBeFocused();
+    await expect(page).toHaveURL(new RegExp(`fecha=${addDays(day, 7)}`));
+    await expect(selected).toBeFocused();
   });
 
-  test("the calendar disables weekends and says why", async ({ page }) => {
+  test("the calendar disables the days the sede is closed and says why", async ({ page }) => {
     await page.goto("/reservas/nueva");
-    await page.getByRole("button", { name: /^Cambiar fecha/ }).click();
     const grid = page.getByRole("grid");
-    // Every week of the shown month has a Saturday and a Sunday, so there are always disabled days in it.
-    await expect(grid.locator("td[data-disabled=true]:not([data-outside]) button").first()).toBeDisabled();
-    await expect(page.getByText("Se reserva de lunes a viernes, hasta 60 días adelante.")).toBeVisible();
+    // Every week of the shown month has a Saturday, so there is always a closed day in it.
+    await expect(grid.getByRole("button", { name: /^sábado/ }).first()).toBeDisabled();
+    await expect(page.getByText(/Se reserva de lunes a viernes, hasta 60 días adelante/)).toBeVisible();
   });
 
-  test("a date typed in a way that cannot be read is refused with Fecha marked", async ({ page }) => {
+  test("a session that ended while the search was open offers a way back to the picker", async ({ page, context }) => {
     const slot = freeSlot();
-    await page.goto(`/reservas/nueva?sala=room-mar&inicio=${slot.start}`);
-    await waitForHydration(page);
-    await page.getByLabel("Fecha", { exact: true }).fill("31/02/2030");
-    await page.getByRole("button", { name: "Reservar" }).click();
-    await expect(
-      page.getByRole("alert").filter({ hasText: "La solicitud no tiene el formato esperado" }),
-    ).toBeVisible();
-    await expect(page.getByLabel("Fecha", { exact: true })).toHaveAttribute("aria-invalid", "true");
-  });
-
-  test("a session that expired while the form was open offers a way back to the picker", async ({ page, context }) => {
-    const slot = freeSlot();
-    await page.goto(`/reservas/nueva?sala=room-mar&fecha=${slot.date}&inicio=${slot.start}&fin=${slot.end}`);
+    await page.goto(searchLink(slot, "room-mar"));
     await waitForHydration(page);
     await context.clearCookies();
-    await page.getByRole("button", { name: "Reservar" }).click();
+    await confirmButton(page).click();
 
-    const alert = page.getByRole("alert").filter({ hasText: "Tu sesión no es válida o venció" });
-    await expect(alert).toBeFocused();
-    await expect(alert.getByRole("link", { name: "Elegir usuario de nuevo" })).toHaveAttribute("href", "/ingresar");
-    await expect(page.getByLabel("Inicio", { exact: true })).toHaveValue(slot.start);
+    await expect(refusal(page)).toContainText("Tu sesión no es válida o venció");
+    await expect(refusal(page).getByRole("link", { name: "Elegir usuario de nuevo" })).toHaveAttribute(
+      "href",
+      "/ingresar",
+    );
+    // The page under an open alert dialog is hidden from the accessibility tree, so the choice is read once it closes.
+    await refusal(page).getByRole("button", { name: "Entendido" }).click();
+    await expect(confirmButton(page)).toBeFocused();
+    await expect(summary(page)).toContainText(`${slot.start} a ${slot.end}`);
   });
 });

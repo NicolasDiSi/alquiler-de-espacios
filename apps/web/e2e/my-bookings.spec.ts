@@ -41,11 +41,14 @@ test.describe("Mis reservas (spec 0003)", () => {
     const [day] = weekdaysFrom40(1);
     const start = START_TIMES[Math.floor(Math.random() * (START_TIMES.length - 1))] ?? "08:00";
     const end = START_TIMES[START_TIMES.indexOf(start) + 1] ?? "20:00";
-    await page.goto(`/reservas/nueva?sala=room-mar&fecha=${day}&inicio=${start}&fin=${end}`);
+    // The search for that half hour in Sala Mar, as the page mirrors it in its address (spec 0008).
+    await page.goto(`/reservas/nueva?sede=facility-central&fecha=${day}&duracion=30&inicio=${start}&sala=room-mar`);
     await waitForHydration(page);
-    await page.getByRole("button", { name: "Reservar" }).click();
+    await page.getByRole("button", { name: "Confirmar reserva" }).click();
 
+    // The booking keeps the user on the search; the toast's action opens Mis reservas with the new row marked.
     await expect(page.getByText("Reserva confirmada")).toBeVisible();
+    await page.getByRole("button", { name: "Ver en Mis reservas" }).click();
     const row = tableRows(page)
       .filter({ hasText: `${start} a ${end}` })
       .filter({ hasText: "Sala Mar" });

@@ -7,8 +7,8 @@ import { EmptyState } from "@/components/empty-state";
 import { operatorEdge } from "@/composition";
 import { requireOperator } from "@/lib/session/session";
 
-import { ClientList } from "./_components/client-list";
-import { CreateClientDialog } from "./_components/create-client-dialog";
+import { ClientList } from "../_components/client-list";
+import { CreateClientDialog } from "../_components/create-client-dialog";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("operator.client");

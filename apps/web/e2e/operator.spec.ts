@@ -129,13 +129,13 @@ test.describe("operator administration screens (spec 0005)", () => {
     await expect(dialog(page).getByLabel("Nombre")).toHaveValue(sede);
   });
 
-  test("a sede cannot be deactivated while it has active rooms, and the dialog says so", async ({ page }) => {
+  test("a sede cannot be deactivated while it has active rooms, and the page says why", async ({ page }) => {
     await page.goto("/operador/sedes");
     await waitForHydration(page);
     await page.getByRole("link", { name: "Sede Central" }).first().click();
-    await page.getByRole("button", { name: "Desactivar sede" }).click();
-    await dialog(page).getByRole("button", { name: "Desactivar sede" }).click();
-    await expect(dialog(page).getByRole("alert")).toContainText("salas activas");
+    // The button is off before any request, and the reason sits under it; the use case still refuses it on its own.
+    await expect(page.getByRole("button", { name: "Desactivar sede" })).toBeDisabled();
+    await expect(page.getByText(/salas activas: desactivalas primero/)).toBeVisible();
   });
 
   test("a person who works alone has one member; a company can add more", async ({ page }) => {

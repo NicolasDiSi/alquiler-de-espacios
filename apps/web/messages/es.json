@@ -525,17 +525,6 @@
         "saving": "Agregando…"
       }
     },
-    "week": {
-      "title": "Esta semana",
-      "legendOpen": "Abierta",
-      "legendBlocked": "Bloqueada",
-      "closed": "Cerrada",
-      "today": "Hoy",
-      "openFromTo": "Abierta de {from} a {to}",
-      "blockedFromTo": "Bloqueo de {from} a {to} en {room}",
-      "wholeFacility": "toda la sede",
-      "zone": "Horarios en {zone}."
-    },
     "dashboard": {
       "none": "—",
       "period": {

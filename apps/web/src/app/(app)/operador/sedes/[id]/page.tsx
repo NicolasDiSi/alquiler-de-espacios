@@ -10,7 +10,6 @@ import {
   toOperatorBlockViews,
   toOperatorFacilityView,
   toOperatorRoomView,
-  toOperatorWeekView,
 } from "@espacios/application";
 import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
@@ -40,7 +39,6 @@ import { BlockList } from "./_components/block-list";
 import { CreateBlockDialog } from "./_components/create-block-dialog";
 import { CreateRoomDialog } from "./_components/create-room-dialog";
 import { RoomList } from "./_components/room-list";
-import { WeekStrip } from "./_components/week-strip";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -95,7 +93,6 @@ export default async function FacilityPage({
   const facility = toOperatorFacilityView(record, roomViews.filter((room) => room.status === "active").length);
   const now = edge.clock.now();
   const blockViews = toOperatorBlockViews(blockRecords.value, roomRecords.value, record.timeZone, now);
-  const week = toOperatorWeekView(record, blockRecords.value, roomRecords.value, now);
   const active = facility.status === "active";
   // The calendar blocks only in this sede, and only while it is open; it filters by every room that may hold a booking.
   const targets = toOperatorBlockTargets([record], roomRecords.value);
@@ -138,19 +135,15 @@ export default async function FacilityPage({
       <ActivityCards activity={activity.value} subject="facility" />
 
       <Tabs defaultValue="activity" className="flex flex-col gap-4">
-        <TabsList>
+        <TabsList variant="line">
           <TabsTrigger value="activity">{a("tabs.activity")}</TabsTrigger>
           <TabsTrigger value="rooms">
             {rooms("title")}
-            <Badge variant="secondary" className="ml-1">
-              {roomViews.length}
-            </Badge>
+            <Badge className="ml-1">{roomViews.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="blocks">
             {blocks("title")}
-            <Badge variant="secondary" className="ml-1">
-              {blockViews.length}
-            </Badge>
+            <Badge className="ml-1">{blockViews.length}</Badge>
           </TabsTrigger>
         </TabsList>
 
@@ -201,7 +194,18 @@ export default async function FacilityPage({
         </TabsContent>
 
         <TabsContent value="blocks" className="flex flex-col gap-4">
-          {active ? <WeekStrip week={week} timeZone={zoneLabel(facility.timeZone)} /> : null}
+          {/* The same calendar as Actividad, on the week: the blocks with the bookings they would run into. The table
+              below stays, with "Liberar", the released blocks and the keyboard path to "Nuevo bloqueo". */}
+          {active ? (
+            <ActivityCalendar
+              subject="facility"
+              id={facility.id}
+              timeZone={facility.timeZone}
+              options={roomNames}
+              targets={targets}
+              initialView="timeGridWeek"
+            />
+          ) : null}
 
           <section aria-labelledby="blocks-title" className="flex flex-col gap-4">
             <div className="flex flex-wrap items-end justify-between gap-4">

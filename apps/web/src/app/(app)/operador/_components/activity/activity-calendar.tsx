@@ -38,6 +38,7 @@ import { BlockSlotDialog } from "./block-slot-dialog";
 import type { ActivitySubject } from "./subject";
 
 const VIEWS = ["dayGridMonth", "timeGridWeek", "timeGridDay"] as const;
+type CalendarView = (typeof VIEWS)[number];
 const plugins = [dayGridPlugin, timeGridPlugin, interactionPlugin];
 
 /** Pages read for one visible range, at most (a month of one client or one sede fits in a few). */
@@ -145,7 +146,7 @@ const toEvent = (subject: ActivitySubject, booking: OperatorBookingView, phase: 
 
 /**
  * The bookings of a client or a sede in month, week and day views (spec 0007, AC-3), on the template's
- * `EventCalendarViews`. A client's filter narrows by sede, a sede's by room. Read only: clicking a booking shows it. "Bloquear horario", or a range picked in the week or day view, opens the block
+ * `EventCalendarViews`, on the month unless `initialView` says otherwise. A client's filter narrows by sede, a sede's by room. Read only: clicking a booking shows it. "Bloquear horario", or a range picked in the week or day view, opens the block
  * dialog (prefilled when picked), never a booking: the operator does not book for a client (spec 0004).
  */
 export function ActivityCalendar({
@@ -154,6 +155,7 @@ export function ActivityCalendar({
   timeZone,
   options,
   targets,
+  initialView = "dayGridMonth",
 }: {
   readonly subject: ActivitySubject;
   /** The client's or the sede's id. */
@@ -162,6 +164,8 @@ export function ActivityCalendar({
   /** For a client, the sedes where it booked in the period; for a sede, its rooms. By name, for the filter. */
   readonly options: readonly string[];
   readonly targets: readonly OperatorBlockTarget[];
+  /** The view it opens on: the month on Actividad, the week on the sede's Bloqueos tab. */
+  readonly initialView?: CalendarView;
 }) {
   const t = useTranslations("operator.activity.calendar");
   const home = useTranslations("home");
@@ -306,7 +310,7 @@ export function ActivityCalendar({
             >
               {t("goTo")}
             </DatePickerButton>
-            <Select value={view?.type ?? VIEWS[0]} onValueChange={(next) => controller.changeView(next)}>
+            <Select value={view?.type ?? initialView} onValueChange={(next) => controller.changeView(next)}>
               <SelectTrigger aria-label={t("view")}>
                 <SelectValue />
               </SelectTrigger>
@@ -341,7 +345,7 @@ export function ActivityCalendar({
             )}
             plugins={plugins}
             views={{ timeGrid: EVENT_CARD_VIEW }}
-            initialView={VIEWS[0]}
+            initialView={initialView}
             locale={esLocale}
             timeZone={timeZone}
             popoverCloseContent={() => <XIcon className="text-muted-foreground group-hover:text-foreground size-5" />}

@@ -40,11 +40,10 @@ for (const mode of MODES) {
         await expectNoViolations(page);
       });
 
-      test("the booking form has no violations, at rest and with the calendar open", async ({ page }) => {
+      test("the booking search has no violations, with the month calendar in view", async ({ page }) => {
         await page.goto("/reservas/nueva");
         await waitForHydration(page);
-        await expectNoViolations(page);
-        await page.getByRole("button", { name: /^Cambiar fecha/ }).click();
+        // The month is always in view from lg (spec 0008); there is no calendar to open.
         await expect(page.getByRole("grid")).toBeVisible();
         await expectNoViolations(page);
       });

@@ -97,6 +97,13 @@ The business rules do not know about Next.js or Prisma. `dependency-cruiser` enf
 - **Authorization is a business rule.** Decisions are pure functions in `domain`; use cases call them before acting, and UI checks are only for display.
 - **Tenant data is isolated twice:** row level security in the database and a tenant filter in every repository. See [packages/db/AGENTS.md](packages/db/AGENTS.md).
 
+**Where to look first** (the README has the layer and data model diagrams):
+
+- Data model: `packages/db/prisma/schema.prisma`; constraints, RLS, grants and triggers are only in `packages/db/prisma/migrations/`.
+- Rules: `packages/domain/src/` (`booking/`, `catalog/`, `metrics/`, `identity/`).
+- Use cases and ports: `packages/application/src/use-cases/`, `packages/application/src/ports/`.
+- Wiring: `apps/web/src/composition/index.ts`. HTTP: `apps/web/src/app/api/v1/`, documented in `docs/api/`.
+
 ## Security
 
 - **Untrusted input:** request bodies, query strings and form data. Validate them with Zod and never trust a company id sent by the client without checking it against the current identity.

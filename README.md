@@ -69,7 +69,16 @@ pnpm check:ai --gate=e2e                    # todas
 pnpm check:ai --gate=e2e --suite=bookings   # una área: bookings, shell u operator
 ```
 
-**Qué prueba lo crítico** (contra PostgreSQL real, no con mocks):
+**Cada tipo de test tiene un propósito:**
+
+| Tipo          | Dónde                                                                           | Para qué                                                                                         |
+| ------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Unitario      | `packages/domain`, `packages/application`                                       | Las reglas y los casos de uso, con puertos falsos: rápidos, sin base                             |
+| Integración   | `packages/db`                                                                   | Lo que solo garantiza PostgreSQL: la exclusión, la RLS, los permisos, las carreras, las métricas |
+| Contrato      | `apps/web/src/app/api/v1/*.test.ts`, `apps/web/src/lib/result/contract.test.ts` | La API: que cada ruta autentique, el status de cada motivo y que esté documentada                |
+| Punta a punta | `apps/web/e2e/*.spec.ts`                                                        | Los flujos de usuario en el navegador, con axe para la accesibilidad                             |
+
+**Dónde se prueba lo crítico** (lo que depende de la base, contra PostgreSQL real, no con mocks):
 
 | Comportamiento                              | Dónde                                                                                                                                                          |
 | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -84,37 +93,9 @@ pnpm check:ai --gate=e2e --suite=bookings   # una área: bookings, shell u opera
 
 Las carreras verifican el resultado de cada participante a la vez, así un fallo muestra por qué perdió cada uno. Cobertura mínima exigida: `domain` 90%, `application` 85%, el resto 70%.
 
-## Arquitectura y decisiones
-
-Cada decisión está escrita con su contexto y sus alternativas en `docs/` (índice en [docs/README.md](docs/README.md)). La base es la [spec 0001](docs/specs/_root/0001-booking-platform-architecture/index.md).
-
-```text
-apps/web               Next.js 16 (React 19): páginas, Server Actions, /api/v1 y la raíz de composición
-packages/application   casos de uso y puertos (interfaces)
-packages/domain        reglas de negocio puras: validez de una reserva, cancelación, permisos, métricas
-packages/db            adaptador PostgreSQL: esquema Prisma, migraciones, seguridad por fila, unidad de trabajo
-```
-
-**El backend es Node.js + TypeScript.** Los casos de uso (`packages/application`), las reglas (`packages/domain`) y el adaptador PostgreSQL (`packages/db`) son TypeScript sobre Node 24 y no dependen de Next.js; dependency cruiser lo hace cumplir. Next.js solo los expone, por Server Actions y por la API REST `/api/v1`, y todo el servidor corre en el runtime de Node, no en Edge. Pasarlos a un servicio aparte cambia el adaptador HTTP, no las reglas.
-
-| Decisión                                                                                                                 | Alternativa descartada                                                        | Por qué                                                                                              | Dónde                                                                                                     |
-| ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Puertos y adaptadores en un monorepo; dependency cruiser rompe el build si una capa importa a otra que no debe           | Capas por convención, sin control                                             | Las reglas no conocen Next.js ni Prisma y se prueban solas                                           | [ADR 0001](docs/adr/0001-monorepo-pnpm-turborepo.md), [ADR 0002](docs/adr/0002-hexagonal-architecture.md) |
-| Una sola app Next.js: pantallas con Server Actions y API REST en `/api/v1`, sobre los mismos casos de uso                | Servicio API aparte (Hono), app de administración, caché y pool de conexiones | Demasiada infraestructura para una primera versión de 72 horas; queda en "próxima versión"           | [Spec 0001](docs/specs/_root/0001-booking-platform-architecture/index.md)                                 |
-| Superposición impedida por una restricción de exclusión en PostgreSQL (sala y rango de tiempo)                           | Validar en el código, o un índice único por sala, fecha y turno               | El código no ve las transacciones concurrentes; el índice deja pasar 10:00 a 12:00 con 11:00 a 13:00 | Spec 0001                                                                                                 |
-| Aislamiento doble: seguridad por fila con `FORCE` más filtro de empresa en cada repositorio                              | Solo filtro en el código                                                      | Un filtro olvidado no expone datos: la base devuelve cero filas                                      | [ADR 0003](docs/adr/0003-prisma-multitenancy.md), spec 0001                                               |
-| Tres logins de base: la app, el operador (lee todo, no escribe reservas) y el dueño del esquema                          | El operador con el login del dueño                                            | El dueño puede escribir y cambiar el esquema; el operador recibe el mínimo permiso                   | Spec 0001                                                                                                 |
-| Disponibilidad ajena por una función que devuelve solo horarios ocupados                                                 | Seguridad por fila también en las salas                                       | La empresa ve que una sala está tomada sin saber por quién                                           | Spec 0001                                                                                                 |
-| Identidad con usuarios del seed y una cookie HMAC con vencimiento firmado                                                | Autenticación completa, o el id de empresa enviado por el cliente             | El enunciado no pide autenticación, pero la empresa tiene que salir del servidor                     | [Spec 0002](docs/specs/_root/0002-company-identity-picker.md)                                             |
-| Resultado tipado con un código por motivo, mapeado una vez a HTTP y a un mensaje en español                              | Excepciones y mensajes armados en cada pantalla                               | La pantalla y la API explican igual cada fallo, y un test recorre todos los motivos                  | Spec 0001                                                                                                 |
-| Sin claves de idempotencia: repetir la misma reserva devuelve la existente                                               | Tabla de claves de idempotencia                                               | Cubre el doble clic sin otra tabla; las claves quedan para clientes externos                         | Spec 0001                                                                                                 |
-| Sedes con zona horaria y horario propios; salas y clientes se desactivan, no se borran                                   | Horario fijo global, borrado físico                                           | Crecer en sedes sin cambiar reglas, y métricas correctas sobre la historia                           | [Spec 0004](docs/specs/_root/0004-operator-administration-and-metrics/index.md)                           |
-| Métricas en SQL en vivo, como cocientes ponderados; los umbrales son reglas del dominio                                  | Promedio de porcentajes, o tablas de resumen                                  | El promedio engaña con salas de distinto uso; con este volumen no hace falta guardar resúmenes       | Spec 0004, [spec 0006](docs/specs/_root/0006-operator-dashboard/index.md)                                 |
-| Las pantallas piden al servidor solo el mes de una sede y derivan lo demás en el navegador con las funciones del dominio | Volver al servidor en cada clic                                               | Menos consultas y la misma regla en servidor y cliente                                               | [Spec 0008](docs/specs/_root/0008-room-availability-screens/index.md)                                     |
-
 ## Supuestos
 
-Reglas que el enunciado deja abiertas, decididas en las specs de `docs/specs/`. Las specs marcadas `Assumed` las decidí durante la construcción, sin una ronda de diseño previa.
+Reglas que el enunciado deja abiertas, decididas en las specs de `docs/specs/`. Las specs 0002 y 0006 a 0009 las decidí durante la construcción.
 
 **Reservas**
 
@@ -139,6 +120,91 @@ Reglas que el enunciado deja abiertas, decididas en las specs de `docs/specs/`. 
 - `lastBookingAt` es la última vez que la empresa hizo una reserva confirmada, sin importar el rango.
 - El tablero lee los últimos 7, 30 o 90 días completos, hasta ayer en Buenos Aires, y compara cada cifra con el mismo número de días anteriores. El gráfico diario cubre siempre 90 días. Una sala tiene alta demanda desde el 80% de ocupación y baja demanda por debajo del 20%. Un valor que no se puede medir se muestra como un guion, nunca como 0%.
 
+## Arquitectura y decisiones
+
+Cada decisión está escrita con su contexto y sus alternativas en `docs/` (índice en [docs/README.md](docs/README.md)). La base es la [spec 0001](docs/specs/_root/0001-booking-platform-architecture/index.md).
+
+```mermaid
+flowchart LR
+    subgraph web["apps/web (Next.js 16)"]
+        ui["Páginas y Server Actions"]
+        api["API REST /api/v1"]
+        comp["composition/index.ts"]
+    end
+    app["packages/application<br/>casos de uso y puertos"]
+    dom["packages/domain<br/>reglas puras"]
+    db["packages/db<br/>adaptador Prisma"]
+    pg[("PostgreSQL 17<br/>exclusión, RLS, triggers")]
+
+    ui --> app
+    api --> app
+    app --> dom
+    comp -. conecta .-> db
+    db -. implementa los puertos .-> app
+    db --> pg
+```
+
+El modelo de datos ([`schema.prisma`](packages/db/prisma/schema.prisma); las restricciones, la seguridad por fila y los triggers están en [`migrations/`](packages/db/prisma/migrations/)):
+
+```mermaid
+erDiagram
+    FACILITY ||--o{ ROOM : tiene
+    FACILITY ||--o{ BLOCK : tiene
+    ROOM |o--o{ BLOCK : "bloquea (vacío: toda la sede)"
+    COMPANY ||--o{ APP_USER : "miembros (el operador no tiene empresa)"
+    COMPANY ||--o{ BOOKING : "tenant_id, RLS"
+    ROOM ||--o{ BOOKING : "sin superposición (exclusión)"
+    APP_USER ||--o{ BOOKING : reserva
+    APP_USER ||--o{ BLOCK : crea
+
+    FACILITY {
+        text time_zone
+        int opens_at
+        int closes_at
+        smallint_array open_weekdays
+    }
+    ROOM {
+        int capacity
+        timestamptz active_from
+        timestamptz deactivated_at
+    }
+    COMPANY {
+        text slug
+        enum kind
+        timestamptz deactivated_at
+    }
+    APP_USER {
+        enum role
+    }
+    BOOKING {
+        timestamptz starts_at
+        timestamptz ends_at
+        enum status
+    }
+    BLOCK {
+        timestamptz starts_at
+        timestamptz ends_at
+        timestamptz released_at
+    }
+```
+
+**El backend es Node.js + TypeScript.** Los casos de uso (`packages/application`), las reglas (`packages/domain`) y el adaptador PostgreSQL (`packages/db`) son TypeScript sobre Node 24 y no dependen de Next.js; dependency cruiser lo hace cumplir. Next.js solo los expone, por Server Actions y por la API REST `/api/v1`, y todo el servidor corre en el runtime de Node, no en Edge. Pasarlos a un servicio aparte cambia el adaptador HTTP, no las reglas.
+
+| Decisión                                                                                                                 | Alternativa descartada                                                        | Por qué                                                                                              | Dónde                                                                                                     |
+| ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Puertos y adaptadores en un monorepo; dependency cruiser rompe el build si una capa importa a otra que no debe           | Capas por convención, sin control                                             | Las reglas no conocen Next.js ni Prisma y se prueban solas                                           | [ADR 0001](docs/adr/0001-monorepo-pnpm-turborepo.md), [ADR 0002](docs/adr/0002-hexagonal-architecture.md) |
+| Una sola app Next.js: pantallas con Server Actions y API REST en `/api/v1`, sobre los mismos casos de uso                | Servicio API aparte (Hono), app de administración, caché y pool de conexiones | Demasiada infraestructura para una primera versión de 72 horas; queda en "próxima versión"           | [Spec 0001](docs/specs/_root/0001-booking-platform-architecture/index.md)                                 |
+| Superposición impedida por una restricción de exclusión en PostgreSQL (sala y rango de tiempo)                           | Validar en el código, o un índice único por sala, fecha y turno               | El código no ve las transacciones concurrentes; el índice deja pasar 10:00 a 12:00 con 11:00 a 13:00 | Spec 0001                                                                                                 |
+| Aislamiento doble: seguridad por fila con `FORCE` más filtro de empresa en cada repositorio                              | Solo filtro en el código                                                      | Un filtro olvidado no expone datos: la base devuelve cero filas                                      | [ADR 0003](docs/adr/0003-prisma-multitenancy.md), spec 0001                                               |
+| Tres logins de base: la app, el operador (lee todo, no escribe reservas) y el dueño del esquema                          | El operador con el login del dueño                                            | El dueño puede escribir y cambiar el esquema; el operador recibe el mínimo permiso                   | Spec 0001                                                                                                 |
+| Disponibilidad ajena por una función que devuelve solo horarios ocupados                                                 | Seguridad por fila también en las salas                                       | La empresa ve que una sala está tomada sin saber por quién                                           | Spec 0001                                                                                                 |
+| Identidad con usuarios del seed y una cookie HMAC con vencimiento firmado                                                | Autenticación completa, o el id de empresa enviado por el cliente             | El enunciado no pide autenticación, pero la empresa tiene que salir del servidor                     | [Spec 0002](docs/specs/_root/0002-company-identity-picker.md)                                             |
+| Resultado tipado con un código por motivo, mapeado una vez a HTTP y a un mensaje en español                              | Excepciones y mensajes armados en cada pantalla                               | La pantalla y la API explican igual cada fallo, y un test recorre todos los motivos                  | Spec 0001                                                                                                 |
+| Sin claves de idempotencia: repetir la misma reserva devuelve la existente                                               | Tabla de claves de idempotencia                                               | Cubre el doble clic sin otra tabla; las claves quedan para clientes externos                         | Spec 0001                                                                                                 |
+| Sedes con zona horaria y horario propios; salas y clientes se desactivan, no se borran                                   | Horario fijo global, borrado físico                                           | Crecer en sedes sin cambiar reglas, y métricas correctas sobre la historia                           | [Spec 0004](docs/specs/_root/0004-operator-administration-and-metrics/index.md)                           |
+| Métricas en SQL en vivo, como cocientes ponderados; los umbrales son reglas del dominio                                  | Promedio de porcentajes, o tablas de resumen                                  | El promedio engaña con salas de distinto uso; con este volumen no hace falta guardar resúmenes       | Spec 0004, [spec 0006](docs/specs/_root/0006-operator-dashboard/index.md)                                 |
+| Las pantallas piden al servidor solo el mes de una sede y derivan lo demás en el navegador con las funciones del dominio | Volver al servidor en cada clic                                               | Menos consultas y la misma regla en servidor y cliente                                               | [Spec 0008](docs/specs/_root/0008-room-availability-screens/index.md)                                     |
+
 ## Limitaciones conocidas
 
 - **No hay autenticación real.** El selector de ingreso muestra a todos los usuarios del seed y cualquiera puede elegir uno. La cookie firmada evita que se la falsifique, no que se elija a otro usuario.
@@ -149,6 +215,7 @@ Reglas que el enunciado deja abiertas, decididas en las specs de `docs/specs/`. 
 - **Bloqueos simples.** No hay bloqueos recurrentes (todos los viernes, una lista anual de feriados) ni restricciones para una sola empresa.
 - **Métricas en vivo.** Se calculan en cada consulta; alcanza para el volumen actual, pero no hay instantáneas guardadas.
 - **Sin auditoría** de los cambios del operador (quién cambió qué y cuándo).
+- **Sin e2e en dos pantallas del operador** (`/operador/reservas` y `/operador/clientes/[id]`): sus datos están probados contra Postgres, pero las pantallas van a cambiar mucho cuando crezca la app.
 
 ## Mejoras y crecimiento
 

@@ -105,10 +105,8 @@ test.describe("operator administration screens (spec 0005)", () => {
     await expect(page.getByText("Bloqueo liberado")).toBeVisible();
     // Active blocks are the default view; a released one is reached through the state filter.
     await expect(page.getByRole("row", { name: /Mantenimiento E2E/ })).toHaveCount(0);
-    await page
-      .getByRole("button", { name: /^Estado/ })
-      .last()
-      .click();
+    // The filter's own button: "Estado: Activo Quitar" (its chip) and the column header start with "Estado" too.
+    await page.getByRole("region", { name: "Bloqueos" }).getByRole("button", { name: "Estado 1 elegido" }).click();
     await page.getByRole("checkbox", { name: "Liberado" }).check();
     await page.keyboard.press("Escape");
     await expect(page.getByRole("row", { name: /Mantenimiento E2E/ }).getByText("Liberado")).toBeVisible();
@@ -129,13 +127,13 @@ test.describe("operator administration screens (spec 0005)", () => {
     await expect(dialog(page).getByLabel("Nombre")).toHaveValue(sede);
   });
 
-  test("a sede cannot be deactivated while it has active rooms, and the dialog says so", async ({ page }) => {
+  test("a sede cannot be deactivated while it has active rooms, and the page says why", async ({ page }) => {
     await page.goto("/operador/sedes");
     await waitForHydration(page);
     await page.getByRole("link", { name: "Sede Central" }).first().click();
-    await page.getByRole("button", { name: "Desactivar sede" }).click();
-    await dialog(page).getByRole("button", { name: "Desactivar sede" }).click();
-    await expect(dialog(page).getByRole("alert")).toContainText("salas activas");
+    // The button is off before any request, and the reason sits under it; the use case still refuses it on its own.
+    await expect(page.getByRole("button", { name: "Desactivar sede" })).toBeDisabled();
+    await expect(page.getByText(/salas activas: desactivalas primero/)).toBeVisible();
   });
 
   test("a person who works alone has one member; a company can add more", async ({ page }) => {

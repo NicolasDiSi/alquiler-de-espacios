@@ -7,8 +7,8 @@ import { EmptyState } from "@/components/empty-state";
 import { operatorEdge } from "@/composition";
 import { requireOperator } from "@/lib/session/session";
 
-import { CreateFacilityDialog } from "./_components/create-facility-dialog";
-import { FacilityList } from "./_components/facility-list";
+import { CreateFacilityDialog } from "../_components/create-facility-dialog";
+import { FacilityList } from "../_components/facility-list";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("operator.facility");

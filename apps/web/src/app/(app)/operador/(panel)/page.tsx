@@ -7,13 +7,13 @@ import { TIME_ZONE } from "@/i18n/config";
 import { PERIODOS, periodoOf } from "@/lib/operator/period";
 import { requireOperator } from "@/lib/session/session";
 
-import { PeriodPicker } from "./_components/period-picker";
-import { CompanyUsageList } from "./_dashboard/company-usage-list";
-import { DailyOccupancyChart } from "./_dashboard/daily-occupancy-chart";
-import { KpiStrip } from "./_dashboard/kpi-strip";
-import { OccupancyHeatmap } from "./_dashboard/occupancy-heatmap";
-import { Recommendations } from "./_dashboard/recommendations";
-import { RoomUsageChart } from "./_dashboard/room-usage-chart";
+import { PeriodPicker } from "../_components/period-picker";
+import { CompanyUsageList } from "../_dashboard/company-usage-list";
+import { DailyOccupancyChart } from "../_dashboard/daily-occupancy-chart";
+import { KpiStrip } from "../_dashboard/kpi-strip";
+import { OccupancyHeatmap } from "../_dashboard/occupancy-heatmap";
+import { Recommendations } from "../_dashboard/recommendations";
+import { RoomUsageChart } from "../_dashboard/room-usage-chart";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 

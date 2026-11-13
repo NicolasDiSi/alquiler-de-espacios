@@ -101,7 +101,13 @@ function FormBody({
 }: Omit<FormDialogProps, "trigger" | "open" | "onOpenChange"> & { readonly onClose: () => void }) {
   const t = useTranslations("operator.form");
   const common = useTranslations("common");
-  const [state, formAction, pending] = useActionState<OperatorFormState, FormData>(action, null);
+  // The toast fires when the action answers, not in an effect: a success can revalidate away the row that holds this
+  // dialog (a released block leaves the active list), and an unmounted body would never show it.
+  const [state, formAction, pending] = useActionState<OperatorFormState, FormData>(async (previous, formData) => {
+    const next = await action(previous, formData);
+    if (next?.result.ok) toast.success(next.result.message);
+    return next;
+  }, null);
   const alertRef = useRef<HTMLDivElement>(null);
   const handled = useRef<OperatorFormState>(null);
   const [closing, setClosing] = useState(false);
@@ -113,7 +119,6 @@ function FormBody({
     handled.current = state;
     if (state.result.ok) {
       setClosing(true);
-      toast.success(state.result.message);
       onClose();
     } else if (state.result.details) {
       // The list opens over the form; closing it returns focus to the alert that names the reason.

@@ -78,7 +78,10 @@ export const clientCreateForm = z.object({
     .max(63)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   logoUrl: httpsUrl,
-  memberName: optionalText(100).transform((value) => value ?? undefined),
+  // An individual has no first member field, so the browser sends no key at all.
+  memberName: optionalText(100)
+    .optional()
+    .transform((value) => value ?? undefined),
 });
 export const clientEditForm = z.object({ id: text(128), name: text(100), logoUrl: httpsUrl });
 

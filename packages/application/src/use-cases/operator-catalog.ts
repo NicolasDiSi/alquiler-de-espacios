@@ -223,15 +223,18 @@ export function listMembers(deps: OperatorDependencies, actor: Actor, clientId: 
 }
 
 export function addMember(deps: OperatorDependencies, actor: Actor, clientId: string, name: string) {
-  return asOperator(actor, async (): Promise<Result<MemberRecord>> => {
-    const client = await deps.catalog.findClient(clientId);
-    if (!client) return fail("not_found");
-    // A person who works alone has one member. Growing into a company means adding members to the same client.
-    if (client.kind === "individual" && (await deps.catalog.listMembers(clientId)).length >= 1) {
-      return fail("individual_is_single");
-    }
-    return ok(await deps.catalog.insertMember(clientId, { id: deps.ids.next(), name }));
-  });
+  return asOperator(actor, () =>
+    // The client's lock before the count: two adds at once to an individual would both count none and both insert.
+    deps.catalog.transaction(async (tx): Promise<Result<MemberRecord>> => {
+      const client = await tx.lockClient(clientId);
+      if (!client) return fail("not_found");
+      // A person who works alone has one member. Growing into a company means adding members to the same client.
+      if (client.kind === "individual" && (await tx.listMembers(clientId)).length >= 1) {
+        return fail("individual_is_single");
+      }
+      return ok(await tx.insertMember(clientId, { id: deps.ids.next(), name }));
+    }),
+  );
 }
 
 /** Its members can no longer book (`company_inactive`) but keep their history and can still cancel (AC-7). */

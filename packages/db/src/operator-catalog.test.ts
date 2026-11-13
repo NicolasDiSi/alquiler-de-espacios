@@ -1,4 +1,5 @@
 import {
+  addMember,
   createBlock,
   deactivateClient,
   deactivateFacility,
@@ -290,6 +291,25 @@ describe("deactivation, hours change and blocks against the real database (spec 
 
     expect(resultOutcomes(results)).toEqual(oneWinner(6, "block_overlaps_block"));
     expect(await operator.block.count({ where: { facilityId: site.id, releasedAt: null } })).toBe(1);
+  });
+
+  it("lets only one of several members added at the same time into an individual (AC-21)", async () => {
+    // An individual with no member yet (written directly: the app never makes one), so every racer counts none and only
+    // the client's lock decides.
+    const slug = `solo-${unique()}`;
+    const client = await owner.company.create({
+      data: { id: `company-${slug}`, name: slug, slug, kind: "individual" },
+    });
+
+    // Open six connections first: on a cold pool the first racer finishes on the only open one before the rest connect,
+    // and the race never happens (without the lock this test then passes anyway).
+    await Promise.all(Array.from({ length: 6 }, () => operator.$executeRaw`SELECT pg_sleep(0.05)`));
+    const results = await Promise.all(
+      Array.from({ length: 6 }, (_unused, index) => addMember(deps, actor, client.id, `Persona ${index}`)),
+    );
+
+    expect(resultOutcomes(results)).toEqual(oneWinner(6, "individual_is_single"));
+    expect(await operator.appUser.count({ where: { tenantId: client.id } })).toBe(1);
   });
 });
 

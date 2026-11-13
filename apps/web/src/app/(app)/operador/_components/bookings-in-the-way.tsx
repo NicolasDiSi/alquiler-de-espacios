@@ -6,21 +6,10 @@ import type { AffectedBooking, RefusalDetails } from "@espacios/domain";
 import { UserRound } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 
-import {
-  AdaptiveAlertDialog,
-  AdaptiveAlertDialogBody,
-  AdaptiveAlertDialogCancel,
-  AdaptiveAlertDialogContent,
-  AdaptiveAlertDialogDescription,
-  AdaptiveAlertDialogFooter,
-  AdaptiveAlertDialogHeader,
-  AdaptiveAlertDialogTitle,
-} from "@/components/adaptive-alert-dialog";
+import { AdaptiveAlertDialogBody } from "@/components/adaptive-alert-dialog";
 import { Button } from "@/components/ui/button";
 import { formats } from "@/i18n/config";
-import type { ActionResult } from "@/lib/result/action-result";
 
-type Failure = Extract<ActionResult<unknown>, { ok: false }>;
 type Client = { readonly id: string; readonly name: string; readonly bookings: AffectedBooking[] };
 
 /** The bookings by client, in the order the first booking of each starts (the use case sends them by start). */
@@ -35,64 +24,17 @@ function byClient(bookings: readonly AffectedBooking[]): Client[] {
 }
 
 /**
- * A refusal no field can hold, in an adaptive alert dialog on top of the form that was refused: the form keeps what
- * was typed underneath, and this one says why and offers the way forward the reason has. It has to be answered (an
- * alert dialog never closes on a click outside), takes the focus and is read out, so nothing of the form's space goes
- * to it. When bookings are in the way (spec 0005, AC-4) it lists them by client, with each client's page to contact
- * them. The header and footer stay put and only the body scrolls, however long the list.
+ * The confirmed bookings in the way of an operator change (spec 0005, AC-4), as the body of the `ErrorDialog` on top of
+ * the refused form: grouped by client, each with its page to contact them. A block, a room's retirement and a sede's
+ * new hours share it. Only this body scrolls, however long the list.
  */
-export function FormErrorDialog({
-  open,
-  onOpenChange,
-  failure,
+export function BookingsInTheWay({
+  details,
   timeZone,
-  onRetry,
 }: {
-  readonly open: boolean;
-  readonly onOpenChange: (open: boolean) => void;
-  readonly failure: Failure;
-  /** The sede's zone: the bookings in the way are read on its clock. */
+  readonly details: RefusalDetails;
   readonly timeZone: string;
-  /** Sends the form again, for a refusal that may pass on a second try (`busy`). */
-  readonly onRetry: () => void;
 }) {
-  const t = useTranslations("operator.form");
-  const refusal = useTranslations("operator.refusal");
-  const { details } = failure;
-
-  return (
-    <AdaptiveAlertDialog open={open} onOpenChange={onOpenChange}>
-      <AdaptiveAlertDialogContent className="md:max-w-lg" data-testid="form-error-dialog">
-        <AdaptiveAlertDialogHeader>
-          <AdaptiveAlertDialogTitle>
-            {details ? refusal("title", { total: details.total }) : t("errorTitle")}
-          </AdaptiveAlertDialogTitle>
-          <AdaptiveAlertDialogDescription>{failure.message}</AdaptiveAlertDialogDescription>
-        </AdaptiveAlertDialogHeader>
-
-        {details ? <BookingsInTheWay details={details} timeZone={timeZone} /> : null}
-
-        <AdaptiveAlertDialogFooter>
-          {failure.reason === "unauthenticated" ? (
-            <Button asChild variant="outline">
-              <Link href="/ingresar">{t("signInAgain")}</Link>
-            </Button>
-          ) : null}
-          {failure.reason === "busy" ? (
-            <Button type="button" variant="outline" onClick={onRetry}>
-              {t("retry")}
-            </Button>
-          ) : null}
-          <AdaptiveAlertDialogCancel variant="default">
-            {details ? refusal("back") : t("understood")}
-          </AdaptiveAlertDialogCancel>
-        </AdaptiveAlertDialogFooter>
-      </AdaptiveAlertDialogContent>
-    </AdaptiveAlertDialog>
-  );
-}
-
-function BookingsInTheWay({ details, timeZone }: { readonly details: RefusalDetails; readonly timeZone: string }) {
   const t = useTranslations("operator.refusal");
   const format = useFormatter();
   const day = (value: Date) =>

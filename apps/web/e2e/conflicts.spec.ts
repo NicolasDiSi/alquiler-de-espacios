@@ -61,14 +61,14 @@ test.describe("nothing overlaps anything, and a refusal says why (operator)", ()
 
     // The list is an alert dialog of its own on top of the form, never a table inside the form's alert.
     await expect(page.getByRole("alertdialog", { name: /reservas? confirmadas? lo impide/ })).toBeVisible();
-    const dialog = page.getByTestId("form-error-dialog");
+    const dialog = page.getByTestId("error-dialog");
     const client = dialog.getByRole("region", { name: "Reservas de Globex SRL" });
     await expect(client.getByRole("listitem").filter({ hasText: `${start} a ${end}` })).toContainText("Sala Luna");
     await expect(client.getByRole("link", { name: "Contactar al cliente" })).toHaveAttribute(
       "href",
       "/operador/clientes/company-globex",
     );
-    await expectNoViolations(page, "[data-testid=form-error-dialog]");
+    await expectNoViolations(page, "[data-testid=error-dialog]");
 
     await dialog.getByRole("button", { name: "Volver y cambiar los datos" }).click();
     await expect(dialog).toBeHidden();

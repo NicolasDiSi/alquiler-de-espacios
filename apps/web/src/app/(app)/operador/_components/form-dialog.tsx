@@ -18,6 +18,7 @@ import {
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
+import { ErrorDialog } from "@/components/error-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,7 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import type { OperatorFormState } from "@/lib/operator/form-action";
 
-import { FormErrorDialog } from "./form-error-dialog";
+import { BookingsInTheWay } from "./bookings-in-the-way";
 
 type FieldMark = { "aria-invalid"?: true; "aria-describedby"?: string };
 
@@ -89,7 +90,7 @@ export type FormDialogProps = {
  *
  * A refusal keeps it open with the values typed, and says why in one of two places. When it names a field that shows
  * its own refusals, the reason goes under that field, which scrolls into view and takes the focus. Anything else (no
- * field named, bookings in the way, a session that ended) opens a `FormErrorDialog` on top, which has to be answered
+ * field named, bookings in the way, a session that ended) opens an `ErrorDialog` on top (with the bookings in the way as its body), which has to be answered
  * and gives the focus back to the submit button. A success closes it and shows a toast.
  */
 export function FormDialog({ trigger, open: controlled, onOpenChange, ...props }: FormDialogProps) {
@@ -124,6 +125,7 @@ function FormBody({
   onClose,
 }: Omit<FormDialogProps, "trigger" | "open" | "onOpenChange"> & { readonly onClose: () => void }) {
   const common = useTranslations("common");
+  const refusal = useTranslations("operator.refusal");
   const [state, formAction, pending] = useActionState<OperatorFormState, FormData>(action, null);
   const formRef = useRef<HTMLFormElement>(null);
   const submitRef = useRef<HTMLButtonElement>(null);
@@ -208,19 +210,21 @@ function FormBody({
       ) : null}
 
       {failure ? (
-        <FormErrorDialog
+        <ErrorDialog
           open={errorOpen}
           onOpenChange={(next) => {
             setErrorOpen(next);
             if (!next) requestAnimationFrame(() => submitRef.current?.focus());
           }}
-          failure={failure}
-          timeZone={timeZone}
-          onRetry={() => {
-            setErrorOpen(false);
-            formRef.current?.requestSubmit();
-          }}
-        />
+          message={failure.message}
+          reason={failure.reason}
+          onRetry={() => formRef.current?.requestSubmit()}
+          {...(failure.details
+            ? { title: refusal("title", { total: failure.details.total }), closeLabel: refusal("back") }
+            : {})}
+        >
+          {failure.details ? <BookingsInTheWay details={failure.details} timeZone={timeZone} /> : null}
+        </ErrorDialog>
       ) : null}
 
       <DialogFooter>

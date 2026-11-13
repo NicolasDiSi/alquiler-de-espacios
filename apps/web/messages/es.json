@@ -366,8 +366,7 @@
         "title": "¿Desactivar la sede?",
         "description": "{name} se da de baja y no vuelve a abrir: para usarla de nuevo vas a tener que crear otra sede. Su historial y sus reservas pasadas se conservan.",
         "confirm": "Desactivar sede",
-        "working": "Desactivando…",
-        "blockedByRooms": "{count, plural, one {Tiene # sala activa: desactivala primero.} other {Tiene # salas activas: desactivalas primero.}}"
+        "working": "Desactivando…"
       },
       "search": "Buscar por nombre o dirección"
     },

@@ -42,16 +42,25 @@ export async function createMember(owner: DatabaseClient, tenantId: string): Pro
   return id;
 }
 
+/**
+ * Generous waits for test transactions: the suites run in parallel on one container, and under that load Prisma's
+ * defaults (2s for a connection, 5s per transaction) can expire every racer before one wins, which hides the race.
+ */
+export const RACE_WAITS = { maxWaitMs: 15_000, timeoutMs: 20_000 } as const;
+
 /** Runs the work in one transaction for one company, the way the unit of work does. Works for any login. */
 export function asTenant<T>(
   client: DatabaseClient,
   tenantId: string,
   work: (tx: TransactionClient) => Promise<T>,
 ): Promise<T> {
-  return client.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT set_config('app.tenant_id', ${tenantId}, true)`;
-    return work(tx);
-  });
+  return client.$transaction(
+    async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.tenant_id', ${tenantId}, true)`;
+      return work(tx);
+    },
+    { maxWait: RACE_WAITS.maxWaitMs, timeout: RACE_WAITS.timeoutMs },
+  );
 }
 
 /** Times as hours on one fixed UTC day, so a test reads as "10 to 12" and never depends on the clock. */

@@ -44,12 +44,22 @@ const active = (includeInactive: boolean) => (includeInactive ? {} : { deactivat
  * `company`, `block` and insert members, and never `booking`. Wired only in `apps/web/src/composition`. Rows already
  * have the shape of the application's records, so no mapping is needed.
  */
-export function createPrismaOperatorCatalog(db: DatabaseClient): OperatorCatalog {
+export type PrismaOperatorCatalogOptions = {
+  /** How long `transaction` waits for a free connection (Prisma's own default, made explicit). */
+  readonly maxWaitMs?: number;
+  /** How long one `transaction` may run, the facility lock it waits on included (Prisma's own default). */
+  readonly timeoutMs?: number;
+};
+
+export function createPrismaOperatorCatalog(
+  db: DatabaseClient,
+  { maxWaitMs = 2_000, timeoutMs = 5_000 }: PrismaOperatorCatalogOptions = {},
+): OperatorCatalog {
   return {
     ...translated(catalogMethods(db)),
     transaction: async (work) => {
       try {
-        return await db.$transaction((tx) => work(transactionCatalog(tx)));
+        return await db.$transaction((tx) => work(transactionCatalog(tx)), { maxWait: maxWaitMs, timeout: timeoutMs });
       } catch (error) {
         throw translate(error);
       }

@@ -3,6 +3,7 @@ import { afterAll, describe, expect, inject, it } from "vitest";
 import { createDatabaseClient } from "./client";
 import { sqlState } from "./sql-state";
 import { asTenant, at, book, createMember, createRoom, createTenant } from "./testing/fixtures";
+import { settledOutcomes } from "./testing/outcomes";
 import { sqlStateOf } from "./testing/sql-state";
 
 const urls = inject("databaseUrls");
@@ -173,14 +174,15 @@ describe("no overlapping bookings (exclusion constraint, spec 0001 P-1 and P-2)"
       companies.flatMap((c) => [0, 1].map(() => book(pool, { ...c, roomId, startsAt: at(14), endsAt: at(15) }))),
     );
 
-    const won = results.filter((result) => result.status === "fulfilled");
-    const lost = results.filter((result) => result.status === "rejected");
-    expect(won).toHaveLength(1);
-    expect(lost).toHaveLength(7);
-    for (const result of lost) {
-      const state = await sqlStateOf(Promise.reject((result as PromiseRejectedResult).reason));
-      expect(state).toBe("23P01");
-    }
+    // A plain INSERT that meets an uncommitted overlapping row waits for it; two such inserts can wait on each other,
+    // and Postgres then aborts one with a deadlock (40P01, about 1 loser in 40 in a probe of 80 rounds). Either way
+    // the loser wrote nothing, so a loser is 23P01 or 40P01, and exactly one wins. The app never takes this path: its
+    // `INSERT ... ON CONFLICT DO NOTHING` (bookings.test.ts, P-1) waits instead, and a 40P01 would answer `busy`.
+    const outcomes = settledOutcomes(results);
+    expect(outcomes.filter((outcome) => outcome === "ok")).toHaveLength(1);
+    expect(
+      outcomes.filter((outcome) => outcome !== "ok").every((outcome) => outcome === "23P01" || outcome === "40P01"),
+    ).toBe(true);
     await expect(operator.booking.count({ where: { roomId } })).resolves.toBe(1);
   });
 });

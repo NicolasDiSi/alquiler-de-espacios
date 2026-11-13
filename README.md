@@ -53,3 +53,7 @@ Business rules the brief leaves open, decided in the specs under `docs/specs/`.
 - Low utilization slots are heatmap cells under 20% occupancy (adjustable), emptiest first, at most 20.
 - `lastBookingAt` is when the company last made a confirmed booking, whatever the range.
 - The operator dashboard reads the last 7, 30 or 90 complete days, ending yesterday in Buenos Aires, and compares each figure with the same number of days right before. The daily chart always covers the last 90 days. A room is in high demand from 80% occupancy and in low demand under 20%. A value that cannot be measured shows a dash, never 0% (spec 0006, assumed).
+
+## Limitaciones conocidas
+
+- **Concurrencia al reservar.** La restricción de exclusión de la base garantiza que nunca se guarden dos reservas solapadas. La app reserva con `INSERT ... ON CONFLICT DO NOTHING`, que espera a una reserva en curso en lugar de chocar con ella: en carreras de 8 empresas siempre hay un ganador y siete `conflict`. Un `INSERT` simple (alguien que escribiera sin pasar por el caso de uso) puede terminar en deadlock (`40P01`); Postgres aborta a uno sin guardar nada y la app lo responde como `busy` (503, reintentar). `database-guarantees.test.ts` acepta ese resultado y `bookings.test.ts` exige el estricto.

@@ -12,11 +12,13 @@ import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 
 import { createDatabaseClient } from "./client";
 import { createPrismaOperatorCatalog } from "./operator-catalog";
-import { asTenant, at, createMember, createTenant } from "./testing/fixtures";
+import { asTenant, at, createMember, createTenant, RACE_WAITS } from "./testing/fixtures";
+import { oneWinner, resultOutcomes } from "./testing/outcomes";
 
 const owner = createDatabaseClient(inject("databaseUrls").ownerUrl);
 const operator = createDatabaseClient(inject("databaseUrls").operatorUrl);
-const catalog = createPrismaOperatorCatalog(operator);
+// Longer waits for a connection and for the facility lock than in the app: the suites share one container.
+const catalog = createPrismaOperatorCatalog(operator, RACE_WAITS);
 
 afterAll(async () => {
   await Promise.all([operator.$disconnect(), owner.$disconnect()]);
@@ -286,10 +288,7 @@ describe("deactivation, hours change and blocks against the real database (spec 
       ),
     );
 
-    expect(results.filter((result) => result.ok)).toHaveLength(1);
-    for (const refused of results.filter((result) => !result.ok)) {
-      expect(refused).toEqual({ ok: false, reason: "block_overlaps_block" });
-    }
+    expect(resultOutcomes(results)).toEqual(oneWinner(6, "block_overlaps_block"));
     expect(await operator.block.count({ where: { facilityId: site.id, releasedAt: null } })).toBe(1);
   });
 });

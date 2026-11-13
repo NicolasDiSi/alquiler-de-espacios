@@ -139,13 +139,11 @@ export default async function ClientPage({
       <ActivityCards activity={activity.value} subject="client" />
 
       <Tabs defaultValue="activity" className="flex flex-col gap-4">
-        <TabsList>
+        <TabsList variant="line">
           <TabsTrigger value="activity">{a("tabs.activity")}</TabsTrigger>
           <TabsTrigger value="members">
             {m("title")}
-            <Badge variant="secondary" className="ml-1">
-              {members.length}
-            </Badge>
+            <Badge className="ml-1">{members.length}</Badge>
           </TabsTrigger>
         </TabsList>
 

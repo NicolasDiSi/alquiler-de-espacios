@@ -2,7 +2,7 @@
   "name": "@espacios/application",
   "version": "0.0.0",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "SEE LICENSE IN LICENSE",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"

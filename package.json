@@ -2,7 +2,7 @@
   "name": "alquiler-de-espacios",
   "version": "0.0.0",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "SEE LICENSE IN LICENSE",
   "packageManager": "pnpm@12.16.1",
   "engines": {
     "node": ">=24"

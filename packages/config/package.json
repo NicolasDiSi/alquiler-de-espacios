@@ -2,7 +2,7 @@
   "name": "@espacios/config",
   "version": "0.0.0",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "SEE LICENSE IN LICENSE",
   "files": ["tsconfig"],
   "exports": {
     "./tsconfig/*.json": "./tsconfig/*.json"

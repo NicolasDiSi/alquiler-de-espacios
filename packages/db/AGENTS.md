@@ -6,18 +6,19 @@ The PostgreSQL adapter: the Prisma 7 schema and migrations, row level security, 
 
 ## Key files
 
-| File                          | Owns                                                                                                             |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `prisma/schema.prisma`        | Tables (snake_case through `@map`): `company`, `app_user`, `room`, `booking`                                     |
-| `prisma/migrations/`          | Generated migrations plus hand written SQL: grants, RLS with `FORCE`, exclusion and CHECK constraints, functions |
-| `prisma/seed.sql`             | Idempotent demo data for `pnpm db:seed` (fixed ids, `ON CONFLICT DO NOTHING`, tenant set per company)            |
-| `prisma.config.ts`            | CLI config: schema, migrations, owner connection                                                                 |
-| `src/unit-of-work.ts`         | `createPrismaUnitOfWork`: one transaction per run, `set_config('app.tenant_id', ..., true)`, scoped repositories |
-| `../../infra/local/postgres/` | Cluster roles, created once by the superuser (compose init and the test global setup), never in a migration      |
-| `src/testing/global-setup.ts` | One throwaway Postgres per test run: runs the roles SQL, migrates as the owner, hands out the login URLs         |
-| `src/testing/fixtures.ts`     | Test companies, rooms, members and bookings, written as the owner with the tenant set (`asTenant`)               |
-| `src/testing/prisma-cli.ts`   | Runs the real Prisma CLI in tests (seed, deploy, drift check)                                                    |
-| `src/testing/sql-state.ts`    | Test only SQLSTATE unwrapping until the error contract feature adds the real `sqlState(err)`                     |
+| File                          | Owns                                                                                                                                                                                 |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `prisma/schema.prisma`        | Tables (snake_case through `@map`): `company`, `app_user`, `room`, `booking`                                                                                                         |
+| `prisma/migrations/`          | Generated migrations plus hand written SQL: grants, RLS with `FORCE`, exclusion and CHECK constraints, functions                                                                     |
+| `prisma/seed.sql`             | Idempotent demo data for `pnpm db:seed` (fixed ids, `ON CONFLICT DO NOTHING`, tenant set per company)                                                                                |
+| `prisma.config.ts`            | CLI config: schema, migrations, owner connection                                                                                                                                     |
+| `src/unit-of-work.ts`         | `createPrismaUnitOfWork`: one transaction per run, `set_config('app.tenant_id', ..., true)`, scoped repositories                                                                     |
+| `../../infra/local/postgres/` | Cluster roles, created once by the superuser (compose init and the test global setup), never in a migration                                                                          |
+| `src/testing/global-setup.ts` | One throwaway Postgres per test run: runs the roles SQL, migrates as the owner, hands out the login URLs. `startDatabase()` gives a test its own (`persistence.test.ts` restarts it) |
+| `src/testing/outcomes.ts`     | Race assertions: every racer's outcome at once (`settledOutcomes`, `resultOutcomes`, `oneWinner`)                                                                                    |
+| `src/testing/fixtures.ts`     | Test companies, rooms, members and bookings, written as the owner with the tenant set (`asTenant`)                                                                                   |
+| `src/testing/prisma-cli.ts`   | Runs the real Prisma CLI in tests (seed, deploy, drift check)                                                                                                                        |
+| `src/testing/sql-state.ts`    | Test only SQLSTATE unwrapping until the error contract feature adds the real `sqlState(err)`                                                                                         |
 
 ## Commands
 

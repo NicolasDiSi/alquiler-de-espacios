@@ -160,6 +160,7 @@
     "newBooking": "Nueva reserva",
     "columns": {
       "room": "Sala",
+      "facility": "Sede",
       "date": "Fecha",
       "time": "Horario",
       "bookedBy": "Reservada por",
@@ -186,6 +187,12 @@
       "past": "Reservas pasadas de tu empresa, la más reciente primero",
       "cancelled": "Reservas canceladas de tu empresa, la más reciente primero"
     },
+    "search": "Buscar por sala, sede o persona",
+    "capped": {
+      "upcoming": "Se muestran las 500 reservas más cercanas.",
+      "past": "Se muestran las 500 reservas más recientes.",
+      "cancelled": "Se muestran las 500 cancelaciones más recientes."
+    },
     "empty": {
       "upcoming": {
         "title": "No hay reservas próximas",
@@ -201,12 +208,6 @@
       }
     },
     "newBadge": "Nueva",
-    "loadMore": "Ver más",
-    "loadingMore": "Cargando…",
-    "noMore": "No hay más reservas",
-    "loadError": "No pudimos cargar más reservas.",
-    "retry": "Reintentar",
-    "loaded": "{count, plural, one {Se cargó # reserva más} other {Se cargaron # reservas más}}",
     "loading": "Cargando reservas…",
     "error": {
       "title": "No pudimos mostrar tus reservas",

@@ -126,7 +126,9 @@ test.describe("book a room (specs 0003, 0008 and 0011)", () => {
     await book(page, slot, "room-luna");
     await expect(page.getByText("Reserva confirmada")).toBeVisible();
 
-    await page.goto("/?vista=proximas");
+    // The toast's way to Mis reservas opens the table on the new booking's page.
+    await page.getByRole("button", { name: "Ver en Mis reservas" }).click();
+    await expect(page).toHaveURL(/\/\?vista=proximas/);
     const row = bookingRow(page, slot, "Sala Luna");
     await row.getByRole("button", { name: /^Cancelar la reserva de Sala Luna/ }).click();
     const dialog = page.getByRole("dialog", { name: "¿Cancelar esta reserva?" });

@@ -4,7 +4,12 @@ import type { BookingId, BookingStatus, BusyInterval, UserId } from "@espacios/d
 export type BookingRecord = {
   readonly id: BookingId;
   /** `timeZone` is the room's facility zone, so the view writes its instants with the right offset (spec 0004). */
-  readonly room: { readonly id: string; readonly name: string; readonly timeZone: string };
+  readonly room: {
+    readonly id: string;
+    readonly name: string;
+    readonly facilityName: string;
+    readonly timeZone: string;
+  };
   readonly bookedBy: { readonly name: string };
   readonly startsAt: Date;
   readonly endsAt: Date;

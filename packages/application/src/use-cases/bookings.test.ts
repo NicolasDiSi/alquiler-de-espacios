@@ -70,6 +70,7 @@ function fakeDatabase() {
           room: {
             id: booking.roomId,
             name: NORTE.name,
+            facilityName: "Sede Central",
             timeZone: ALL_ROOMS.find((room) => room.id === booking.roomId)?.facility.timeZone ?? BUENOS_AIRES,
           },
           bookedBy: { name: USERS[booking.bookedBy] ?? "?" },
@@ -169,7 +170,7 @@ describe("bookRoom", () => {
         created: true,
         booking: {
           id: "booking-1",
-          room: { id: "room-norte", name: "Sala Norte" },
+          room: { id: "room-norte", name: "Sala Norte", facilityName: "Sede Central" },
           startsAt: "2026-11-10T10:00:00-03:00",
           endsAt: "2026-11-10T11:00:00-03:00",
           status: "confirmed",
@@ -325,7 +326,7 @@ function record(id: string, startsAt: Date, endsAt: Date): Stored {
   return {
     tenantId: ACME,
     id: id as BookingId,
-    room: { id: NORTE.id, name: NORTE.name, timeZone: BUENOS_AIRES },
+    room: { id: NORTE.id, name: NORTE.name, facilityName: "Sede Central", timeZone: BUENOS_AIRES },
     bookedBy: { name: "Ana" },
     startsAt,
     endsAt,

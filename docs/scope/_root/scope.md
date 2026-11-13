@@ -79,7 +79,7 @@ The walking skeleton. A signed in company member picks a room, a date and a time
   - [x] Booking core: domain rules, the book and list use cases, the database proofs (P-1, P-2, P-11, cross company cursor) · AC-2, AC-4, AC-5, AC-6, AC-7, AC-12
   - [x] Thin thread: `POST` and `GET /api/v1/bookings`, the `bookRoom` Server Action, a minimal form and a one view list · AC-1, AC-3, AC-5, AC-12, AC-14
   - [x] Full form: calendar, defaults, prefill, field marks, the busy retry and the expired session link · AC-3, AC-7, AC-8, AC-9
-  - [x] Full list and e2e: three views, cards on phones, "Ver más", empty, loading and error states, e2e with axe · AC-1, AC-2, AC-10, AC-11, AC-13
+  - [x] Full list and e2e: three views as the shared table (search, filters, pages), cards on phones, empty, loading and error states, e2e with axe · AC-1, AC-2, AC-10, AC-11, AC-13
 - [ ] Verify it: `/check verify book a room` (skipped 2026-11-13: covered by its tests)
 - [x] Test it: `/test book a room`
   Spec 0001 (rules, API, error contract) and [spec 0003](../../specs/_root/0003-booking-form-my-bookings/index.md) (the two screens) · code in `packages/domain/`, `packages/application/`, `packages/db/`, `apps/web/`

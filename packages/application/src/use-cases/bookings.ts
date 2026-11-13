@@ -25,7 +25,8 @@ import { type Dependencies, withRaceHandling } from "./shared";
  */
 export type BookingView = {
   readonly id: BookingId;
-  readonly room: { readonly id: string; readonly name: string };
+  /** `facilityName` is the room's sede: Mis reservas filters by it. */
+  readonly room: { readonly id: string; readonly name: string; readonly facilityName: string };
   readonly startsAt: string;
   readonly endsAt: string;
   readonly status: BookingStatus;
@@ -38,7 +39,7 @@ export type BookingView = {
 export function toBookingView(record: BookingRecord, now: Date): BookingView {
   return {
     id: record.id,
-    room: { id: record.room.id, name: record.room.name },
+    room: { id: record.room.id, name: record.room.name, facilityName: record.room.facilityName },
     startsAt: toFacilityIso(record.startsAt, record.room.timeZone),
     endsAt: toFacilityIso(record.endsAt, record.room.timeZone),
     status: record.status,

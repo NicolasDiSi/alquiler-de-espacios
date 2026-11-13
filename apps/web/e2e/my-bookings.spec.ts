@@ -5,7 +5,8 @@ import { CENTRAL, START_TIMES } from "./facility";
 import { waitForHydration } from "./fixtures";
 import { sessionCookie, USERS } from "./session";
 
-const PAGE_SIZE = 50;
+/** Rows per page of every table of the app (`DATA_TABLE_PAGE_SIZE`). */
+const PAGE_SIZE = 10;
 
 /** The next `count` weekdays from 40 days ahead: inside the 60 day horizon and clear of the seed's two weeks. */
 function weekdaysFrom40(count: number): LocalDate[] {
@@ -19,14 +20,14 @@ function weekdaysFrom40(count: number): LocalDate[] {
 }
 
 /**
- * Gives Initech more than one page of upcoming bookings through the API: Sala Sol, every half hour of three days. Only
- * this file books Sala Sol, and a repeat by the same company answers 200, so a reused server is fine.
+ * Gives Initech more than two pages of upcoming bookings through the API: Sala Sol, every half hour from 40 days ahead.
+ * Only this file books Sala Sol, and a repeat by the same company answers 200, so a reused server is fine.
  */
-async function fillMoreThanOnePage(page: Page) {
+async function fillMoreThanTwoPages(page: Page) {
   const slots = weekdaysFrom40(3).flatMap((day) =>
     START_TIMES.map((start, index) => ({ day, start, end: START_TIMES[index + 1] ?? "20:00" })),
   );
-  for (const { day, start, end } of slots.slice(0, PAGE_SIZE + 1)) {
+  for (const { day, start, end } of slots.slice(0, PAGE_SIZE * 2 + 1)) {
     const response = await page.request.post("/api/v1/bookings", {
       data: { roomId: "room-sol", startsAt: `${day}T${start}:00-03:00`, endsAt: `${day}T${end}:00-03:00` },
     });
@@ -76,31 +77,28 @@ test.describe("Mis reservas (spec 0003)", () => {
     await expect(cancelled.or(empty)).toBeVisible();
   });
 
-  test("Ver más loads the next page, and a failed load keeps the rows and offers a retry", async ({
+  test("the table searches, filters and pages the bookings, as every list of the app does", async ({
     page,
     context,
   }) => {
     await context.clearCookies();
     await context.addCookies([sessionCookie(USERS.diego.id)]);
-    await fillMoreThanOnePage(page);
+    await fillMoreThanTwoPages(page);
 
     await page.goto("/");
     await waitForHydration(page);
     await expect(tableRows(page)).toHaveCount(PAGE_SIZE);
+    const pages = page.getByRole("navigation", { name: "Páginas" });
+    await expect(pages).toContainText("Página 1 de");
+    await pages.getByRole("button", { name: "Siguiente" }).click();
+    await expect(pages).toContainText("Página 2 de");
 
-    await page.route("**/api/v1/bookings?**", (route) => route.abort());
-    await page.getByRole("button", { name: "Ver más" }).click();
-    const failure = page.getByRole("alert").filter({ hasText: "No pudimos cargar más reservas." });
-    await expect(failure).toBeVisible();
-    await expect(tableRows(page)).toHaveCount(PAGE_SIZE);
-
-    await page.unroute("**/api/v1/bookings?**");
-    await failure.getByRole("button", { name: "Reintentar" }).click();
-    await expect.poll(() => tableRows(page).count()).toBeGreaterThan(PAGE_SIZE);
-    // Keep loading until the end; the button is then replaced by a sentence.
-    const more = page.getByRole("button", { name: "Ver más" });
-    while (await more.isVisible()) await more.click();
-    await expect(page.getByText("No hay más reservas")).toBeVisible();
+    // The search narrows every booking of the view, not only the page in sight, and starts again from page 1.
+    await page.getByRole("searchbox", { name: "Buscar por sala, sede o persona" }).fill("Sol");
+    await expect(pages).toContainText("Página 1 de");
+    const rows = tableRows(page);
+    await expect(rows).toHaveCount(PAGE_SIZE);
+    for (const row of await rows.all()) await expect(row).toContainText("Sala Sol");
   });
 
   test("on a phone each booking is a card and nothing scrolls sideways", async ({ page }) => {

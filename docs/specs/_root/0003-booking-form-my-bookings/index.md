@@ -207,3 +207,7 @@ Tracer Bullet: tasks 1 to 5 build one thin real thread (book through a minimal f
 ## Amendment (2026-11-13): where a refusal is shown
 
 Spec 0011 replaces the alert slot at the top of the form: a refusal that names a field shows its reason under that field (which takes the focus), and any other refusal opens an alert dialog on top with the same actions ("Reintentar", "Elegir usuario de nuevo"). The reasons, their texts and the fields each one marks stay as written here.
+
+## Amendment (2026-11-13): Mis reservas is a table like every other list
+
+Each view is now the app's shared table (spec 0005): a search by room, sede or member, facet filters by sede, member and (in Próximas) state, sorting, and pages of ten, from `md` up a native table and cards below. AC-10 changes: the page reads the whole view (at most 500 bookings, the soonest for Próximas and the latest for Pasadas and Canceladas, with a line saying so when there are more) and the table narrows them in the browser, so "Ver más" is gone; arriving with `?nueva=<id>` opens the table on the new booking's page. `GET /api/v1/bookings` keeps its cursor pages for API clients (AC-14). The booking view DTO gains `room.facilityName`, the room's sede.

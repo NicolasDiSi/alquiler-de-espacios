@@ -105,10 +105,8 @@ test.describe("operator administration screens (spec 0005)", () => {
     await expect(page.getByText("Bloqueo liberado")).toBeVisible();
     // Active blocks are the default view; a released one is reached through the state filter.
     await expect(page.getByRole("row", { name: /Mantenimiento E2E/ })).toHaveCount(0);
-    await page
-      .getByRole("button", { name: /^Estado/ })
-      .last()
-      .click();
+    // The filter's own button: "Estado: Activo Quitar" (its chip) and the column header start with "Estado" too.
+    await page.getByRole("region", { name: "Bloqueos" }).getByRole("button", { name: "Estado 1 elegido" }).click();
     await page.getByRole("checkbox", { name: "Liberado" }).check();
     await page.keyboard.press("Escape");
     await expect(page.getByRole("row", { name: /Mantenimiento E2E/ }).getByText("Liberado")).toBeVisible();

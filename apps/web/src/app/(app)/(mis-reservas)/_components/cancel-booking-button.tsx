@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 
 import type { BookingView } from "@espacios/application";
+import type { Reason } from "@espacios/domain";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
+import { ErrorDialog } from "@/components/error-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,17 +32,19 @@ export type CancelBookingButtonProps = {
 
 /**
  * The cancel action of a row in Próximas (spec 0003, feature 7). Cancelling is final, so it asks first. The company is
- * never sent: the action reads it from the session. A refusal keeps the dialog open and says why; "ya estaba
- * cancelada" and "no encontrada" also drop the row, because it is not upcoming any more.
+ * never sent: the action reads it from the session. A refusal keeps the dialog open and says why in an `ErrorDialog`
+ * on top, which gives the focus back to the button. "Ya estaba cancelada" and "no encontrada" drop the row once that
+ * is answered (not before: the row holds both dialogs), because it is not upcoming any more.
  */
 export function CancelBookingButton({ booking, summary, onGone }: CancelBookingButtonProps) {
   const t = useTranslations("home.cancelAction");
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
-  const [failure, setFailure] = useState<string | null>(null);
+  const [failure, setFailure] = useState<{ readonly message: string; readonly reason: Reason } | null>(null);
+  const [errorOpen, setErrorOpen] = useState(false);
+  const confirmRef = useRef<HTMLButtonElement>(null);
 
   const confirm = () => {
-    setFailure(null);
     startTransition(async () => {
       const result = await cancelBooking(booking.id);
       if (result.ok) {
@@ -49,9 +53,19 @@ export function CancelBookingButton({ booking, summary, onGone }: CancelBookingB
         toast.success(result.message);
         return;
       }
-      setFailure(result.message);
-      if (result.reason === "already_cancelled" || result.reason === "not_found") onGone(booking.id);
+      setFailure({ message: result.message, reason: result.reason });
+      setErrorOpen(true);
     });
+  };
+
+  const answered = () => {
+    setErrorOpen(false);
+    if (failure?.reason === "already_cancelled" || failure?.reason === "not_found") {
+      setOpen(false);
+      onGone(booking.id);
+    } else {
+      requestAnimationFrame(() => confirmRef.current?.focus());
+    }
   };
 
   return (
@@ -75,9 +89,13 @@ export function CancelBookingButton({ booking, summary, onGone }: CancelBookingB
           <DialogDescription>{t("description", summary)}</DialogDescription>
         </DialogHeader>
         {failure ? (
-          <p role="alert" className="text-destructive text-sm">
-            {failure}
-          </p>
+          <ErrorDialog
+            open={errorOpen}
+            onOpenChange={(next) => (next ? setErrorOpen(true) : answered())}
+            message={failure.message}
+            reason={failure.reason}
+            onRetry={confirm}
+          />
         ) : null}
         <DialogFooter>
           <DialogClose asChild>
@@ -85,7 +103,7 @@ export function CancelBookingButton({ booking, summary, onGone }: CancelBookingB
               {t("keep")}
             </Button>
           </DialogClose>
-          <Button type="button" variant="destructive" onClick={confirm} disabled={pending}>
+          <Button ref={confirmRef} type="button" variant="destructive" onClick={confirm} disabled={pending}>
             {pending ? t("pending") : t("confirm")}
           </Button>
         </DialogFooter>

@@ -15,6 +15,7 @@ const STATUS = {
   already_exists: 409,
   has_future_bookings: 409,
   block_has_bookings: 409,
+  block_overlaps_block: 409,
   facility_has_active_rooms: 409,
   facility_inactive: 409,
   individual_is_single: 409,
@@ -36,10 +37,11 @@ export function reasonToHttp(reason: Reason): (typeof STATUS)[Reason] {
   return STATUS[reason];
 }
 
-const bookingBody = ({ id, roomId, roomName, companyName, startsAt, endsAt }: AffectedBooking) => ({
+const bookingBody = ({ id, roomId, roomName, companyId, companyName, startsAt, endsAt }: AffectedBooking) => ({
   id,
   roomId,
   roomName,
+  companyId,
   companyName,
   startsAt: startsAt.toISOString(),
   endsAt: endsAt.toISOString(),

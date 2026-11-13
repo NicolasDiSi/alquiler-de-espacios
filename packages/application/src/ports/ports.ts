@@ -1,6 +1,6 @@
 import type { Reason, TenantId } from "@espacios/domain";
 
-import type { BookingRepository, MyBookingsQuery } from "./bookings";
+import type { AvailabilityQuery, BookingRepository, MyBookingsQuery } from "./bookings";
 
 export interface Clock {
   now(): Date;
@@ -18,6 +18,7 @@ export interface IdGenerator {
 export type TenantTransaction = {
   readonly bookings: BookingRepository;
   readonly myBookings: MyBookingsQuery;
+  readonly availability: AvailabilityQuery;
 };
 
 /**

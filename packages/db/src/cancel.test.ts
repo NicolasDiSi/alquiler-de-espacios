@@ -5,7 +5,8 @@ import { afterAll, describe, expect, inject, it } from "vitest";
 import { createDatabaseClient } from "./client";
 import { createUuidV7Generator } from "./ids";
 import { createPrismaRoomCatalog } from "./room-catalog";
-import { createMember, createRoom, createTenant } from "./testing/fixtures";
+import { createMember, createRoom, createTenant, RACE_WAITS } from "./testing/fixtures";
+import { oneWinner, resultOutcomes } from "./testing/outcomes";
 import { createPrismaUnitOfWork } from "./unit-of-work";
 
 const urls = inject("databaseUrls");
@@ -25,7 +26,7 @@ const BEFORE = at("2030-01-07", 9);
 const DAY = "2030-01-08";
 
 const edge = (now: Date) => ({
-  uow: createPrismaUnitOfWork(runtime),
+  uow: createPrismaUnitOfWork(runtime, RACE_WAITS),
   clock: { now: () => now },
   ids: createUuidV7Generator(),
   rooms: createPrismaRoomCatalog(runtime),
@@ -125,9 +126,6 @@ describe("cancelBooking against Postgres (runtime login, RLS on)", () => {
 
     const results = await Promise.all(Array.from({ length: 6 }, () => cancelBooking(edge(BEFORE), ana, id)));
 
-    expect(results.filter((result) => result.ok)).toHaveLength(1);
-    const refused = results.filter((result) => !result.ok);
-    expect(refused).toHaveLength(5);
-    expect(refused.every((result) => !result.ok && result.reason === "already_cancelled")).toBe(true);
+    expect(resultOutcomes(results)).toEqual(oneWinner(6, "already_cancelled"));
   });
 });

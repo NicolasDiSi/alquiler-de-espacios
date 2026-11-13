@@ -46,10 +46,14 @@ Business rules the brief leaves open, decided in the specs under `docs/specs/`.
 - Every user belongs to a client company, or is the operator. A person who works alone is a client of kind `individual` with one member, so tenant isolation stays one rule.
 - A facility (sede) owns the time zone, the opening hours and the open weekdays. Rooms and companies are deactivated, never deleted. A deactivated room or facility never reopens (create a new room instead); a company can be reactivated.
 - The operator cannot book or cancel on behalf of a client. Only members write bookings.
-- Blocks (maintenance, holidays, private events) cover a room or a whole facility. They are never edited, only released, and companies see them only as "not available".
+- Blocks (maintenance, holidays, private events) cover a room or a whole facility. They are never edited, only released, and companies see them only as "not available". A block never overlaps another active block of the same room or of the whole sede: release it first or choose another time.
 - Metrics count confirmed bookings only. Occupancy is booked minutes over open minutes inside the room's active window, with blocked time taken out. Facility and overall occupancy are a weighted ratio, never an average of room ratios.
 - A metric range is at most 366 days. Each day is read in its facility's time zone.
 - A company is a promotion candidate with no confirmed booking in the range, with booked time under 25% of the mean of active companies (needs at least 3 of them), or with a cancellation rate of 0.3 or more over at least 5 bookings.
 - Low utilization slots are heatmap cells under 20% occupancy (adjustable), emptiest first, at most 20.
 - `lastBookingAt` is when the company last made a confirmed booking, whatever the range.
 - The operator dashboard reads the last 7, 30 or 90 complete days, ending yesterday in Buenos Aires, and compares each figure with the same number of days right before. The daily chart always covers the last 90 days. A room is in high demand from 80% occupancy and in low demand under 20%. A value that cannot be measured shows a dash, never 0% (spec 0006, assumed).
+
+## Limitaciones conocidas
+
+- **Concurrencia al reservar.** La restricción de exclusión de la base garantiza que nunca se guarden dos reservas solapadas. La app reserva con `INSERT ... ON CONFLICT DO NOTHING`, que espera a una reserva en curso en lugar de chocar con ella: en carreras de 8 empresas siempre hay un ganador y siete `conflict`. Un `INSERT` simple (alguien que escribiera sin pasar por el caso de uso) puede terminar en deadlock (`40P01`); Postgres aborta a uno sin guardar nada y la app lo responde como `busy` (503, reintentar). `database-guarantees.test.ts` acepta ese resultado y `bookings.test.ts` exige el estricto.

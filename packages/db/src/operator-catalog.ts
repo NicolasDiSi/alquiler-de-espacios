@@ -1,5 +1,6 @@
 import {
   type BlockRecord,
+  type BlockTarget,
   type BookingScope,
   type ClientRecord,
   type FacilityRecord,
@@ -43,12 +44,22 @@ const active = (includeInactive: boolean) => (includeInactive ? {} : { deactivat
  * `company`, `block` and insert members, and never `booking`. Wired only in `apps/web/src/composition`. Rows already
  * have the shape of the application's records, so no mapping is needed.
  */
-export function createPrismaOperatorCatalog(db: DatabaseClient): OperatorCatalog {
+export type PrismaOperatorCatalogOptions = {
+  /** How long `transaction` waits for a free connection (Prisma's own default, made explicit). */
+  readonly maxWaitMs?: number;
+  /** How long one `transaction` may run, the facility lock it waits on included (Prisma's own default). */
+  readonly timeoutMs?: number;
+};
+
+export function createPrismaOperatorCatalog(
+  db: DatabaseClient,
+  { maxWaitMs = 2_000, timeoutMs = 5_000 }: PrismaOperatorCatalogOptions = {},
+): OperatorCatalog {
   return {
     ...translated(catalogMethods(db)),
     transaction: async (work) => {
       try {
-        return await db.$transaction((tx) => work(transactionCatalog(tx)));
+        return await db.$transaction((tx) => work(transactionCatalog(tx)), { maxWait: maxWaitMs, timeout: timeoutMs });
       } catch (error) {
         throw translate(error);
       }
@@ -91,6 +102,7 @@ function transactionCatalog(tx: TransactionClient): OperatorCatalogTransaction {
       id: row.id,
       roomId: row.roomId,
       roomName: row.room.name,
+      companyId: row.tenantId,
       companyName: row.company.name,
       startsAt: row.startsAt,
       endsAt: row.endsAt,
@@ -116,6 +128,18 @@ function transactionCatalog(tx: TransactionClient): OperatorCatalogTransaction {
         affected({ ...bookingWhere(scope), startsAt: { gt: after } }),
       overlappingBookings: (scope: BookingScope, startsAt: Date, endsAt: Date) =>
         affected({ ...bookingWhere(scope), startsAt: { lt: endsAt }, endsAt: { gt: startsAt } }),
+      overlappingBlocks: (target: BlockTarget, startsAt: Date, endsAt: Date) =>
+        tx.block.findMany({
+          where: {
+            facilityId: target.facilityId,
+            releasedAt: null,
+            startsAt: { lt: endsAt },
+            endsAt: { gt: startsAt },
+            // A room is closed by its own blocks and by the whole sede's; the whole sede, by every block of it.
+            ...(target.roomId === null ? {} : { OR: [{ roomId: target.roomId }, { roomId: null }] }),
+          },
+          orderBy: [{ startsAt: "asc" }, { id: "asc" }],
+        }) as Promise<readonly BlockRecord[]>,
       countActiveRooms: (facilityId: string) => tx.room.count({ where: { facilityId, deactivatedAt: null } }),
       setFacilityDeactivation: (id: string, at: Date | null) =>
         orNull(tx.facility.update({ where: { id }, data: { deactivatedAt: at } })),

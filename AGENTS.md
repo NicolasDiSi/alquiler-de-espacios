@@ -4,7 +4,7 @@
 
 alquiler-de-espacios is a technical challenge (Fontanella SRL, Senior Full Stack, 72 hours): a web app where client companies see meeting room availability, book rooms and cancel their own bookings, and the operator sees utilization metrics overall and per client company. The full brief is in [docs/challenge.md](docs/challenge.md); read it before planning.
 
-**Status:** the repo foundation (tooling, layer packages, web app shell) and the database foundation (roles, FORCE row level security, the booking schema with the overlap constraint, demo seeds) are in place. On top of them: the company identity picker, booking and cancelling with "Mis reservas", operator administration (facilities, rooms, clients, blocks), the metrics API, the operator dashboard and the client activity page (specs 0002 to 0007). Spec 0001 made the architecture decisions and [docs/scope/_root/scope.md](docs/scope/_root/scope.md) holds the build order. Next: room availability (spec 0008).
+**Status:** the foundations, booking, cancelling, room availability, the operator's administration (sedes, rooms, clients, blocks), its metrics API and dashboard, and the client and sede activity pages are built (specs 0001 to 0009). The company API is in [docs/api/company.md](docs/api/company.md), the operator's in [docs/api/operator.md](docs/api/operator.md). [docs/scope/_root/scope.md](docs/scope/_root/scope.md) holds the build order and each feature's status. Left for delivery: the README sections the brief asks for (run and test, architecture, limitations, AI usage).
 
 ## Non negotiables from the brief
 
@@ -22,7 +22,7 @@ alquiler-de-espacios is a technical challenge (Fontanella SRL, Senior Full Stack
 - ADRs in `docs/adr/` (monorepo, ports and adapters, Prisma with RLS, TypeScript 6): spec 0001 builds on all four and amends ADR 0003 with the database roles.
 - API style: Server Actions for the UI plus a documented REST API under `/api/v1`, both calling the same use cases and returning the same typed result.
 - Company identity without real authentication: seeded users and a "sign in as" picker that sets an HMAC signed cookie. The server reads the company from the cookie, never from client input.
-- Booking rules: one zone (`America/Argentina/Buenos_Aires`), a 30 minute grid, Monday to Friday 08:00 to 20:00, 30 minutes to 4 hours, up to 60 days ahead, cancel any time before the start. See "Booking rules" in the spec.
+- Booking rules: a 30 minute grid, 30 minutes to 4 hours, up to 60 days ahead, cancel any time before the start. Hours, open weekdays and time zone belong to each sede since spec 0004 (the demo sede: Monday to Friday 08:00 to 20:00, `America/Argentina/Buenos_Aires`). See "Booking rules" in spec 0001 and spec 0004.
 - Metrics: occupancy per room and overall, usage per company and a weekday by hour heatmap, over confirmed bookings only. See "Metrics (definitions)" in the spec.
 
 ## Stack
@@ -109,7 +109,17 @@ The business rules do not know about Next.js or Prisma. `dependency-cruiser` enf
 - **Integration:** real Postgres through `@testcontainers/postgresql` for repositories, RLS, the overlap constraint under concurrency and the metric queries.
 - **End to end:** Playwright with axe in `apps/web/e2e/`, against the built app: book, see the failure reason, cancel, operator metrics.
 - **One execution context.** The pre-commit hook, `pnpm check:ai` and CI all run Vitest inside each workspace. The root `vitest.config.ts` exists only for editors.
+- **Race tests assert every outcome at once,** with `settledOutcomes` or `resultOutcomes` and `oneWinner` (`packages/db/src/testing/outcomes.ts`), never the count of winners first: a failure must print why each racer lost. Their transactions use `RACE_WAITS`, so load on the shared container never turns a race into timeouts.
+- **The HTTP contract is tested twice:** `apps/web/src/app/api/v1/routes.test.ts` checks every route file (it authenticates, a member route reads no company id, it is documented) and `handlers.test.ts` calls the handlers with signed cookies. A new route needs its row in `docs/api/` or that test fails.
 - **Never depend on the working directory.** Scripts, configs and test setups resolve paths from their own file (`fileURLToPath(new URL(..., import.meta.url))`), never from `process.cwd()`.
+
+## Keeping the work consistent
+
+- **A rule change carries its tests and docs in the same commit, titles included.** Before committing, grep the old rule's words in tests, specs, `docs/api/` and the README. A test that still names the old rule reads as a rule nobody updated.
+- **Every brief rule lives in two places:** the database (a constraint, a trigger, RLS) or the use case under a lock (and then the test says so), plus an integration test against Postgres that names its criterion (`P-1`, `AC-18`).
+- **Identity never comes from the request.** The company is the session's; a test sends another company's id in the body and checks it is ignored.
+- **Every endpoint authenticates first** (`authenticateRequest` or `operatorRoute`), has its row in `docs/api/`, and each reason it answers has its status in `contract.test.ts`.
+- **Closing a slice:** the full `pnpm check:ai` with e2e, then `/sync` so this file and the scope match the code.
 
 ## Code conventions
 

@@ -58,7 +58,7 @@ describe("prisma user directory (runtime role, no tenant set)", () => {
     const choices = await directory.listSignInChoices();
 
     const globexGroup = choices.companies.find((company) => company.id === globex);
-    expect(globexGroup).toEqual({ id: globex, name: "globex", users: [{ id: carla, name: carla }] });
+    expect(globexGroup).toEqual({ id: globex, name: "globex", kind: "company", users: [{ id: carla, name: carla }] });
     expect(choices.companies.find((company) => company.id === initech)?.users).toEqual([{ id: diego, name: diego }]);
     expect(choices.operators).toContainEqual({ id: operatorId, name: operatorId });
     // A member never shows up as an operator, and the operator never inside a company.

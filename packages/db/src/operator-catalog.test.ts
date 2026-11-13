@@ -12,11 +12,13 @@ import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 
 import { createDatabaseClient } from "./client";
 import { createPrismaOperatorCatalog } from "./operator-catalog";
-import { asTenant, at, createMember, createTenant } from "./testing/fixtures";
+import { asTenant, at, createMember, createTenant, RACE_WAITS } from "./testing/fixtures";
+import { oneWinner, resultOutcomes } from "./testing/outcomes";
 
 const owner = createDatabaseClient(inject("databaseUrls").ownerUrl);
 const operator = createDatabaseClient(inject("databaseUrls").operatorUrl);
-const catalog = createPrismaOperatorCatalog(operator);
+// Longer waits for a connection and for the facility lock than in the app: the suites share one container.
+const catalog = createPrismaOperatorCatalog(operator, RACE_WAITS);
 
 afterAll(async () => {
   await Promise.all([operator.$disconnect(), owner.$disconnect()]);
@@ -235,6 +237,59 @@ describe("deactivation, hours change and blocks against the real database (spec 
     await expect(
       createBlock(deps, actor, { facilityId: site.id, roomId: null, startsAt: at(19), endsAt: at(20), reason: "obra" }),
     ).resolves.toMatchObject({ ok: true });
+  });
+
+  it("refuses a block over another block of the room or of the sede, touching ends and a released block are fine", async () => {
+    const { site, room } = await world();
+    const input = (roomId: string | null, startsAt: Date, endsAt: Date) => ({
+      facilityId: site.id,
+      roomId,
+      startsAt,
+      endsAt,
+      reason: "obra",
+    });
+
+    const first = await createBlock(deps, actor, input(room.id, at(10), at(12)));
+    expect(first).toMatchObject({ ok: true });
+    for (const refused of [
+      input(room.id, at(11), at(13)), // overlaps the room's block
+      input(room.id, at(10), at(12)), // the same range again
+      input(null, at(9), at(11)), // the whole sede, over the room's block
+    ]) {
+      await expect(createBlock(deps, actor, refused)).resolves.toEqual({ ok: false, reason: "block_overlaps_block" });
+    }
+    // The sede's block closes every room, so a block of the room under it is refused too.
+    await expect(createBlock(deps, actor, input(null, at(14), at(16)))).resolves.toMatchObject({ ok: true });
+    await expect(createBlock(deps, actor, input(room.id, at(15), at(17)))).resolves.toEqual({
+      ok: false,
+      reason: "block_overlaps_block",
+    });
+    // Touching ends do not overlap, and a released block stops counting.
+    await expect(createBlock(deps, actor, input(room.id, at(12), at(14)))).resolves.toMatchObject({ ok: true });
+    await operator.block.update({ where: { id: first.ok ? first.value.id : "" }, data: { releasedAt: at(0) } });
+    await expect(createBlock(deps, actor, input(room.id, at(10), at(12)))).resolves.toMatchObject({ ok: true });
+
+    const stored = await operator.block.count({ where: { facilityId: site.id, releasedAt: null } });
+    expect(stored).toBe(3);
+  });
+
+  it("lets only one of several blocks created at the same time through, never two on the same time (P-18)", async () => {
+    const { site, room } = await world();
+    const results = await Promise.all(
+      Array.from({ length: 6 }, (_unused, index) =>
+        createBlock(deps, actor, {
+          facilityId: site.id,
+          // Half of them close the room, half the whole sede: they all overlap each other.
+          roomId: index % 2 === 0 ? room.id : null,
+          startsAt: at(10),
+          endsAt: at(12),
+          reason: `obra ${index}`,
+        }),
+      ),
+    );
+
+    expect(resultOutcomes(results)).toEqual(oneWinner(6, "block_overlaps_block"));
+    expect(await operator.block.count({ where: { facilityId: site.id, releasedAt: null } })).toBe(1);
   });
 });
 

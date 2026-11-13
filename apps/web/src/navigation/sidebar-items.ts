@@ -1,5 +1,5 @@
 // Adapted from Studio Admin (nextjs-templates, develop f19e0ef), src/navigation/sidebar/sidebar-items.ts.
-import { Building2, CalendarDays, CalendarPlus, ChartColumn, type LucideIcon, Users } from "lucide-react";
+import { Building2, CalendarDays, CalendarPlus, ChartColumn, DoorOpen, type LucideIcon, Users } from "lucide-react";
 import type { Messages } from "next-intl";
 
 /** A key under `shell.nav` in the catalog. */
@@ -30,6 +30,7 @@ export const sidebarItems: NavGroup[] = [
     items: [
       { id: "my-bookings", label: "myBookings", url: "/", icon: CalendarDays, match: "exact" },
       { id: "new-booking", label: "newBooking", url: "/reservas/nueva", icon: CalendarPlus, match: "section" },
+      { id: "rooms", label: "rooms", url: "/salas", icon: DoorOpen, match: "section" },
     ],
   },
   {

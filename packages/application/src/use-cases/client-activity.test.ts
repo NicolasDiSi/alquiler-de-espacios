@@ -87,6 +87,7 @@ function queries(history: () => OperatorBookingRecord[]) {
     heatmap: async () => [],
     dailyUsage: async () => [],
     clientActivity: async () => activity,
+    facilityActivity: async () => ({ ...activity, cancelled: 0, allBookedMinutes: 0 }),
     scopeExists: async () => true,
   };
   return { fake, seen };

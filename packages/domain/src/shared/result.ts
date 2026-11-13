@@ -18,6 +18,7 @@ export const REASONS = [
   "already_exists",
   "has_future_bookings",
   "block_has_bookings",
+  "block_overlaps_block",
   "facility_has_active_rooms",
   "facility_inactive",
   "individual_is_single",
@@ -39,6 +40,8 @@ export type AffectedBooking = {
   readonly id: string;
   readonly roomId: string;
   readonly roomName: string;
+  /** The client, so the operator can reach it from the refusal. */
+  readonly companyId: string;
   readonly companyName: string;
   readonly startsAt: Date;
   readonly endsAt: Date;

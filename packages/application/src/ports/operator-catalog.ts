@@ -72,6 +72,9 @@ export type NewBlock = Pick<
 >;
 export type BlockFilter = { readonly facilityId?: string; readonly roomId?: string; readonly includeReleased: boolean };
 
+/** Where a block applies: one room of the facility, or (`roomId` null) every room of it. */
+export type BlockTarget = { readonly facilityId: string; readonly roomId: string | null };
+
 /** Where to look for future confirmed bookings: one room, or every room of a facility. */
 export type BookingScope = { readonly roomId: string } | { readonly facilityId: string };
 
@@ -89,6 +92,11 @@ export interface OperatorCatalogTransaction extends Omit<OperatorCatalog, "trans
   futureBookings(scope: BookingScope, after: Date): Promise<readonly AffectedBooking[]>;
   /** Confirmed bookings of the scope that overlap `[startsAt, endsAt)`, soonest first. */
   overlappingBookings(scope: BookingScope, startsAt: Date, endsAt: Date): Promise<readonly AffectedBooking[]>;
+  /**
+   * Unreleased blocks that overlap `[startsAt, endsAt)` and close the same time as `target`: for a room, its own and
+   * the whole sede's; for the whole sede, every block of the sede, whatever its room.
+   */
+  overlappingBlocks(target: BlockTarget, startsAt: Date, endsAt: Date): Promise<readonly BlockRecord[]>;
   countActiveRooms(facilityId: string): Promise<number>;
   /** Sets `deactivatedAt` (or clears it with `null`, only meant for clients). `null` result: no such row. */
   setFacilityDeactivation(id: string, at: Date | null): Promise<FacilityRecord | null>;

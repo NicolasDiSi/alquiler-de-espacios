@@ -15,6 +15,7 @@ import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import { getFormatter, getTranslations } from "next-intl/server";
 
+import { Facts } from "@/components/facts";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,7 +24,11 @@ import { TIME_ZONE } from "@/i18n/config";
 import { PERIODOS, periodoOf } from "@/lib/operator/period";
 import { requireOperator } from "@/lib/session/session";
 
-import { Facts } from "../../_components/facts";
+import { ActivityCalendar } from "../../_components/activity/activity-calendar";
+import { ActivityCards } from "../../_components/activity/activity-cards";
+import { BookingHistory } from "../../_components/activity/booking-history";
+import { UpcomingBookings } from "../../_components/activity/upcoming-bookings";
+import { WeeklyPattern } from "../../_components/activity/weekly-pattern";
 import { PeriodPicker } from "../../_components/period-picker";
 import { RecordStatusDot } from "../../_components/status";
 import { AddMemberDialog } from "../_components/add-member-dialog";
@@ -31,11 +36,6 @@ import { ClientAvatar } from "../_components/client-avatar";
 import { DeactivateClientButton, ReactivateClientButton } from "../_components/client-status-buttons";
 import { EditClientDialog } from "../_components/edit-client-dialog";
 import { MemberList } from "../_components/member-list";
-import { ActivityCards } from "./_components/activity-cards";
-import { BookingHistory } from "./_components/booking-history";
-import { ClientCalendar } from "./_components/client-calendar";
-import { UpcomingBookings } from "./_components/upcoming-bookings";
-import { WeeklyPattern } from "./_components/weekly-pattern";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -62,7 +62,7 @@ export default async function ClientPage({
     searchParams,
     getTranslations("operator.client"),
     getTranslations("operator.member"),
-    getTranslations("operator.client.activity"),
+    getTranslations("operator.activity"),
   ]);
   const format = await getFormatter();
   const periodo = periodoOf(query.periodo);
@@ -136,16 +136,14 @@ export default async function ClientPage({
       </section>
 
       <PeriodPicker path={`/operador/clientes/${id}`} current={periodo} range={activity.value.range} />
-      <ActivityCards activity={activity.value} />
+      <ActivityCards activity={activity.value} subject="client" />
 
       <Tabs defaultValue="activity" className="flex flex-col gap-4">
-        <TabsList>
+        <TabsList variant="line">
           <TabsTrigger value="activity">{a("tabs.activity")}</TabsTrigger>
           <TabsTrigger value="members">
             {m("title")}
-            <Badge variant="secondary" className="ml-1">
-              {members.length}
-            </Badge>
+            <Badge className="ml-1">{members.length}</Badge>
           </TabsTrigger>
         </TabsList>
 
@@ -154,23 +152,29 @@ export default async function ClientPage({
             bookings={activity.value.upcoming}
             total={activity.value.totals.upcoming}
             now={read.clock.now()}
+            subject="client"
           />
           <WeeklyPattern activity={activity.value} />
           <Card>
             <CardHeader>
               <CardTitle>{a("calendar.title")}</CardTitle>
-              <CardDescription>{a("calendar.description")}</CardDescription>
+              <CardDescription>{a("calendar.description.client")}</CardDescription>
             </CardHeader>
             <CardContent>
-              <ClientCalendar
-                clientId={client.id}
+              <ActivityCalendar
+                subject="client"
+                id={client.id}
                 timeZone={TIME_ZONE}
-                facilities={activity.value.facilities}
+                options={activity.value.facilities}
                 targets={targets}
               />
             </CardContent>
           </Card>
-          <BookingHistory bookings={activity.value.history.bookings} capped={activity.value.history.capped} />
+          <BookingHistory
+            bookings={activity.value.history.bookings}
+            capped={activity.value.history.capped}
+            subject="client"
+          />
         </TabsContent>
 
         <TabsContent value="members">

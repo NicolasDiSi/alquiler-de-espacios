@@ -2,6 +2,7 @@ import {
   type Actor,
   addDays,
   authorizeOperator,
+  cancellationRateOf,
   countChange,
   type DashboardPeriod,
   type DayRange,
@@ -15,7 +16,7 @@ import {
   zonedInstant,
 } from "@espacios/domain";
 
-import type { OperatorQueries } from "../ports/operator-queries";
+import type { ClientActivityRows, FacilityActivityRows, OperatorQueries } from "../ports/operator-queries";
 import type { Clock } from "../ports/ports";
 import { listOperatorBookings, OPERATOR_BOOKINGS_PAGE, type OperatorBookingView } from "./operator-bookings";
 import { getCompanyMetrics } from "./operator-metrics";
@@ -139,7 +140,41 @@ export async function getClientActivity(
   if (!mine) return fail("not_found");
   const before = previous.value.companies.find((company) => company.id === companyId);
 
-  const { rooms, weekdays, upcoming } = activity.value;
+  return ok(
+    shape(input.period, ranges.current, activity.value, next.value.bookings, history.value, {
+      now: {
+        bookedMinutes: mine.bookedMinutes,
+        confirmed: mine.confirmedCount,
+        cancelled: mine.cancelledCount,
+        share: mine.share,
+      },
+      before: {
+        bookedMinutes: before?.bookedMinutes ?? 0,
+        confirmed: before?.confirmedCount ?? 0,
+        cancelled: before?.cancelledCount ?? 0,
+      },
+    }),
+  );
+}
+
+/** What the cards measure for a window: booked time, bookings done and cancelled, and the share of every one's time. */
+type Totals = {
+  readonly bookedMinutes: number;
+  readonly confirmed: number;
+  readonly cancelled: number;
+};
+
+/** The activity screen's answer, the same for a client and a sede: only where the rows and the totals come from differs. */
+function shape(
+  period: DashboardPeriod,
+  range: DayRange,
+  rows: ClientActivityRows,
+  next: readonly OperatorBookingView[],
+  history: ClientActivity["history"],
+  totals: { readonly now: Totals & { readonly share: number | null }; readonly before: Totals },
+): ClientActivity {
+  const { rooms, weekdays, upcoming } = rows;
+  const { now: mine, before } = totals;
   const top = rooms[0];
   const byWeekday = new Map(weekdays.map((row) => [row.weekday, row]));
   const shown = [1, 2, 3, 4, 5, 6, 0].filter(
@@ -149,23 +184,25 @@ export async function getClientActivity(
     (best, row) => (best === null || row.bookedMinutes > best.bookedMinutes ? row : best),
     null,
   );
+  const rate = cancellationRateOf(mine.confirmed, mine.cancelled);
+  const rateBefore = cancellationRateOf(before.confirmed, before.cancelled);
 
-  return ok({
-    period: input.period,
-    range: ranges.current,
+  return {
+    period,
+    range,
     totals: {
       bookedMinutes: mine.bookedMinutes,
       share: mine.share,
-      confirmed: mine.confirmedCount,
-      cancelled: mine.cancelledCount,
-      cancellationRate: mine.cancellationRate,
+      confirmed: mine.confirmed,
+      cancelled: mine.cancelled,
+      cancellationRate: rate,
       upcoming,
-      meanMinutes: mine.confirmedCount > 0 ? mine.bookedMinutes / mine.confirmedCount : null,
+      meanMinutes: mine.confirmed > 0 ? mine.bookedMinutes / mine.confirmed : null,
     },
     changes: {
-      bookedMinutes: countChange(mine.bookedMinutes, before?.bookedMinutes ?? 0),
-      confirmed: countChange(mine.confirmedCount, before?.confirmedCount ?? 0),
-      cancellationRate: rateChange(mine.cancellationRate, before?.cancellationRate ?? null),
+      bookedMinutes: countChange(mine.bookedMinutes, before.bookedMinutes),
+      confirmed: countChange(mine.confirmed, before.confirmed),
+      cancellationRate: rateChange(rate, rateBefore),
     },
     preferredRoom: top
       ? {
@@ -179,7 +216,61 @@ export async function getClientActivity(
     facilities: [...new Set(rooms.map((room) => room.facilityName))].sort((a, b) => a.localeCompare(b)),
     weekdays: shown.map((weekday) => byWeekday.get(weekday) ?? { weekday, bookedMinutes: 0, confirmed: 0 }),
     peakWeekday: peak?.weekday ?? null,
-    upcoming: next.value.bookings.filter((booking) => booking.phase === "upcoming" || booking.phase === "in_progress"),
-    history: history.value,
+    upcoming: next.filter((booking) => booking.phase === "upcoming" || booking.phase === "in_progress"),
+    history,
+  };
+}
+
+/**
+ * One sede's activity for the operator: the same screen as a client's (spec 0007), over the bookings of the sede's
+ * rooms, every client together. The share is of every sede's booked time; the preferred room is the sede's busiest.
+ */
+export async function getFacilityActivity(
+  deps: Deps,
+  actor: Actor,
+  input: { readonly facilityId: string; readonly period: DashboardPeriod; readonly timeZone: string },
+): Promise<Result<ClientActivity>> {
+  const operator = authorizeOperator(actor);
+  if (!operator.ok) return operator;
+  const now = deps.clock.now();
+  const ranges = dashboardRanges(todayAt(now, input.timeZone), input.period);
+  const { facilityId } = input;
+
+  const [current, previous, next, history] = await Promise.all([
+    withRaceHandling(async () => ok(await deps.queries.facilityActivity(ranges.current, facilityId, now))),
+    withRaceHandling(async () => ok(await deps.queries.facilityActivity(ranges.previous, facilityId, now))),
+    listOperatorBookings(deps, actor, {
+      filter: { facilityId, status: "confirmed" },
+      after: null,
+      limit: CLIENT_ACTIVITY_LIMITS.upcoming,
+    }),
+    readAll(
+      deps,
+      actor,
+      {
+        facilityId,
+        from: zonedInstant(ranges.current.from, 0, input.timeZone),
+        to: zonedInstant(addDays(ranges.current.to, 1), 0, input.timeZone),
+      },
+      CLIENT_ACTIVITY_LIMITS.history,
+    ),
+  ]);
+  if (!current.ok) return current;
+  if (!previous.ok) return previous;
+  if (!next.ok) return next;
+  if (!history.ok) return history;
+
+  const totalsOf = (rows: FacilityActivityRows): Totals => ({
+    bookedMinutes: rows.rooms.reduce((sum, room) => sum + room.bookedMinutes, 0),
+    confirmed: rows.rooms.reduce((sum, room) => sum + room.confirmed, 0),
+    cancelled: rows.cancelled,
   });
+  const mine = totalsOf(current.value);
+
+  return ok(
+    shape(input.period, ranges.current, current.value, next.value.bookings, history.value, {
+      now: { ...mine, share: shareOf(mine.bookedMinutes, current.value.allBookedMinutes) },
+      before: totalsOf(previous.value),
+    }),
+  );
 }

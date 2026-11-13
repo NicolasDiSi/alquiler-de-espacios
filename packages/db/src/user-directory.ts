@@ -20,13 +20,19 @@ export function createPrismaUserDirectory(db: DatabaseClient): UserDirectory {
 
     async listSignInChoices() {
       const users = await db.appUser.findMany({
-        select: { id: true, name: true, role: true, company: { select: { id: true, name: true } } },
+        select: { id: true, name: true, role: true, company: { select: { id: true, name: true, kind: true } } },
         orderBy: [{ company: { name: "asc" } }, { name: "asc" }, { id: "asc" }],
       });
-      return groupByCompany(users.map(toDirectoryUser).filter((user) => user !== null));
+      const kinds = new Map(users.flatMap((user) => (user.company ? [[user.company.id, user.company.kind]] : [])));
+      return groupByCompany(
+        users.map(toDirectoryUser).filter((user) => user !== null),
+        (id) => kinds.get(id) ?? "company",
+      );
     },
   };
 }
+
+type CompanyKind = SignInChoicesView["companies"][number]["kind"];
 
 type UserRow = {
   id: string;
@@ -44,15 +50,18 @@ function toDirectoryUser(row: UserRow): DirectoryUser | null {
 }
 
 /** Users arrive sorted by company name, then user name, so the groups keep that order. */
-function groupByCompany(users: DirectoryUser[]): SignInChoicesView {
-  const companies = new Map<string, { id: TenantId; name: string; users: { id: UserId; name: string }[] }>();
+function groupByCompany(users: DirectoryUser[], kindOf: (id: string) => CompanyKind): SignInChoicesView {
+  const companies = new Map<
+    string,
+    { id: TenantId; name: string; kind: CompanyKind; users: { id: UserId; name: string }[] }
+  >();
   const operators: { id: UserId; name: string }[] = [];
   for (const user of users) {
     if (user.role === "operator") {
       operators.push({ id: user.id, name: user.name });
       continue;
     }
-    const group = companies.get(user.company.id) ?? { ...user.company, users: [] };
+    const group = companies.get(user.company.id) ?? { ...user.company, kind: kindOf(user.company.id), users: [] };
     group.users.push({ id: user.id, name: user.name });
     companies.set(user.company.id, group);
   }

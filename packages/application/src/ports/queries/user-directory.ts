@@ -15,6 +15,8 @@ export type SignInChoicesView = {
   readonly companies: readonly {
     readonly id: TenantId;
     readonly name: string;
+    /** `individual` is a person who works alone (spec 0004); the picker marks it. */
+    readonly kind: "company" | "individual";
     readonly users: readonly { readonly id: UserId; readonly name: string }[];
   }[];
   readonly operators: readonly { readonly id: UserId; readonly name: string }[];

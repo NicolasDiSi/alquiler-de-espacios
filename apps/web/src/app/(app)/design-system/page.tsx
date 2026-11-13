@@ -239,7 +239,7 @@ export default function DesignSystemPage() {
 
       <GallerySection id="data" title={t("bookings.title")} description={t("bookings.description")}>
         <Tabs defaultValue="list">
-          <TabsList>
+          <TabsList variant="line">
             <TabsTrigger value="list" className={TAB_TRIGGER}>
               {t("bookings.tabs.list")}
             </TabsTrigger>

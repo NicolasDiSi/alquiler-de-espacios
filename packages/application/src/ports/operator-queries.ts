@@ -121,6 +121,17 @@ export type ClientActivityRows = {
   readonly upcoming: number;
 };
 
+/**
+ * One sede's use in a range: the same rows as a client's, narrowed to the sede's rooms, plus what a client reads from
+ * `companyUsage`: its cancelled bookings and every sede's booked time, for the share.
+ */
+export type FacilityActivityRows = ClientActivityRows & {
+  /** Cancelled bookings of the sede starting in the range. */
+  readonly cancelled: number;
+  /** Confirmed booked minutes of every sede in the range. */
+  readonly allBookedMinutes: number;
+};
+
 export type HeatmapScope = { readonly facilityId?: string | undefined; readonly roomId?: string | undefined };
 
 export interface OperatorQueries {
@@ -132,6 +143,8 @@ export interface OperatorQueries {
   heatmap(range: MetricRange, scope: HeatmapScope): Promise<readonly HeatmapRow[]>;
   /** Spec 0007: one client's bookings by room and weekday in the range, and how many are still to come. */
   clientActivity(range: MetricRange, companyId: string, now: Date): Promise<ClientActivityRows>;
+  /** The same reading for one sede: its rooms' bookings by room and weekday, and how many are still to come. */
+  facilityActivity(range: MetricRange, facilityId: string, now: Date): Promise<FacilityActivityRows>;
   /** One row per local day of the range, closed days included (zero open minutes). */
   dailyUsage(range: MetricRange, scope: HeatmapScope): Promise<readonly DailyUsageRow[]>;
   /** Whether the facility and the room of a scope exist (a heatmap of an unknown one is 404). */

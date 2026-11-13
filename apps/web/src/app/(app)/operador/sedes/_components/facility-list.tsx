@@ -16,10 +16,10 @@ import {
   DataTableToolbar,
 } from "@/components/data-table/data-table";
 import { createAppColumnHelper, DATA_TABLE_PAGE_SIZE, useAppTable } from "@/components/data-table/table-hook";
+import { WeekDays } from "@/components/week-days";
 import { zoneLabel } from "@/lib/operator/format";
 
 import { RecordStatusDot } from "../../_components/status";
-import { WeekDays } from "./week-days";
 
 const helper = createAppColumnHelper<OperatorFacilityView>();
 

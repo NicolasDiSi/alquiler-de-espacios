@@ -175,6 +175,79 @@ describe("the booking guard trigger (spec 0004, P-17 and P-18)", () => {
       // Another facility is not affected.
       await expect(insertBooking({ ...s, roomId: otherFacilityRoom }, at(10), at(11))).resolves.toBeDefined();
     });
+
+    // The use case refuses a block over another (`block_overlaps_block`), but no constraint does: the guard must still
+    // refuse every minute under any unreleased block when rows overlap, so these are inserted directly.
+    describe("blocks that overlap in the table, outside the use case (defense in depth)", () => {
+      const release = (blockId: string) =>
+        operator.block.update({ where: { id: blockId }, data: { releasedAt: new Date() } });
+
+      it("refuses a booking anywhere in the union, and a released block leaves the other in force", async () => {
+        const s = await setup("guard-overlap");
+        const first = await block(s.roomId, at(10), at(12), s.bookedBy);
+        const second = await block(s.roomId, at(11), at(13), s.bookedBy);
+
+        for (const [from, to] of [
+          [at(10), at(10, 30)], // only the first
+          [at(11), at(12)], // both
+          [at(12, 30), at(13)], // only the second
+          [at(9, 30), at(13, 30)], // around both
+        ] as const) {
+          expect(await sqlStateOf(insertBooking(s, from, to))).toBe(ROOM_BLOCKED);
+        }
+        await expect(insertBooking(s, at(9, 30), at(10))).resolves.toBeDefined(); // ends where the union starts
+        await expect(insertBooking(s, at(13), at(13, 30))).resolves.toBeDefined(); // starts where it ends
+
+        await release(first.id);
+        await expect(insertBooking(s, at(10), at(11))).resolves.toBeDefined();
+        expect(await sqlStateOf(insertBooking(s, at(11), at(11, 30)))).toBe(ROOM_BLOCKED);
+
+        await release(second.id);
+        await expect(insertBooking(s, at(11), at(13))).resolves.toBeDefined();
+      });
+
+      it("keeps a room block in force inside a released facility block, and the reverse", async () => {
+        const facilityId = `facility-overlap-${crypto.randomUUID()}`;
+        await owner.facility.create({
+          data: {
+            id: facilityId,
+            name: facilityId,
+            timeZone: "UTC",
+            opensAt: 0,
+            closesAt: 1440,
+            openWeekdays: [0, 1, 2, 3, 4, 5, 6],
+          },
+        });
+        const s = { ...(await setup("guard-overlap-facility")), roomId: await createRoom(owner, facilityId) };
+        const sameDay = (roomId: string | null, startsAt: Date, endsAt: Date) =>
+          operator.block.create({
+            data: {
+              id: `block-${crypto.randomUUID()}`,
+              facilityId,
+              roomId,
+              startsAt,
+              endsAt,
+              reason: "x",
+              createdBy: s.bookedBy,
+            },
+          });
+
+        // The whole sede 10 to 14, and this room 11 to 12 inside it.
+        const whole = await sameDay(null, at(10), at(14));
+        await sameDay(s.roomId, at(11), at(12));
+        expect(await sqlStateOf(insertBooking(s, at(13), at(13, 30)))).toBe(ROOM_BLOCKED);
+        await release(whole.id);
+        await expect(insertBooking(s, at(13), at(13, 30))).resolves.toBeDefined();
+        expect(await sqlStateOf(insertBooking(s, at(11), at(11, 30)))).toBe(ROOM_BLOCKED);
+
+        // This room 16 to 18, then the whole sede 15 to 19 over it: releasing the room's keeps the sede's.
+        const own = await sameDay(s.roomId, at(16), at(18));
+        await sameDay(null, at(15), at(19));
+        await release(own.id);
+        expect(await sqlStateOf(insertBooking(s, at(16), at(17)))).toBe(ROOM_BLOCKED);
+        await expect(insertBooking(s, at(19), at(20))).resolves.toBeDefined();
+      });
+    });
   });
 
   it("makes a deactivation wait for a booking in flight (the lock behind P-16)", async () => {

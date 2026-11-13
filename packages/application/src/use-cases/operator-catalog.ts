@@ -284,6 +284,14 @@ export function createBlock(deps: OperatorDependencies, actor: Actor, input: Cre
         if (room.facilityId !== facility.id) return fail("invalid_input");
         if (room.deactivatedAt) return fail("room_inactive");
       }
+      // Nothing overlaps anything: a block over another one of the room, or of the whole sede, is refused. The facility
+      // lock above makes two blocks racing for the same time take turns, so the second one sees the first.
+      const overlapped = await tx.overlappingBlocks(
+        { facilityId: facility.id, roomId: input.roomId },
+        input.startsAt,
+        input.endsAt,
+      );
+      if (overlapped.length > 0) return fail("block_overlaps_block");
       const scope = input.roomId === null ? { facilityId: facility.id } : { roomId: input.roomId };
       const covered = await tx.overlappingBookings(scope, input.startsAt, input.endsAt);
       if (covered.length > 0) return fail("block_has_bookings", detailsOf(covered));

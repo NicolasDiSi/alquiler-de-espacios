@@ -1,14 +1,4 @@
-import {
-  addDays,
-  type BlockPhase,
-  blockPhase,
-  formatTime,
-  localDateOf,
-  localMinutesOf,
-  toFacilityIso,
-  weekdayOf,
-  zonedInstant,
-} from "@espacios/domain";
+import { type BlockPhase, blockPhase, formatTime, toFacilityIso } from "@espacios/domain";
 
 import type {
   BlockRecord,
@@ -152,66 +142,6 @@ export const toOperatorMemberView = (record: MemberRecord): OperatorMemberView =
   name: record.name,
   createdAt: record.createdAt.toISOString(),
 });
-
-/** A stretch of one day, in minutes from the sede's midnight (`0` to `1440`). */
-export type DayStretch = { readonly from: number; readonly to: number };
-
-export type OperatorWeekDay = {
-  /** `YYYY-MM-DD` in the sede's zone. */
-  readonly date: string;
-  /** 0 Sunday to 6 Saturday. */
-  readonly weekday: number;
-  /** The opening window, or `null` on a closed day. */
-  readonly open: DayStretch | null;
-  /** Active blocks on that day, whole sede or one room, cut to the day. */
-  readonly blocked: readonly (DayStretch & { readonly room: string | null })[];
-  readonly isToday: boolean;
-};
-
-export type OperatorWeekView = {
-  readonly days: readonly OperatorWeekDay[];
-  /** Minutes from the sede's midnight now, to mark the current time on today. */
-  readonly nowMinutes: number;
-};
-
-/**
- * The current week of a sede, Monday to Sunday in its zone (spec 0005): when it opens each day and what the active
- * blocks take from it. Shaped on the server so the screen only draws it.
- */
-export function toOperatorWeekView(
-  facility: FacilityRecord,
-  blocks: readonly BlockRecord[],
-  rooms: readonly RoomRecord[],
-  now: Date,
-): OperatorWeekView {
-  const { timeZone } = facility;
-  const today = localDateOf(now, timeZone);
-  const monday = addDays(today, -((weekdayOf(today) + 6) % 7));
-  const names = new Map(rooms.map((room) => [room.id, room.name]));
-  const active = blocks.filter((block) => blockPhase(block, now) === "active");
-
-  const days = Array.from({ length: 7 }, (_, index): OperatorWeekDay => {
-    const date = addDays(monday, index);
-    const weekday = weekdayOf(date);
-    const dayStart = zonedInstant(date, 0, timeZone).getTime();
-    const dayEnd = zonedInstant(addDays(date, 1), 0, timeZone).getTime();
-    const blocked = active
-      .filter((block) => block.startsAt.getTime() < dayEnd && block.endsAt.getTime() > dayStart)
-      .map((block) => ({
-        from: block.startsAt.getTime() <= dayStart ? 0 : localMinutesOf(block.startsAt, timeZone),
-        to: block.endsAt.getTime() >= dayEnd ? 1440 : localMinutesOf(block.endsAt, timeZone),
-        room: block.roomId ? (names.get(block.roomId) ?? null) : null,
-      }));
-    return {
-      date,
-      weekday,
-      open: facility.openWeekdays.includes(weekday) ? { from: facility.opensAt, to: facility.closesAt } : null,
-      blocked,
-      isToday: date === today,
-    };
-  });
-  return { days, nowMinutes: localMinutesOf(now, timeZone) };
-}
 
 /** Where a block can go (spec 0007): each active sede with its active rooms, by name, for a dialog outside the sede page. */
 export type OperatorBlockTarget = {

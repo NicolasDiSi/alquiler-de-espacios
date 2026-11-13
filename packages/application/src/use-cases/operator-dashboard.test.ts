@@ -54,6 +54,7 @@ function queries(): { queries: OperatorQueries; ranges: MetricRange[] } {
         { facilityId: "f", facilityName: "Sede", weekday: 1, hour: 10, openMinutes: 60, bookedMinutes: 45 },
       ],
       clientActivity: async () => ({ rooms: [], weekdays: [], upcoming: 0 }),
+      facilityActivity: async () => ({ rooms: [], weekdays: [], upcoming: 0, cancelled: 0, allBookedMinutes: 0 }),
       dailyUsage: async (range) => {
         ranges.push(range);
         return [
@@ -147,6 +148,7 @@ describe("getOperatorDashboard (spec 0006)", () => {
       companyUsage: async () => [],
       heatmap: async () => [],
       clientActivity: async () => ({ rooms: [], weekdays: [], upcoming: 0 }),
+      facilityActivity: async () => ({ rooms: [], weekdays: [], upcoming: 0, cancelled: 0, allBookedMinutes: 0 }),
       dailyUsage: async () => [],
       scopeExists: async () => true,
     };

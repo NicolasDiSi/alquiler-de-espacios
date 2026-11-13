@@ -1,4 +1,5 @@
 import type {
+  ClientActivityRows,
   CompanyUsageRow,
   DailyUsageRow,
   HeatmapRow,
@@ -133,6 +134,63 @@ export function createPrismaOperatorQueries(db: DatabaseClient): OperatorQueries
     });
   };
 
+  /**
+   * Confirmed bookings of one scope (a client or a sede, `scope` reads `bk` and `r`) by room and by weekday, each on the
+   * local day it starts in its facility's zone (as `roomUsage`), and how many of the scope are still to come.
+   */
+  const activityRows = async (range: MetricRange, scope: Prisma.Sql, now: Date): Promise<ClientActivityRows> => {
+    const confirmedInRange = Prisma.sql`
+      FROM booking bk
+      JOIN room r ON r.id = bk.room_id
+      JOIN facility f ON f.id = r.facility_id
+      WHERE ${scope} AND bk.status = 'confirmed'
+        AND (bk.starts_at AT TIME ZONE f.time_zone)::date BETWEEN ${range.from}::date AND ${range.to}::date`;
+    const [rooms, weekdays, upcoming] = await Promise.all([
+      db.$queryRaw<
+        {
+          room_id: string;
+          room_name: string;
+          facility_id: string;
+          facility_name: string;
+          booked: number;
+          confirmed: number;
+        }[]
+      >`
+        SELECT r.id AS room_id, r.name AS room_name, f.id AS facility_id, f.name AS facility_name,
+          (SUM(EXTRACT(EPOCH FROM bk.ends_at - bk.starts_at)) / 60)::float8 AS booked, COUNT(*)::int AS confirmed
+        ${confirmedInRange}
+        GROUP BY r.id, f.id
+        ORDER BY booked DESC, r.name`,
+      db.$queryRaw<{ weekday: number; booked: number; confirmed: number }[]>`
+        SELECT EXTRACT(DOW FROM (bk.starts_at AT TIME ZONE f.time_zone))::int AS weekday,
+          (SUM(EXTRACT(EPOCH FROM bk.ends_at - bk.starts_at)) / 60)::float8 AS booked, COUNT(*)::int AS confirmed
+        ${confirmedInRange}
+        GROUP BY 1
+        ORDER BY 1`,
+      db.$queryRaw<{ upcoming: number }[]>`
+        SELECT COUNT(*)::int AS upcoming
+        FROM booking bk
+        JOIN room r ON r.id = bk.room_id
+        WHERE ${scope} AND bk.status = 'confirmed' AND bk.starts_at > ${now}`,
+    ]);
+    return {
+      rooms: rooms.map((row) => ({
+        roomId: row.room_id,
+        roomName: row.room_name,
+        facilityId: row.facility_id,
+        facilityName: row.facility_name,
+        bookedMinutes: row.booked,
+        confirmed: row.confirmed,
+      })),
+      weekdays: weekdays.map((row) => ({
+        weekday: row.weekday,
+        bookedMinutes: row.booked,
+        confirmed: row.confirmed,
+      })),
+      upcoming: upcoming[0]?.upcoming ?? 0,
+    };
+  };
+
   return {
     roomUsage: async (range) => {
       const rows = await db.$queryRaw<
@@ -225,56 +283,22 @@ export function createPrismaOperatorQueries(db: DatabaseClient): OperatorQueries
       );
     },
 
-    clientActivity: async (range, companyId, now) => {
-      // Confirmed bookings of one client, each on the local day it starts in its facility's zone (as `roomUsage`).
-      const confirmedInRange = Prisma.sql`
-        FROM booking bk
-        JOIN room r ON r.id = bk.room_id
-        JOIN facility f ON f.id = r.facility_id
-        WHERE bk.tenant_id = ${companyId} AND bk.status = 'confirmed'
-          AND (bk.starts_at AT TIME ZONE f.time_zone)::date BETWEEN ${range.from}::date AND ${range.to}::date`;
-      const [rooms, weekdays, upcoming] = await Promise.all([
-        db.$queryRaw<
-          {
-            room_id: string;
-            room_name: string;
-            facility_id: string;
-            facility_name: string;
-            booked: number;
-            confirmed: number;
-          }[]
-        >`
-          SELECT r.id AS room_id, r.name AS room_name, f.id AS facility_id, f.name AS facility_name,
-            (SUM(EXTRACT(EPOCH FROM bk.ends_at - bk.starts_at)) / 60)::float8 AS booked, COUNT(*)::int AS confirmed
-          ${confirmedInRange}
-          GROUP BY r.id, f.id
-          ORDER BY booked DESC, r.name`,
-        db.$queryRaw<{ weekday: number; booked: number; confirmed: number }[]>`
-          SELECT EXTRACT(DOW FROM (bk.starts_at AT TIME ZONE f.time_zone))::int AS weekday,
-            (SUM(EXTRACT(EPOCH FROM bk.ends_at - bk.starts_at)) / 60)::float8 AS booked, COUNT(*)::int AS confirmed
-          ${confirmedInRange}
-          GROUP BY 1
-          ORDER BY 1`,
-        db.$queryRaw<{ upcoming: number }[]>`
-          SELECT COUNT(*)::int AS upcoming FROM booking
-          WHERE tenant_id = ${companyId} AND status = 'confirmed' AND starts_at > ${now}`,
+    clientActivity: (range, companyId, now) => activityRows(range, Prisma.sql`bk.tenant_id = ${companyId}`, now),
+
+    facilityActivity: async (range, facilityId, now) => {
+      const [rows, totals] = await Promise.all([
+        activityRows(range, Prisma.sql`r.facility_id = ${facilityId}`, now),
+        db.$queryRaw<{ cancelled: number; all_booked: number }[]>`
+          SELECT
+            (COUNT(*) FILTER (WHERE bk.status = 'cancelled' AND r.facility_id = ${facilityId}))::int AS cancelled,
+            COALESCE(SUM(EXTRACT(EPOCH FROM bk.ends_at - bk.starts_at) / 60)
+              FILTER (WHERE bk.status = 'confirmed'), 0)::float8 AS all_booked
+          FROM booking bk
+          JOIN room r ON r.id = bk.room_id
+          JOIN facility f ON f.id = r.facility_id
+          WHERE (bk.starts_at AT TIME ZONE f.time_zone)::date BETWEEN ${range.from}::date AND ${range.to}::date`,
       ]);
-      return {
-        rooms: rooms.map((row) => ({
-          roomId: row.room_id,
-          roomName: row.room_name,
-          facilityId: row.facility_id,
-          facilityName: row.facility_name,
-          bookedMinutes: row.booked,
-          confirmed: row.confirmed,
-        })),
-        weekdays: weekdays.map((row) => ({
-          weekday: row.weekday,
-          bookedMinutes: row.booked,
-          confirmed: row.confirmed,
-        })),
-        upcoming: upcoming[0]?.upcoming ?? 0,
-      };
+      return { ...rows, cancelled: totals[0]?.cancelled ?? 0, allBookedMinutes: totals[0]?.all_booked ?? 0 };
     },
 
     dailyUsage: async (range, scope) => {

@@ -193,3 +193,7 @@ Tracer Bullet: tasks 1 and 2 are one thin real thread (the operator opens Sedes,
 - [ ] Feature 13 (role based navigation) should extend the role aware sidebar leaf from build task 2, not add a second mechanism.
 - [ ] README "Supuestos": the zone list is a short curated one, a logo is a pasted https URL (no upload), and deactivated sedes, rooms and clients are hidden until asked for.
 - [ ] Next version ideas for the README: a detail view per client with its bookings and hours over time, a searchable zone picker, and bulk blocks (a recurring closure).
+
+## Amendment (2026-11-13): the Bloqueos tab opens on the week calendar
+
+The hand drawn "Esta semana" strip (`WeekStrip`, built from `toOperatorWeekView`) is removed. It was hidden from screen readers, showed only the current week and could not be paged, clicked or selected. The Bloqueos tab of an active sede now opens the spec 0007 `ActivityCalendar` (FullCalendar 7 through `EventCalendarViews`) in week view (`initialView="timeGridWeek"`; Actividad keeps the month): the sede's blocks with its bookings, the room filter, a click on a block for its details, and a picked range or "Bloquear horario" for the block dialog. The AC-7 table stays under it unchanged, as the place for "Liberar", the released blocks and the keyboard path to "Nuevo bloqueo", because a range cannot be picked with the keyboard on the calendar (spec 0009). A resource timeline (rooms by hours) was set aside: it is a paid FullCalendar plugin.

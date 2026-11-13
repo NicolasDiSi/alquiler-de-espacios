@@ -10,9 +10,9 @@ Two different components. Pick the right one first.
 | Need | Component | Base |
 | ---- | --------- | ---- |
 | Choose a date (filter, booking date) | Date picker: a popover or dialog with a month grid | shadcn `calendar` (react-day-picker). Add it with `npx shadcn@latest add calendar`; it is not installed yet. |
-| See which slots of which rooms are free, and book one | Availability grid: rooms by time slots for one day | A native `<table>` (see `accessible-data-tables-and-grids`). No calendar library. |
+| See bookings and blocks over time (a room, a client, a sede), pick a range to book or block | Month, week and day calendar | FullCalendar 7 through `EventCalendarViews` (`apps/web/src/components/calendar/`, specs 0007 to 0009), customized where used, never inside. Rooms side by side is the spec 0009 day per room mapping: resource views are a paid plugin. Never a hand drawn picture. |
 
-Never use a month calendar to show room availability, and never use the availability grid to pick a far away date.
+Never use the date picker to show availability, and never use the calendar views to pick a far away date (that is "Ir a fecha"). Every calendar keeps a keyboard path outside it (a table or a button), because a range cannot be picked by keyboard.
 
 ## Decisions this skill does not make
 

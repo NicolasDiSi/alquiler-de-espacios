@@ -18,7 +18,7 @@ export async function PeriodPicker({ path, current, range }: { path: string; cur
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
       <nav aria-label={t("label")}>
-        <ul className="flex">
+        <ul className="flex border rounded">
           {(Object.keys(PERIODOS) as Periodo[]).map((periodo, index, all) => {
             const active = periodo === current;
             return (
@@ -30,7 +30,7 @@ export async function PeriodPicker({ path, current, range }: { path: string; cur
                     "focus-visible:ring-ring/50 relative inline-flex h-8 items-center border px-3 text-xs font-medium outline-none focus-visible:z-10 focus-visible:ring-3",
                     index === 0 && "rounded-l-md",
                     index === all.length - 1 && "rounded-r-md",
-                    active ? "bg-accent text-accent-foreground" : "bg-background hover:bg-muted text-muted-foreground",
+                    active ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted text-muted-foreground",
                   )}
                 >
                   {t(`options.${periodo}`)}

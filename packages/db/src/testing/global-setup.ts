@@ -65,8 +65,11 @@ async function migrate(container: StartedPostgreSqlContainer): Promise<void> {
   }
 }
 
-/** One Postgres for the whole run, with the real roles, migrated with the real migrations, as the owner role. */
-export default async function setup(project: TestProject) {
+/**
+ * A throwaway Postgres with the real roles, migrated with the real migrations as the owner role. The run shares one;
+ * a test that must stop or restart the server (persistence) starts its own, so the others never see it go down.
+ */
+export async function startDatabase(): Promise<{ container: StartedPostgreSqlContainer; urls: DatabaseUrls }> {
   assertDockerIsRunning();
   const container = await new PostgreSqlContainer("postgres:17-alpine")
     .withDatabase("espacios")
@@ -75,17 +78,25 @@ export default async function setup(project: TestProject) {
     // The postgres image runs everything in this folder once, as the superuser, before accepting connections.
     .withCopyFilesToContainer([{ source: ROLES_SQL, target: "/docker-entrypoint-initdb.d/01-roles.sql" }])
     .start();
-  const adminUrl = container.getConnectionUri();
-
   await migrate(container);
+  return { container, urls: urlsOf(container) };
+}
 
-  project.provide("databaseUrls", {
+/** The four logins of a running container. Read again after a restart: the mapped port can change. */
+export function urlsOf(container: StartedPostgreSqlContainer): DatabaseUrls {
+  const adminUrl = container.getConnectionUri();
+  return {
     adminUrl,
     ownerUrl: loginUrl(adminUrl, "espacios_owner"),
     runtimeUrl: loginUrl(adminUrl, "espacios_app"),
     operatorUrl: loginUrl(adminUrl, "espacios_operator"),
-  });
+  };
+}
 
+/** One Postgres for the whole run. */
+export default async function setup(project: TestProject) {
+  const { container, urls } = await startDatabase();
+  project.provide("databaseUrls", urls);
   return async () => {
     await container.stop();
   };

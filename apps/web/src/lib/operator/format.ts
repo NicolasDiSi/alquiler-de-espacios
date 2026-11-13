@@ -53,13 +53,14 @@ export function slugify(name: string): string {
     .replace(/-+$/g, "");
 }
 
-/** The first letters of up to two words, for an avatar without a logo. */
+/** The first letters of up to two words, for an avatar without a logo. Punctuation is skipped ("Ana (Acme)" is AA). */
 export function initialsOf(name: string): string {
   return name
     .split(/\s+/)
+    .map((word) => word.match(/\p{L}|\p{N}/u)?.[0] ?? "")
     .filter(Boolean)
     .slice(0, 2)
-    .map((word) => word.charAt(0).toUpperCase())
+    .map((letter) => letter.toUpperCase())
     .join("");
 }
 
@@ -70,8 +71,16 @@ export function initialsOf(name: string): string {
 export function zoneLabel(timeZone: string, now = new Date()): string {
   if (timeZone === "UTC") return "UTC";
   const city = (timeZone.split("/").at(-1) ?? timeZone).replaceAll("_", " ");
-  const offset = new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "shortOffset" })
-    .formatToParts(now)
-    .find((part) => part.type === "timeZoneName")?.value;
+  const offset = zoneOffset(timeZone, now);
   return offset ? `${city}, ${offset}` : city;
+}
+
+/** Only the offset of a zone now ("GMT-3"), for where the city does not fit (a calendar's time axis). */
+export function zoneOffset(timeZone: string, now = new Date()): string {
+  if (timeZone === "UTC") return "UTC";
+  return (
+    new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "shortOffset" })
+      .formatToParts(now)
+      .find((part) => part.type === "timeZoneName")?.value ?? ""
+  );
 }

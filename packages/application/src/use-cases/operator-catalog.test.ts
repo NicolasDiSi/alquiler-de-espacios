@@ -127,6 +127,15 @@ function setup() {
     futureBookings: async (scope, after) => bookings.filter(inScope(scope)).filter((b) => b.startsAt > after),
     overlappingBookings: async (scope, startsAt, endsAt) =>
       bookings.filter(inScope(scope)).filter((b) => b.startsAt < endsAt && b.endsAt > startsAt),
+    overlappingBlocks: async (target, startsAt, endsAt) =>
+      [...blocks.values()].filter(
+        (b) =>
+          b.facilityId === target.facilityId &&
+          !b.releasedAt &&
+          b.startsAt < endsAt &&
+          b.endsAt > startsAt &&
+          (target.roomId === null || b.roomId === null || b.roomId === target.roomId),
+      ),
     countActiveRooms: async (facilityId) =>
       [...rooms.values()].filter((r) => r.facilityId === facilityId && !r.deactivatedAt).length,
     setFacilityDeactivation: async (id, at) => {
@@ -340,6 +349,7 @@ describe("deactivation, hours change and block refusals (spec 0004, AC-5, AC-6, 
     id,
     roomId,
     roomName: "Sala 1",
+    companyId: "acme",
     companyName: "Acme",
     startsAt,
     endsAt,
@@ -477,5 +487,30 @@ describe("deactivation, hours change and block refusals (spec 0004, AC-5, AC-6, 
     await expect(
       createBlock(deps, operator, { facilityId, roomId, startsAt: monday(10), endsAt: monday(12), reason: "obra" }),
     ).resolves.toMatchObject({ ok: true });
+  });
+
+  it("refuses a block over another block of the room or of the sede, and takes it once that one is released", async () => {
+    const { deps, facilityId, roomId } = await site();
+    const first = await createBlock(deps, operator, {
+      facilityId,
+      roomId,
+      startsAt: monday(9),
+      endsAt: monday(11),
+      reason: "a",
+    });
+    const id = first.ok ? first.value.id : "";
+    const again = { facilityId, startsAt: monday(10), endsAt: monday(12), reason: "b" };
+
+    await expect(createBlock(deps, operator, { ...again, roomId })).resolves.toEqual({
+      ok: false,
+      reason: "block_overlaps_block",
+    });
+    // The whole sede overlaps the room's block too.
+    await expect(createBlock(deps, operator, { ...again, roomId: null })).resolves.toEqual({
+      ok: false,
+      reason: "block_overlaps_block",
+    });
+    await releaseBlock(deps, operator, id);
+    await expect(createBlock(deps, operator, { ...again, roomId })).resolves.toMatchObject({ ok: true });
   });
 });

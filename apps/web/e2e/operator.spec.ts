@@ -80,6 +80,8 @@ test.describe("operator administration screens (spec 0005)", () => {
     await page.getByRole("link", { name: sede }).first().click();
     await expect(page.getByRole("heading", { level: 1, name: sede })).toBeVisible();
 
+    // Rooms and blocks are tabs of the sede page, after its activity.
+    await page.getByRole("tab", { name: /Salas/ }).click();
     await page.getByRole("button", { name: "Nueva sala" }).click();
     await dialog(page).getByLabel("Nombre").fill(sala);
     await dialog(page).getByLabel("Capacidad (personas)").fill("6");
@@ -87,6 +89,7 @@ test.describe("operator administration screens (spec 0005)", () => {
     await expect(page.getByText("Sala creada")).toBeVisible();
     await expect(page.getByRole("row", { name: new RegExp(sala) })).toBeVisible();
 
+    await page.getByRole("tab", { name: /Bloqueos/ }).click();
     await page.getByRole("button", { name: "Nuevo bloqueo" }).click();
     await dialog(page).getByLabel("Alcance").selectOption({ label: sala });
     await dialog(page).getByLabel("Desde (día)").fill(inThirtyDays());
@@ -189,6 +192,7 @@ test.describe("operator administration screens (spec 0005)", () => {
 
     await page.getByRole("link", { name: "Sede Central" }).first().click();
     await expectNoViolations(page);
+    await page.getByRole("tab", { name: /Bloqueos/ }).click();
     await page.getByRole("button", { name: "Nuevo bloqueo" }).click();
     await expectNoViolations(page);
     await page.keyboard.press("Escape");

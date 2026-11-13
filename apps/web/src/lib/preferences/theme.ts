@@ -6,4 +6,3 @@ export type ResolvedThemeMode = "light" | "dark";
 
 /** Density changes only Tailwind's spacing unit (see `globals.css`). */
 export const DENSITY_VALUES = ["compact", "comfortable"] as const;
-export type Density = (typeof DENSITY_VALUES)[number];

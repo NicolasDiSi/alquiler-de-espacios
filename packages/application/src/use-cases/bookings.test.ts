@@ -106,6 +106,7 @@ function fakeDatabase() {
         return rows.filter((row) => row.tenantId === tenantId).slice(0, query.limit);
       },
     },
+    availability: { busyIntervals: async () => [] },
   });
 
   let lastQuery: MyBookingsPageQuery | null = null;

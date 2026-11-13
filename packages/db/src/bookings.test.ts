@@ -6,7 +6,16 @@ import { createDatabaseClient } from "./client";
 import { createUuidV7Generator } from "./ids";
 import { createPrismaOperatorCatalog } from "./operator-catalog";
 import { createPrismaRoomCatalog } from "./room-catalog";
-import { asTenant, book, createMember, createRoom, createTenant, TEST_FACILITY_ID } from "./testing/fixtures";
+import {
+  asTenant,
+  book,
+  createMember,
+  createRoom,
+  createTenant,
+  RACE_WAITS,
+  TEST_FACILITY_ID,
+} from "./testing/fixtures";
+import { oneWinner, resultOutcomes } from "./testing/outcomes";
 import { createPrismaUnitOfWork } from "./unit-of-work";
 
 const urls = inject("databaseUrls");
@@ -27,7 +36,8 @@ const NOW = at("2030-01-07", 9);
 const DAY = "2030-01-08";
 
 const deps = {
-  uow: createPrismaUnitOfWork(runtime),
+  // The production timeouts, with longer waits for a connection: the suites share one container (RACE_WAITS).
+  uow: createPrismaUnitOfWork(runtime, RACE_WAITS),
   clock: { now: () => NOW },
   ids: createUuidV7Generator(),
   rooms: createPrismaRoomCatalog(runtime),
@@ -67,11 +77,11 @@ describe("bookRoom against Postgres (runtime login, RLS on)", () => {
 
     const results = await Promise.all(companies.map((actor) => bookRoom(deps, actor, slot(roomId, 10, 11))));
 
-    expect(results.filter((result) => result.ok)).toHaveLength(1);
-    const refusals = results.filter((result) => !result.ok);
-    expect(refusals).toHaveLength(7);
+    // Strict: the app's `INSERT ... ON CONFLICT DO NOTHING` waits for an in flight overlap instead of deadlocking.
+    expect(resultOutcomes(results)).toEqual(oneWinner(8, "conflict"));
     // A refusal is the reason alone: no company, user, booking id or times of the winner.
-    for (const refusal of refusals) expect(refusal).toEqual({ ok: false, reason: "conflict" });
+    for (const refusal of results.filter((result) => !result.ok))
+      expect(refusal).toEqual({ ok: false, reason: "conflict" });
     expect(await confirmedIn(roomId)).toHaveLength(1);
   });
 

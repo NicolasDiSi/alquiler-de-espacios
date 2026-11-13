@@ -25,9 +25,17 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { BookSlotDialog } from "@/components/booking/book-slot-dialog";
-import { BUSY_LOOK, busyStateOf, DRAFT_LOOK, UNAVAILABLE_LOOK } from "@/components/calendar/booking-events";
 import { BookingLegend } from "@/components/calendar/booking-legend";
+import {
+  BUSY_LOOK,
+  busyStateOf,
+  DRAFT_LOOK,
+  dayMarkOptions,
+  UNAVAILABLE_LOOK,
+} from "@/components/calendar/calendar-look";
 import { EventCalendarViews } from "@/components/calendar/event-calendar-views";
+import { type CardData, EVENT_CARD_VIEW } from "@/components/calendar/event-card";
+import { MyBookingDetails, type MyBookingShown } from "@/components/calendar/my-booking-details";
 import { ROOM_CALENDAR_OPTIONS, roomTimeGrid } from "@/components/calendar/room-calendar-options";
 import { useSlotHover } from "@/components/calendar/use-slot-hover";
 import { DatePickerButton } from "@/components/date-picker-field";
@@ -95,6 +103,10 @@ export function RoomSchedule({
   const mounted = useMounted();
   const [pending, startTransition] = useTransition();
   const [draft, setDraft] = useState<Draft | null>(null);
+  // The company's own booking a click opened; someone else's and a block open nothing.
+  const [mine, setMine] = useState<MyBookingShown | null>(null);
+  // The day the user asked for (the link's, "Ir a fecha" or "Hoy"): marked in primary; prev and next leave it.
+  const [picked, setPicked] = useState<LocalDate>(initialDate);
   const calendar = useRef<CalendarApi | null>(null);
   // The sede's "now", advancing while the page stays open: the time line, the time already past and "Hoy" read it.
   const now = useClock(serverNow);
@@ -116,16 +128,16 @@ export function RoomSchedule({
         list.push({
           id: `${day}-${start}-${state}`,
           title: legend(state),
+          extendedProps: { card: { variant: state, label: legend(state) } satisfies CardData },
           start: floating(day, start),
           end: floating(day, end),
           ...BUSY_LOOK[state],
         });
       }
-      // Time that can no longer be booked: the whole day in the month view, up to the first bookable slot elsewhere.
+      // The part of today already gone, hatched inside its column. A whole day that takes nothing is drawn by its cell
+      // (`dayMarkOptions`), not by an event.
       const from = bookableFrom(data, day, now);
-      if (isMonth && from >= facility.closesAt) {
-        list.push({ id: `past-${day}`, start: day, allDay: true, ...UNAVAILABLE_LOOK });
-      } else if (!isMonth && from > facility.opensAt) {
+      if (!isMonth && from > facility.opensAt && from < facility.closesAt) {
         list.push({
           id: `past-${day}`,
           start: floating(day, facility.opensAt),
@@ -138,6 +150,7 @@ export function RoomSchedule({
       list.push({
         id: "draft",
         title: matrix("draft"),
+        extendedProps: { card: { variant: "draft", label: matrix("draft") } satisfies CardData },
         start: floating(draft.day, draft.start),
         end: floating(draft.day, draft.start + draft.minutes),
         ...DRAFT_LOOK,
@@ -200,6 +213,7 @@ export function RoomSchedule({
                 variant="outline"
                 className="h-11"
                 onClick={() => {
+                  setPicked(today);
                   controller.gotoDate(today);
                   // After the calendar resets its scroll for the new date: land on the current time line.
                   requestAnimationFrame(() =>
@@ -220,11 +234,15 @@ export function RoomSchedule({
               </Button>
             </ButtonGroup>
             <DatePickerButton
-              selected={shownDay}
-              onPick={(date) => controller.gotoDate(date)}
+              selected={picked}
+              onPick={(date) => {
+                setPicked(date);
+                controller.gotoDate(date);
+              }}
               label={t("goTo")}
               isDisabled={(date) => !isOpenWeekday(date, facility)}
               defaultMonth={shownDay ?? today}
+              today={today}
             >
               {t("goTo")}
             </DatePickerButton>
@@ -253,8 +271,17 @@ export function RoomSchedule({
             <EventCalendarViews
               {...ROOM_CALENDAR_OPTIONS}
               {...hover.options}
-              views={{ timeGrid: roomTimeGrid(zoneOffset(facility.timeZone, now)) }}
+              views={{ timeGrid: { ...roomTimeGrid(zoneOffset(facility.timeZone, now)), ...EVENT_CARD_VIEW } }}
+              eventClick={(info) => {
+                const card = info.event.extendedProps.card as CardData | undefined;
+                const { start, end } = info.event;
+                if (card?.variant === "mine" && start && end && room) setMine({ room: room.name, start, end });
+              }}
               controller={controller}
+              {...dayMarkOptions(
+                (date) => local(date).date === picked,
+                (date) => bookableFrom(data, local(date).date, now) >= facility.closesAt,
+              )}
               plugins={plugins}
               initialView={FC_VIEW[initialView]}
               initialDate={initialDate}
@@ -329,6 +356,8 @@ export function RoomSchedule({
           <Skeleton className="min-h-0 w-full flex-1 rounded-none" />
         )}
       </div>
+
+      <MyBookingDetails shown={mine} onClose={() => setMine(null)} />
 
       {draft && room ? (
         <BookSlotDialog

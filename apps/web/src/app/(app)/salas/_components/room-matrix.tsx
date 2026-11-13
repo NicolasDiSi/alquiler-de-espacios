@@ -23,9 +23,17 @@ import { ChevronLeft, ChevronRight, DoorOpen, Users, XIcon } from "lucide-react"
 import { useFormatter, useTranslations } from "next-intl";
 
 import { BookSlotDialog, type Draft } from "@/components/booking/book-slot-dialog";
-import { BUSY_LOOK, busyStateOf, DRAFT_LOOK, UNAVAILABLE_LOOK } from "@/components/calendar/booking-events";
 import { BookingLegend } from "@/components/calendar/booking-legend";
+import {
+  BUSY_LOOK,
+  busyStateOf,
+  closedLaneOptions,
+  DRAFT_LOOK,
+  UNAVAILABLE_LOOK,
+} from "@/components/calendar/calendar-look";
 import { EventCalendarViews } from "@/components/calendar/event-calendar-views";
+import { type CardData, EVENT_CARD_VIEW } from "@/components/calendar/event-card";
+import { MyBookingDetails, type MyBookingShown } from "@/components/calendar/my-booking-details";
 import { ROOM_CALENDAR_OPTIONS, roomTimeGrid } from "@/components/calendar/room-calendar-options";
 import { useSlotHover } from "@/components/calendar/use-slot-hover";
 import { DatePickerButton } from "@/components/date-picker-field";
@@ -106,6 +114,8 @@ export function RoomMatrix({
   const result = use(week);
   const data = useMemo(() => (result.ok ? indexMonth(result.value) : null), [result]);
   const [draft, setDraft] = useState<Draft | null>(null);
+  // The company's own booking a click opened; someone else's and a block open nothing.
+  const [mine, setMine] = useState<MyBookingShown | null>(null);
   const strip = useRef<HTMLUListElement>(null);
   const calendar = useRef<CalendarApi | null>(null);
   // The sede's "now", advancing while the page stays open: the time line, the time already past and "Hoy" read it.
@@ -145,13 +155,15 @@ export function RoomMatrix({
       return {
         id: `${column}-${span.start}-${state}`,
         title: legend(state),
+        extendedProps: { card: { variant: state, label: legend(state) } satisfies CardData },
         start: columnTime(column, span.start),
         end: columnTime(column, span.end),
         ...BUSY_LOOK[state],
       } satisfies EventInput;
     }),
-    // Time that can no longer be booked (past, or a day that takes no bookings), hatched in every column.
-    ...(from > opensAt
+    // The part of today already gone, hatched in every column. A day that takes nothing is drawn by the columns
+    // themselves (`closedLaneOptions`), not by an event.
+    ...(from > opensAt && from < closesAt
       ? rooms.map((room, column) => ({
           id: `past-${room.id}`,
           start: columnTime(column, opensAt),
@@ -164,6 +176,7 @@ export function RoomMatrix({
           {
             id: "draft",
             title: t("draft"),
+            extendedProps: { card: { variant: "draft", label: t("draft") } satisfies CardData },
             start: columnTime(draft.column, draft.start),
             end: columnTime(draft.column, draft.start + draft.minutes),
             ...DRAFT_LOOK,
@@ -197,6 +210,7 @@ export function RoomMatrix({
           {days.map((date) => {
             const open = isOpenWeekday(date, data.facility);
             const selected = date === day;
+            const past = date < today;
             const free = slots.get(date) ?? 0;
             return (
               <li key={date} data-day={date} className="min-w-24 flex-1 snap-start">
@@ -208,15 +222,25 @@ export function RoomMatrix({
                   className={cn(
                     "flex min-h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-2 py-2 text-sm transition-colors",
                     "hover:bg-muted focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px] disabled:opacity-50",
-                    // A day with nothing left to book reads quieter than one with room.
-                    !selected && free === 0 && "text-muted-foreground",
+                    // A day gone, or with nothing left to book, reads quieter than one with room.
+                    !selected && (past || free === 0) && "text-muted-foreground",
                     selected && "bg-primary text-primary-foreground hover:bg-primary",
                   )}
                 >
                   <span className="font-medium first-letter:uppercase">
                     {format.dateTime(noon(date), { weekday: "short", day: "numeric", timeZone: "UTC" })}
                   </span>
-                  {open ? (
+                  {open && past ? (
+                    // Gone, not full: the legend's "Ya pasó" instead of "0 libres" (no hatch: it would cut through the text).
+                    <span
+                      className={cn(
+                        "rounded-md border px-1.5 py-0.5 text-xs",
+                        selected ? "border-primary-foreground/60" : "bg-card border-input",
+                      )}
+                    >
+                      {t("past")}
+                    </span>
+                  ) : open ? (
                     <span
                       className={cn(
                         "rounded-md px-1.5 py-0.5 text-xs tabular-nums",
@@ -298,6 +322,7 @@ export function RoomMatrix({
               label={t("goTo")}
               isDisabled={(date) => !isOpenWeekday(date, data.facility)}
               defaultMonth={day}
+              today={today}
             >
               {t("goTo")}
             </DatePickerButton>
@@ -334,14 +359,27 @@ export function RoomMatrix({
               <EventCalendarViews
                 // The columns are the rooms: a new set of rooms is a new grid.
                 key={`${day}:${rooms.map((room) => room.id).join(",")}`}
+                // Every column is the same day: when it takes nothing, every room's column reads as gone.
+                {...closedLaneOptions(() => from >= closesAt)}
                 plugins={plugins}
                 locale={esLocale}
                 timeZone="UTC"
                 initialView="rooms"
                 initialDate={columnDate(0)}
                 views={{
-                  timeGrid: roomTimeGrid(zoneOffset(zone, now)),
+                  timeGrid: { ...roomTimeGrid(zoneOffset(zone, now)), ...EVENT_CARD_VIEW },
                   rooms: { type: "timeGrid", duration: { days: rooms.length } },
+                }}
+                eventClick={(info) => {
+                  const card = info.event.extendedProps.card as CardData | undefined;
+                  if (card?.variant !== "mine" || !info.event.start || !info.event.end) return;
+                  // A column is a room on the matrix's one day: back to the room and that day's wall clock.
+                  const from = cellOf(info.event.start);
+                  const to = cellOf(info.event.end);
+                  const room = rooms[from.column];
+                  if (!room) return;
+                  const at = (minutes: number) => new Date(`${day}T${timeOf(minutes)}:00Z`);
+                  setMine({ room: room.name, start: at(from.minutes), end: at(to.minutes) });
                 }}
                 headerToolbar={false}
                 popoverCloseContent={() => (
@@ -415,6 +453,8 @@ export function RoomMatrix({
           <Skeleton className="min-h-0 w-full flex-1 rounded-none" />
         )}
       </div>
+
+      <MyBookingDetails shown={mine} onClose={() => setMine(null)} />
 
       {draft && draftRoom ? (
         <BookSlotDialog

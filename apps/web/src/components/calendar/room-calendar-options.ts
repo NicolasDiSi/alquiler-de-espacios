@@ -1,13 +1,15 @@
 import type { CalendarOptions, ViewOptions } from "@fullcalendar/react";
 import { cn } from "cn";
 
+import { FREE_SURFACE } from "./calendar-look";
+
 /**
  * What the room calendars (`/salas` and `/salas/[id]`) change on the template's `EventCalendarViews`, applied where it
  * is used and never inside it: a white body so free time reads as the surface you book on, times as `14:00`, and the
  * opening hour labelled (the template hides the first label, which sits above the grid).
  */
 export const ROOM_CALENDAR_OPTIONS = {
-  tableBodyClass: "bg-card",
+  ...FREE_SURFACE,
   eventTimeFormat: { hour: "2-digit", minute: "2-digit", hour12: false },
 } satisfies CalendarOptions;
 

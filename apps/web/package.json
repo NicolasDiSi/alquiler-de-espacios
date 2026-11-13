@@ -10,7 +10,7 @@
     "typecheck": "next typegen && tsc -p tsconfig.json",
     "test": "vitest run --coverage --reporter=dot",
     "e2e": "playwright test",
-    "e2e:bookings": "playwright test e2e/bookings.spec.ts e2e/my-bookings.spec.ts",
+    "e2e:bookings": "playwright test e2e/bookings.spec.ts e2e/my-bookings.spec.ts e2e/calendar-marks.spec.ts",
     "e2e:shell": "playwright test e2e/shell.spec.ts e2e/keyboard.spec.ts e2e/accessibility.spec.ts",
     "e2e:operator": "playwright test e2e/operator.spec.ts e2e/conflicts.spec.ts"
   },

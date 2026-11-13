@@ -15,6 +15,20 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 const pad = (value: number) => String(value).padStart(2, "0");
 
+/**
+ * Today in the month: the calendars' today ring and text (`--calendar-today`) instead of shadcn's `muted` fill, barely
+ * apart from the popover.
+ * The picked day keeps the primary fill (`data-selected-single`), so the two never look alike.
+ */
+const TODAY_CLASS =
+  "rdp-today rounded-(--cell-radius) [&:not([data-selected=true])_button]:text-calendar-today [&:not([data-selected=true])_button]:font-semibold [&:not([data-selected=true])_button]:ring-2 [&:not([data-selected=true])_button]:ring-inset [&:not([data-selected=true])_button]:ring-calendar-today";
+
+/**
+ * A day already gone: muted text, still a button (a calendar can show the past) and never as faint as a day that
+ * cannot be picked (`opacity-50`). The legend calls it "Ya pasó"; the hatch stays on the grid, where no text sits on it.
+ */
+const PAST_CLASS = "[&:not([data-selected=true])_button]:text-muted-foreground";
+
 /** The day a calendar cell stands for. DayPicker works on local `Date`s; only their year, month and day matter. */
 function cellToLocalDate(cell: Date): LocalDate | null {
   return parseLocalDate(`${cell.getFullYear()}-${pad(cell.getMonth() + 1)}-${pad(cell.getDate())}`);
@@ -53,6 +67,7 @@ export function DatePickerButton({
   defaultMonth,
   startMonth,
   endMonth,
+  today,
 }: {
   readonly selected: LocalDate | null;
   readonly onPick: (date: LocalDate) => void;
@@ -64,6 +79,11 @@ export function DatePickerButton({
   readonly defaultMonth: LocalDate;
   readonly startMonth?: LocalDate | undefined;
   readonly endMonth?: LocalDate | undefined;
+  /**
+   * Today in the sede's zone. Without it DayPicker takes the browser's date, which after 21:00 in Buenos Aires is
+   * already tomorrow in UTC; with it, today is ringed and the days before it read as past.
+   */
+  readonly today?: LocalDate | undefined;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -86,6 +106,14 @@ export function DatePickerButton({
         <Calendar
           mode="single"
           locale={es}
+          classNames={{ today: TODAY_CLASS }}
+          {...(today
+            ? {
+                today: localDateToCell(today),
+                modifiers: { past: (cell: Date) => (cellToLocalDate(cell) ?? today) < today },
+                modifiersClassNames: { past: PAST_CLASS },
+              }
+            : {})}
           autoFocus
           selected={selected ? localDateToCell(selected) : undefined}
           defaultMonth={localDateToCell(selected ?? defaultMonth)}

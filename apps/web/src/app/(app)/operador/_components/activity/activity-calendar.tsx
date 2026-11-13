@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import Link from "next/link";
+
 import type { OperatorBlockTarget, OperatorBookingView } from "@espacios/application";
 import { localDateOf, todayAt, weekdayOf } from "@espacios/domain";
 import { type EventInput, useCalendarController } from "@fullcalendar/react";
@@ -12,13 +14,22 @@ import timeGridPlugin from "@fullcalendar/react/timegrid";
 import { Building2, CalendarOff, ChevronLeft, ChevronRight, DoorOpen, XIcon } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 
+import { BUSY_LOOK, CANCELLED_CLASS, dayMarkOptions, FREE_SURFACE } from "@/components/calendar/calendar-look";
 import { EventCalendarViews } from "@/components/calendar/event-calendar-views";
+import { type CardData, EVENT_CARD_VIEW } from "@/components/calendar/event-card";
 import { DatePickerButton } from "@/components/date-picker-field";
 import { Facts } from "@/components/facts";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMounted } from "@/hooks/use-mounted";
@@ -66,19 +77,70 @@ async function fetchBookings(
   return bookings;
 }
 
+/** An active block as `GET /api/v1/operator/blocks` answers it (a `BlockRecord` in JSON). */
+type BlockJson = {
+  readonly id: string;
+  readonly facilityId: string;
+  /** `null` closes the whole sede. */
+  readonly roomId: string | null;
+  readonly startsAt: string;
+  readonly endsAt: string;
+  readonly reason: string;
+};
+
+/** A block placed on the calendar: its sede's and room's names, for the title and the filter. */
+type PlacedBlock = BlockJson & { readonly facilityName: string; readonly roomName: string | null };
+
+/**
+ * The active blocks of the sedes the operator can block here (a sede's own, or a client's sedes), overlapping
+ * `[start, end)`. The API lists every active block of a sede, so the range is applied here.
+ */
+async function fetchBlocks(
+  targets: readonly OperatorBlockTarget[],
+  range: { readonly start: Date; readonly end: Date },
+  signal: AbortSignal,
+): Promise<PlacedBlock[]> {
+  const lists = await Promise.all(
+    targets.map(async ({ facility, rooms }) => {
+      const params = new URLSearchParams({ facilityId: facility.id });
+      const response = await fetch(`/api/v1/operator/blocks?${params}`, { cache: "no-store", signal });
+      if (!response.ok) throw new Error(`GET /api/v1/operator/blocks: ${response.status}`);
+      const body = (await response.json()) as { blocks: BlockJson[] };
+      const names = new Map(rooms.map((room) => [room.id, room.name]));
+      return body.blocks.map((block) => ({
+        ...block,
+        facilityName: facility.name,
+        roomName: block.roomId ? (names.get(block.roomId) ?? null) : null,
+      }));
+    }),
+  );
+  return lists.flat().filter((block) => new Date(block.startsAt) < range.end && new Date(block.endsAt) > range.start);
+}
+
 /** What the filter narrows by: a client's sedes, a sede's rooms. */
 const filterKey = (subject: ActivitySubject, booking: OperatorBookingView) =>
   subject === "client" ? booking.room.facilityName : booking.room.name;
 
-const toEvent = (subject: ActivitySubject, booking: OperatorBookingView): EventInput => ({
+/** A booking on the operator's calendar: quiet like any booking, its card naming the client (or the room) and who booked. */
+const toEvent = (subject: ActivitySubject, booking: OperatorBookingView, phase: string): EventInput => ({
   id: booking.id,
   // A sede's calendar mixes clients, so each booking also says whose it is.
   title: subject === "client" ? booking.room.name : `${booking.room.name} · ${booking.company.name}`,
   start: booking.startsAt,
   end: booking.endsAt,
-  // A cancelled booking stays visible, faded and struck through, so a freed slot reads as freed.
-  classNames: booking.status === "cancelled" ? ["opacity-50", "line-through"] : [],
-  extendedProps: { booking },
+  ...BUSY_LOOK.booked,
+  className:
+    booking.status === "cancelled" ? `${BUSY_LOOK.booked.className} ${CANCELLED_CLASS}` : BUSY_LOOK.booked.className,
+  extendedProps: {
+    booking,
+    card: {
+      variant: "booked",
+      label: phase,
+      title: subject === "client" ? booking.room.name : booking.company.name,
+      detail: `${subject === "client" ? booking.room.facilityName : booking.room.name} · ${booking.bookedBy.name}`,
+      cancelled: booking.status === "cancelled",
+    } satisfies CardData,
+  },
 });
 
 /**
@@ -103,6 +165,7 @@ export function ActivityCalendar({
 }) {
   const t = useTranslations("operator.activity.calendar");
   const home = useTranslations("home");
+  const details = useTranslations("calendar.details");
   const format = useFormatter();
   // Re-renders this component on every date or view change, so the title and the view come from it, never from a
   // state set inside the calendar's own callbacks. The controller updates this component as soon as the calendar
@@ -115,28 +178,61 @@ export function ActivityCalendar({
   const [failed, setFailed] = useState(false);
   const [blocking, setBlocking] = useState<{ selection: { start: Date; end: Date } | null } | null>(null);
   const [shown, setShown] = useState<OperatorBookingView | null>(null);
+  const [shownBlock, setShownBlock] = useState<PlacedBlock | null>(null);
+  // The day the operator asked for ("Ir a fecha" or "Hoy"), today at first: marked in primary; prev and next leave it.
+  const [picked, setPicked] = useState(() => todayAt(new Date(), timeZone));
+  const [blocks, setBlocks] = useState<readonly PlacedBlock[]>([]);
 
   // The visible range is read here, after the calendar reports it, and fetched in an effect: the calendar only gets
   // a plain list, so no request of its own resolves on an instance React discarded.
   useEffect(() => {
     if (!range) return;
     const controller = new AbortController();
-    fetchBookings(subject, id, range, controller.signal)
-      .then((found) => {
+    Promise.all([fetchBookings(subject, id, range, controller.signal), fetchBlocks(targets, range, controller.signal)])
+      .then(([found, closed]) => {
         setBookings(found);
+        setBlocks(closed);
         setFailed(false);
       })
       .catch((error: unknown) => {
         if (!controller.signal.aborted) setFailed(error instanceof Error);
       });
     return () => controller.abort();
-  }, [subject, id, range]);
+  }, [subject, id, range, targets]);
 
   const visible = useMemo(
     () => bookings.filter((booking) => narrow === ALL || filterKey(subject, booking) === narrow),
     [bookings, narrow, subject],
   );
-  const events = useMemo(() => visible.map((booking) => toEvent(subject, booking)), [visible, subject]);
+  const events = useMemo(() => {
+    // A block on the whole sede shows under any room filter; a room's block only under its room (or its sede).
+    const shownBlocks = blocks.filter(
+      (block) =>
+        narrow === ALL ||
+        (subject === "client" ? block.facilityName === narrow : block.roomName === null || block.roomName === narrow),
+    );
+    return [
+      ...shownBlocks.map(
+        (block): EventInput => ({
+          id: `block-${block.id}`,
+          title: t("blockEvent", { target: block.roomName ?? t("wholeFacility"), reason: block.reason }),
+          start: block.startsAt,
+          end: block.endsAt,
+          ...BUSY_LOOK.blocked,
+          extendedProps: {
+            block,
+            card: {
+              variant: "blocked",
+              label: details("block"),
+              title: block.reason,
+              detail: block.roomName ?? t("wholeFacility"),
+            } satisfies CardData,
+          },
+        }),
+      ),
+      ...visible.map((booking) => toEvent(subject, booking, home(`phase.${booking.phase}`))),
+    ];
+  }, [blocks, visible, subject, narrow, t, details, home]);
   const count = visible.filter((booking) => booking.status === "confirmed").length;
 
   const view = controller.view;
@@ -184,7 +280,13 @@ export function ActivityCalendar({
               <Button size="icon" variant="outline" aria-label={t("previous")} onClick={() => controller.prev()}>
                 <ChevronLeft aria-hidden />
               </Button>
-              <Button variant="outline" onClick={() => controller.today()}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setPicked(todayAt(new Date(), timeZone));
+                  controller.today();
+                }}
+              >
                 {t("today")}
               </Button>
               <Button size="icon" variant="outline" aria-label={t("next")} onClick={() => controller.next()}>
@@ -192,11 +294,15 @@ export function ActivityCalendar({
               </Button>
             </ButtonGroup>
             <DatePickerButton
-              selected={shownDay}
-              onPick={(date) => controller.gotoDate(date)}
+              selected={picked}
+              onPick={(date) => {
+                setPicked(date);
+                controller.gotoDate(date);
+              }}
               label={t("goTo")}
               isDisabled={(date) => HIDDEN_DAYS.includes(weekdayOf(date))}
               defaultMonth={shownDay ?? todayAt(new Date(), timeZone)}
+              today={todayAt(new Date(), timeZone)}
             >
               {t("goTo")}
             </DatePickerButton>
@@ -226,7 +332,15 @@ export function ActivityCalendar({
         {mounted ? (
           <EventCalendarViews
             controller={controller}
+            // The free surface for the days still ahead, as on the room calendars, so the past reads apart.
+            {...FREE_SURFACE}
+            {...dayMarkOptions(
+              (date) => localDateOf(date, timeZone) === picked,
+              // The operator blocks from today on: the days before it take nothing.
+              (date) => localDateOf(date, timeZone) < todayAt(new Date(), timeZone),
+            )}
             plugins={plugins}
+            views={{ timeGrid: EVENT_CARD_VIEW }}
             initialView={VIEWS[0]}
             locale={esLocale}
             timeZone={timeZone}
@@ -250,7 +364,14 @@ export function ActivityCalendar({
             // Only the hour views pick a range: a month cell has no times to give.
             selectAllow={(span) => !span.allDay}
             select={(info) => setBlocking({ selection: { start: info.start, end: info.end } })}
-            eventClick={(info) => setShown(info.event.extendedProps.booking as OperatorBookingView)}
+            eventClick={(info) => {
+              const { booking, block } = info.event.extendedProps as {
+                booking?: OperatorBookingView;
+                block?: PlacedBlock;
+              };
+              if (booking) setShown(booking);
+              if (block) setShownBlock(block);
+            }}
           />
         ) : (
           <Skeleton className="h-[38rem] w-full rounded-none" />
@@ -262,10 +383,46 @@ export function ActivityCalendar({
         <BlockSlotDialog
           targets={targets}
           open
-          onOpenChange={(open) => (open ? null : setBlocking(null))}
+          onOpenChange={(open) => {
+            if (open) return;
+            setBlocking(null);
+            // The same range as a new object reads it again, so a block just created shows at once.
+            setRange((current) => (current ? { ...current } : current));
+          }}
           selection={blocking.selection}
         />
       ) : null}
+
+      <Dialog open={shownBlock !== null} onOpenChange={(open) => (open ? null : setShownBlock(null))}>
+        <DialogContent>
+          {shownBlock ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>{details("block")}</DialogTitle>
+                <DialogDescription>{shownBlock.facilityName}</DialogDescription>
+              </DialogHeader>
+              <Facts
+                items={[
+                  { term: details("blockScope"), value: shownBlock.roomName ?? t("wholeFacility") },
+                  {
+                    term: home("columns.time"),
+                    value: home("timeRange", {
+                      start: format.dateTime(new Date(shownBlock.startsAt), "short"),
+                      end: format.dateTime(new Date(shownBlock.endsAt), "short"),
+                    }),
+                  },
+                  { term: details("blockReason"), value: shownBlock.reason },
+                ]}
+              />
+              <DialogFooter>
+                <Button asChild variant="outline">
+                  <Link href={`/operador/sedes/${shownBlock.facilityId}`}>{details("manageBlocks")}</Link>
+                </Button>
+              </DialogFooter>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={shown !== null} onOpenChange={(open) => (open ? null : setShown(null))}>
         <DialogContent>

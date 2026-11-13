@@ -1,6 +1,6 @@
 # 0002. Ports and adapters, enforced by dependency-cruiser
 
-- Status: proposed
+- Status: accepted
 
 ## Context
 

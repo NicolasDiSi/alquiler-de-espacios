@@ -1,5 +1,8 @@
 # 0009 · Rooms matrix at /salas
 
+**Status**: Assumed
+**Date**: 2026-11-12
+
 Adds a calendar view to `/salas`; the room cards of spec 0008 stay as the other view. Builds on spec 0008 (busy time, the domain rules, `getFacilityMonth`).
 
 ## Design

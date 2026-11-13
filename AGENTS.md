@@ -4,7 +4,7 @@
 
 alquiler-de-espacios is a technical challenge (Fontanella SRL, Senior Full Stack, 72 hours): a web app where client companies see meeting room availability, book rooms and cancel their own bookings, and the operator sees utilization metrics overall and per client company. The full brief is in [docs/challenge.md](docs/challenge.md); read it before planning.
 
-**Status:** the foundations, booking, cancelling, room availability, the operator's administration (sedes, rooms, clients, blocks), its metrics API and dashboard, and the client and sede activity pages are built (specs 0001 to 0009). The company API is in [docs/api/company.md](docs/api/company.md), the operator's in [docs/api/operator.md](docs/api/operator.md). [docs/scope/_root/scope.md](docs/scope/_root/scope.md) holds the build order and each feature's status. Left for delivery: the README sections the brief asks for (run and test, architecture, limitations, AI usage).
+**Status:** the foundations, booking, cancelling, room availability, the operator's administration (sedes, rooms, clients, blocks), its metrics API and dashboard, and the client and sede activity pages are built (specs 0001 to 0009). The company API is in [docs/api/company.md](docs/api/company.md), the operator's in [docs/api/operator.md](docs/api/operator.md). [docs/scope/_root/scope.md](docs/scope/_root/scope.md) holds the build order and each feature's status. The README covers run and test, architecture, assumptions, limitations, next version and AI usage. Left for delivery: the full `pnpm check:ai` with e2e and the release to `main`.
 
 ## Non negotiables from the brief
 
@@ -44,7 +44,7 @@ pnpm dev               # services:up, db:deploy, db:seed, then the web app on ht
 pnpm dev:app           # only the web app (turbo run dev), when the database is already up
 pnpm check:ai          # every quality gate, one PASS/FAIL line each. Use this to iterate.
 pnpm check:ai --gate=test --lines=60
-pnpm check:ai --gate=e2e --suite=bookings   # one area's Playwright specs (suites: bookings, shell)
+pnpm check:ai --gate=e2e --suite=bookings   # one area's Playwright specs (suites: bookings, shell, operator)
 pnpm check:fix         # Biome lint + format + import sorting
 pnpm test              # turbo run test
 pnpm typecheck
@@ -65,7 +65,7 @@ pnpm db:studio         # data panel on http://localhost:5555
 - Run `pnpm check:ai` (or `--gate=<name>`) instead of individual tools. It prints one line per gate and at most 20 lines per failure.
 - When a gate fails, fix the reported files and rerun only that gate before running the full set again.
 - Run the smallest check that covers the change, and the full set once at the end. The table is in [scoped-verification](.claude/skills/scoped-verification/).
-- **The user runs end to end tests.** Hand over the exact command (for example `pnpm check:ai --gate=e2e --suite=bookings`), say which tests are new or edited, and keep working. Suites: `bookings` (book, my bookings) and `shell` (shell, keyboard, accessibility).
+- **The user runs end to end tests.** Hand over the exact command (for example `pnpm check:ai --gate=e2e --suite=bookings`), say which tests are new or edited, and keep working. Suites: `bookings` (book, my bookings, calendar marks), `shell` (shell, keyboard, accessibility) and `operator` (operator screens, conflicts).
 
 ## Workflow
 

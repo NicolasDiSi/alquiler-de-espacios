@@ -1,6 +1,6 @@
 # 0003. Prisma 7 on PostgreSQL; shared schema with tenant_id and row level security
 
-- Status: proposed
+- Status: accepted
 
 ## Context
 

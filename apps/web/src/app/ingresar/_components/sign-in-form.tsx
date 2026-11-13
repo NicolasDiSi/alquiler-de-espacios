@@ -32,8 +32,23 @@ export function SignInForm({ choices }: { choices: SignInChoicesView }) {
 
   return (
     <form action={formAction} aria-busy={pending}>
-      <div className="flex flex-col gap-5 px-6 pt-3 pb-5">
+      <div className="flex max-h-[30rem] flex-col gap-5 overflow-auto px-6 pb-5">
         {state.error ? <ErrorDialog open={errorOpen} onOpenChange={setErrorOpen} message={t(state.error)} /> : null}
+        {choices.operators.length > 0 ? (
+          <ProfileGroup title={t("operator.title")} aside={t("profiles", { count: choices.operators.length })}>
+            {choices.operators.map((user) => (
+              <ProfileRow
+                key={user.id}
+                id={user.id}
+                name={user.name}
+                // The seeded operator is called "Operador": the role is not repeated next to it.
+                tag={user.name === t("operator.role") ? null : t("operator.role")}
+                detail={t("operator.description")}
+                pending={pending}
+              />
+            ))}
+          </ProfileGroup>
+        ) : null}
 
         {companyCount > 0 ? (
           <ProfileGroup title={t("companies")} aside={t("profiles", { count: companyCount })}>
@@ -64,22 +79,6 @@ export function SignInForm({ choices }: { choices: SignInChoicesView }) {
                 ),
               ),
             )}
-          </ProfileGroup>
-        ) : null}
-
-        {choices.operators.length > 0 ? (
-          <ProfileGroup title={t("operator.title")} aside={t("profiles", { count: choices.operators.length })}>
-            {choices.operators.map((user) => (
-              <ProfileRow
-                key={user.id}
-                id={user.id}
-                name={user.name}
-                // The seeded operator is called "Operador": the role is not repeated next to it.
-                tag={user.name === t("operator.role") ? null : t("operator.role")}
-                detail={t("operator.description")}
-                pending={pending}
-              />
-            ))}
           </ProfileGroup>
         ) : null}
       </div>
@@ -116,8 +115,9 @@ function ProfileGroup({
 }) {
   const headingId = useId();
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-1">
-      <div className="flex items-baseline justify-between gap-4">
+    <section aria-labelledby={headingId} className="flex flex-col gap-1 pt-3">
+      {/* Stays at the top of the scrolling list while its profiles pass under it; the card's color hides them. */}
+      <div className="bg-card sticky top-0 z-10 flex items-baseline justify-between gap-4 py-2">
         <h2 id={headingId} className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
           {title}
         </h2>

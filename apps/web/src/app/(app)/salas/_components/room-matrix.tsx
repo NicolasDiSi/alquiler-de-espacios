@@ -38,7 +38,6 @@ import { ROOM_CALENDAR_OPTIONS, roomTimeGrid } from "@/components/calendar/room-
 import { useSlotHover } from "@/components/calendar/use-slot-hover";
 import { DatePickerButton } from "@/components/date-picker-field";
 import { Button } from "@/components/ui/button";
-import { ButtonGroup } from "@/components/ui/button-group";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClock } from "@/hooks/use-clock";
@@ -193,18 +192,25 @@ export function RoomMatrix({
       : []),
   ];
 
-  // Every day the server read: touch scrolls through them, the arrows a week at a time, none of it asks the server.
+  // Every day the server read: touch scrolls through them and the arrows a week at a time, with no server call; only an
+  // arrow past the first or last week reads another month (`showWeek`).
   const days = Array.from({ length: 42 }, (_, index) => addDays(data.from, index)).filter((date) => date <= data.to);
-  const lastWeek = mondayOf(data.to);
   const shownWeek = mondayOf(shown);
   // Back: the start of the week partly shown, or the one before. Forward: the next week.
   const previousWeek = shown === shownWeek ? addDays(shownWeek, -7) : shownWeek;
   const nextWeek = addDays(shownWeek, 7);
-  /** Scroll the strip to the week of `monday` and mark its first open day; nothing is chosen. */
+  /**
+   * Scroll the strip to the week of `monday` and mark its first open day; nothing is chosen. Past the weeks the server
+   * read, there is nothing to scroll to: that week's first open day is chosen, which reads its month.
+   */
   const showWeek = (monday: LocalDate) => {
     const list = strip.current;
     const pill = list?.querySelector<HTMLElement>(`[data-day="${monday}"]`);
-    if (!list || !pill) return;
+    if (!list || !pill) {
+      const week = Array.from({ length: 7 }, (_, index) => addDays(monday, index));
+      onDay(week.find((date) => isOpenWeekday(date, data.facility)) ?? monday);
+      return;
+    }
     list.scrollTo({ left: pill.offsetLeft, behavior: "smooth" });
     setShown(monday);
     const open = days.find((date) => date >= monday && isOpenWeekday(date, data.facility));
@@ -240,36 +246,22 @@ export function RoomMatrix({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <ButtonGroup>
-              <Button
-                size="icon"
-                variant="outline"
-                className="size-11"
-                aria-label={t("previousWeek")}
-                onClick={() => onDay(addDays(day, -7))}
-              >
-                <ChevronLeft aria-hidden />
-              </Button>
-              <Button
-                variant="outline"
-                className="h-11"
-                // Today again scrolls back to the time line; another day opens today, which starts on it.
-                onClick={() =>
-                  day === today ? calendar.current?.scrollToTime(scrollTimeFor(data, [], today, now)) : onDay(today)
-                }
-              >
-                {t("today")}
-              </Button>
-              <Button
-                size="icon"
-                variant="outline"
-                className="size-11"
-                aria-label={t("nextWeek")}
-                onClick={() => onDay(addDays(day, 7))}
-              >
-                <ChevronRight aria-hidden />
-              </Button>
-            </ButtonGroup>
+            {/* The week moves with the arrows of the day strip below; this toolbar only jumps to today or a date. */}
+            {/*
+              Filled like the view toggle while today is the chosen day, so the toolbar says where the matrix stands.
+              `aria-current`, not `aria-pressed`: a click on it never turns it off, it scrolls back to the time line.
+            */}
+            <Button
+              variant="outline"
+              aria-current={day === today ? "date" : undefined}
+              className="aria-[current=date]:bg-primary aria-[current=date]:text-primary-foreground aria-[current=date]:hover:bg-primary/90 aria-[current=date]:hover:text-primary-foreground h-11"
+              // Today again scrolls back to the time line; another day opens today, which starts on it.
+              onClick={() =>
+                day === today ? calendar.current?.scrollToTime(scrollTimeFor(data, [], today, now)) : onDay(today)
+              }
+            >
+              {t("today")}
+            </Button>
             <DatePickerButton
               selected={day}
               onPick={onDay}
@@ -289,7 +281,6 @@ export function RoomMatrix({
             variant="ghost"
             className="size-11 shrink-0"
             aria-label={t("previousWeek")}
-            disabled={previousWeek < data.from}
             onClick={() => showWeek(previousWeek)}
           >
             <ChevronLeft aria-hidden />
@@ -360,7 +351,6 @@ export function RoomMatrix({
             variant="ghost"
             className="size-11 shrink-0"
             aria-label={t("nextWeek")}
-            disabled={nextWeek > lastWeek}
             onClick={() => showWeek(nextWeek)}
           >
             <ChevronRight aria-hidden />

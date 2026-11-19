@@ -8,7 +8,7 @@ Adds a calendar view to `/salas`; the room cards of spec 0008 stay as the other 
 ## Design
 
 - **Filters:** the sede, the week (previous, next, "Hoy", "Ir a fecha" with the date picker of the client page, spec 0007) and the people (1 to 40). The URL mirrors them (`?sede&fecha&personas`).
-- **Views:** "Calendario" (the matrix below) or "Grilla" (spec 0008's cards: search by name, quick filters with counts, each room's state, now when the day is today, its day as a bar, and "Reservar"), `?vista=calendario|grilla`, applied in the browser. A room's column header, or its whole card, opens its detail on the chosen day.
+- **Views:** "Calendario" (the matrix below) or "Grilla" (spec 0008's cards: each room's state, now when the day is today, its day as a bar, and "Reservar"), `?vista=calendario|grilla`, applied in the browser. Both views read the one search and filter panel of the page; the cards had their own search and size chips, removed as a duplicate. A room's column header, or its whole card, opens its detail on the chosen day.
 - **Room detail (`/salas/[id]`):** the header of the other detail pages (back link, name, then its facts: sede, capacity, hours, days, time zone, with the shared `Facts` and `WeekDays`), then its availability as in spec 0008.
 - **Day pills:** the seven days of the week; the days the sede opens are enabled, each with its free 30 minute slots for the people. The week of `fecha` is shown, this week by default.
 - **Matrix:** the chosen day as a time grid drawn by `EventCalendarViews`, a column per room with room for the people (smallest first), rows every 30 minutes over the sede's hours. Busy time reads "Ocupada", "Tu reserva" or "No disponible", never whose. Time that can no longer be booked is shaded.

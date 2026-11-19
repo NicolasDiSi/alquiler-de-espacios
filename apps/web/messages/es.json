@@ -1001,23 +1001,17 @@
     "description": "Las salas de cada sede, como calendario o como tarjetas. Elegí una para ver su detalle o reservarla.",
     "hours": "Horario de la sede: {opens} a {closes} (hoy)",
     "capacity": "{count, plural, one {# persona} other {# pers.}}",
-    "empty": "Ninguna sala coincide con la búsqueda o el filtro.",
     "emptyAll": {
       "title": "Todavía no hay salas",
       "description": "Cuando el operador cargue salas, las vas a ver acá."
     },
     "filters": {
-      "label": "Filtros de salas",
       "facility": "Sede",
       "search": "Buscar sala por nombre",
-      "quick": "Filtros rápidos",
-      "count": "Mostrando {shown} de {total} salas",
       "all": "Todas ({count})",
-      "free": "Libres ahora ({count})",
       "small": "Pequeñas, hasta 4 ({count})",
       "medium": "Medianas, 5 a 9 ({count})",
-      "large": "Grandes, 10 o más ({count})",
-      "freeDay": "Con lugar ({count})"
+      "large": "Grandes, 10 o más ({count})"
     },
     "now": {
       "free": "Libre ahora",

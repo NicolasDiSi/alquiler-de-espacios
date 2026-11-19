@@ -1,2 +1,26 @@
+export * from "./ports/bookings";
+export * from "./ports/operator-catalog";
+export * from "./ports/operator-queries";
 export * from "./ports/ports";
-export { type Dependencies, withConflictHandling } from "./use-cases/shared";
+export type { FacilityView, RoomCatalog, RoomView } from "./ports/queries/room-catalog";
+export type { DirectoryUser, SignInChoicesView, UserDirectory } from "./ports/queries/user-directory";
+export * from "./use-cases/availability";
+export {
+  type BookingView,
+  type BookRoomInput,
+  type BookRoomOutcome,
+  bookRoom,
+  cancelBooking,
+  type ListMyBookingsInput,
+  listMyBookings,
+  MY_BOOKINGS_PAGE,
+  type MyBookingsPage,
+} from "./use-cases/bookings";
+export * from "./use-cases/client-activity";
+export { resolveSession, type Session } from "./use-cases/identity";
+export * from "./use-cases/operator-bookings";
+export * from "./use-cases/operator-catalog";
+export * from "./use-cases/operator-dashboard";
+export * from "./use-cases/operator-metrics";
+export * from "./use-cases/operator-views";
+export { type Dependencies, withRaceHandling } from "./use-cases/shared";

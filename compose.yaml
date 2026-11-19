@@ -5,7 +5,8 @@ services:
   postgres:
     image: postgres:17-alpine
     environment:
-      # The schema owner: migrations, Prisma Studio and system jobs. The app connects as espacios_app.
+      # The superuser, used only to run infra/local/postgres/*.sql once. Migrations run as espacios_owner, the app as
+      # espacios_app, operator reads as espacios_operator.
       POSTGRES_USER: espacios
       POSTGRES_PASSWORD: espacios
       POSTGRES_DB: espacios

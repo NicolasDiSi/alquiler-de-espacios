@@ -30,6 +30,7 @@ pnpm check:ai --gate=strings             # no visible text written in code
 - **The theme is token values, not overrides.** Change colors, radius, shadows and fonts through the variables in `globals.css`; density changes only `--spacing` (`html[data-density]`). Status colors (`destructive`, `success`, `warning`, `info`) are fixed and never derived from a brand color.
 - **Two Biome exceptions, and only these:** `src/scripts/theme-boot.tsx` may use `dangerouslySetInnerHTML` (the inline boot script) and `src/lib/cookie.client.ts` may write `document.cookie`. Both are scoped overrides in `biome.json`.
 - **Server or Client Component, Server Action or Route Handler:** follow the `nextjs-server-client` skill.
+- **A form says why it was refused in one of two places** (spec 0011). A refusal that names a field shows its reason under that field: read the field with `useFieldError` inside a `FormDialog`, spread `mark` on the control and pass `error` to `Field` or `FieldErrorText`. Any other refusal opens `ErrorDialog` (`src/components/error-dialog.tsx`) on top of the form, never an alert inside it or a toast. Toasts are for successes only. Dialogs never pass `90dvh`: header and buttons fixed, only the body scrolls.
 
 ## Tests
 
@@ -37,3 +38,13 @@ pnpm check:ai --gate=strings             # no visible text written in code
 - Playwright suites in `e2e/` run against the production build (`next start`), with axe on WCAG 2.2 AA tags. `e2e/fixtures.ts` has the helpers: `setPreferences` stores preferences as cookies before load, `blockHydration` checks what paints before React, `waitForHydration` waits for the client.
 
 _Drafted by /sync from the introducing change, worth a quick human pass._
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

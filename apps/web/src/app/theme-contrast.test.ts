@@ -23,15 +23,39 @@ type Pair = { name: string; foreground: Rgb; background: Rgb; minimum: number };
 
 const toRgb = converter("rgb");
 
-function readBlock(selector: string): Map<string, Rgb> {
+/** The raw values of every block with this selector, in order (the calendar's tokens are a second `:root`). */
+function readBlocks(selector: string): Map<string, string> {
   const escaped = selector.replace(".", "\\.");
-  const block = new RegExp(`^${escaped} \\{([\\s\\S]*?)^\\}`, "m").exec(GLOBALS_CSS)?.[1];
-  if (!block) throw new Error(`globals.css has no ${selector} block`);
+  const blocks = [...GLOBALS_CSS.matchAll(new RegExp(`^${escaped} \\{([\\s\\S]*?)^\\}`, "gm"))];
+  if (blocks.length === 0) throw new Error(`globals.css has no ${selector} block`);
 
+  const values = new Map<string, string>();
+  for (const [, block = ""] of blocks) {
+    for (const [, name, value] of block.replaceAll(/\/\*[\s\S]*?\*\//g, "").matchAll(/--([\w-]+):\s*([^;]+);/g)) {
+      if (name && value) values.set(name, value.trim());
+    }
+  }
+  return values;
+}
+
+/**
+ * The theme of one mode, colors only: `.dark` overrides `:root` on the same element, and a `var(--x)` reads `x` in that
+ * same mode, as the browser resolves it.
+ */
+function readTheme(mode: Mode): Map<string, Rgb> {
+  const raw = readBlocks(":root");
+  if (mode === "dark") for (const [name, value] of readBlocks(".dark")) raw.set(name, value);
+  const resolve = (value: string, depth = 0): string | undefined => {
+    const reference = /^var\(--([\w-]+)\)$/.exec(value)?.[1];
+    if (!reference) return value;
+    const target = raw.get(reference);
+    return target && depth < 8 ? resolve(target, depth + 1) : undefined;
+  };
   const tokens = new Map<string, Rgb>();
-  for (const [, name, value] of block.replaceAll(/\/\*[\s\S]*?\*\//g, "").matchAll(/--([\w-]+):\s*([^;]+);/g)) {
-    const color = name && value ? parse(value.trim()) : undefined;
-    if (name && color) tokens.set(name, opaque(color));
+  for (const [name, value] of raw) {
+    const resolved = resolve(value);
+    const color = resolved ? parse(resolved) : undefined;
+    if (color) tokens.set(name, opaque(color));
   }
   return tokens;
 }
@@ -49,7 +73,7 @@ function over(color: Rgb, alpha: number, background: Rgb): Rgb {
 }
 
 function buildPairs(mode: Mode): Pair[] {
-  const theme = readBlock(mode === "light" ? ":root" : ".dark");
+  const theme = readTheme(mode);
   const token = (name: string): Rgb => {
     const value = theme.get(name);
     if (!value) throw new Error(`${mode} theme is missing --${name}`);
@@ -120,6 +144,30 @@ function buildPairs(mode: Mode): Pair[] {
   for (const chart of ["chart-1", "chart-2", "chart-3", "chart-4", "chart-5"]) {
     add(`${chart} against card`, token(chart), token("card"), NON_TEXT);
   }
+
+  // Calendars: the words on each state's fill, the selection's length chip, and the marks that are the only cue of a
+  // day (today's ring and number, the picked day's frame) against the free surface. Borders and stripes of the cards
+  // are decorative: every card names its state in words.
+  for (const state of ["booked", "mine", "blocked", "draft", "chip", "picked"]) {
+    add(
+      `calendar-${state}-foreground on calendar-${state}`,
+      token(`calendar-${state}-foreground`),
+      token(`calendar-${state}`),
+      TEXT,
+    );
+  }
+  add(
+    "calendar-blocked-foreground on calendar-blocked-hatch",
+    token("calendar-blocked-foreground"),
+    token("calendar-blocked-hatch"),
+    TEXT,
+  );
+  add("calendar-today on calendar-free", token("calendar-today"), token("calendar-free"), TEXT);
+  add("calendar-picked against calendar-free", token("calendar-picked"), token("calendar-free"), NON_TEXT);
+  add("muted-foreground on calendar-past", token("muted-foreground"), token("calendar-past"), TEXT);
+  // A closed day has no words on it: its fill is the cue, apart from the free surface. Not 3:1 (a fill, like a disabled
+  // area, is exempt), but never the same color.
+  add("calendar-past apart from calendar-free", token("calendar-past"), token("calendar-free"), 1.05);
 
   return pairs;
 }

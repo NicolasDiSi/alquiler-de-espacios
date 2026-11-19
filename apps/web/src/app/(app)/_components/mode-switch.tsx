@@ -23,7 +23,6 @@ export function ModeSwitch({ className }: { className?: string }) {
 
   return (
     <Button
-      variant="ghost"
       size="icon"
       className={className}
       onClick={cycleMode}

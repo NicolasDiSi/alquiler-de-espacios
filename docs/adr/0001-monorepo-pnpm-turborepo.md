@@ -1,6 +1,6 @@
 # 0001. Monorepo with pnpm workspaces and Turborepo
 
-- Status: proposed
+- Status: accepted
 
 ## Context
 

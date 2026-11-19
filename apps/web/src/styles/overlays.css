@@ -37,6 +37,17 @@
     overflow-y: auto;
   }
 
+  /*
+   * Dialogs have no Radix measure, so they cap to the screen. The form and error dialogs are columns that keep their
+   * header and buttons and scroll only the body (FormDialog, AdaptiveAlertDialogContent), so this never shows there;
+   * any other dialog scrolls as a whole instead of running off the screen.
+   */
+  [data-slot="dialog-content"],
+  [data-slot="alert-dialog-content"] {
+    max-height: 90dvh;
+    overflow-y: auto;
+  }
+
   [data-slot="menubar-content"],
   [data-slot="menubar-sub-content"] {
     max-height: var(--radix-menubar-content-available-height);

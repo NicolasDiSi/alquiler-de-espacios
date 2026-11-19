@@ -106,6 +106,8 @@ test("the dialog opens, traps focus and returns it with the keyboard alone", asy
 test("the density switch works with arrow keys and Space", async ({ page }) => {
   await page.goto("/");
   await waitForHydration(page);
+  await page.getByRole("button", { name: "Preferencias de diseño" }).focus();
+  await page.keyboard.press("Enter");
   await page.getByRole("radio", { name: "Compacta" }).focus();
   await page.keyboard.press("ArrowRight");
   await expect(page.getByRole("radio", { name: "Cómoda" })).toBeFocused();

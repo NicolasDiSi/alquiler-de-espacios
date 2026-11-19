@@ -18,7 +18,7 @@
       "ignoreDependencies": ["@prisma/client"]
     },
     "apps/web": {
-      "entry": ["src/i18n/request.ts", "src/global.d.ts"],
+      "entry": ["src/i18n/request.ts", "src/global.d.ts", "e2e/web-server.ts"],
       "project": ["src/**/*.ts", "src/**/*.tsx", "e2e/**/*.ts"]
     }
   },

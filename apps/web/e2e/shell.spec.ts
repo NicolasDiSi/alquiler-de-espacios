@@ -3,19 +3,26 @@ import { expect, test } from "@playwright/test";
 import { blockHydration, setPreferences, waitForHydration } from "./fixtures";
 
 test.describe("shell", () => {
-  test("renders the shell at / with an empty sidebar and an empty state", async ({ page }) => {
+  test("renders the shell at / with the member's sections and bookings", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1, name: "Mis reservas" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Todavía no hay reservas" })).toBeVisible();
+    await expect(page.getByRole("main").getByRole("link", { name: "Nueva reserva" }).first()).toBeVisible();
 
     const sidebar = page.locator("[data-slot=sidebar]");
     await expect(sidebar.getByText("alquiler-de-espacios")).toBeVisible();
-    // Only the product link: no section entries until the inbox ships.
-    await expect(sidebar.getByRole("link")).toHaveCount(1);
+    // The product link and the member's sections (Salas since spec 0008): never an operator entry nor the gallery.
+    await expect(sidebar.getByRole("link")).toHaveCount(4);
+    await expect(sidebar.getByRole("link", { name: "Mis reservas" })).toHaveAttribute("aria-current", "page");
+    await expect(sidebar.getByRole("link", { name: "Nueva reserva" })).toBeVisible();
+    await expect(sidebar.getByRole("link", { name: "Salas", exact: true })).toHaveAttribute("href", "/salas");
+    await expect(sidebar.locator('a[href^="/operador"]')).toHaveCount(0);
     await expect(sidebar.locator('a[href="/design-system"]')).toHaveCount(0);
 
-    await expect(page.getByRole("radiogroup", { name: "Densidad" })).toBeVisible();
-    await expect(page.getByRole("button", { name: /^Modo: / })).toBeVisible();
+    const header = page.locator("main header");
+    await expect(header.getByRole("button", { name: "Buscar" })).toBeVisible();
+    await expect(header.getByRole("button", { name: "Preferencias de diseño" })).toBeVisible();
+    await expect(header.getByRole("button", { name: /^Modo: / })).toBeVisible();
+    await expect(header.getByRole("button", { name: /^Cuenta de / })).toBeVisible();
   });
 
   test("the sidebar toggle lives in the header and reopens a hidden sidebar", async ({ page, context }) => {
@@ -68,8 +75,8 @@ test.describe("shell", () => {
     await page.goto("/design-system");
     await expect(page.locator("html")).toHaveAttribute("lang", "es-AR");
     const firstRow = page.getByRole("row").filter({ hasText: "RES-104" });
-    // 13:05 UTC is 10:05 in Buenos Aires; es-AR writes day/month/year and a 12 hour clock.
-    await expect(firstRow).toContainText(/03\/11\/2026, 10:05\sa\.\sm\./);
+    // 13:05 UTC is 10:05 in Buenos Aires; es-AR writes day/month/year, and the app's formats use a 24 hour clock.
+    await expect(firstRow).toContainText("03/11/2026, 10:05");
     await expect(page.getByRole("row").filter({ hasText: "RES-103" })).toContainText("1.250,00");
 
     await waitForHydration(page);
@@ -136,10 +143,11 @@ test.describe("preferences before the first paint", () => {
     expect(await measure()).toEqual({ button: 40, small: 35, header: 50, text: "14px" });
   });
 
-  test("the density switch changes the density and stores it", async ({ page }) => {
+  test("the density switch in the preferences changes the density and stores it", async ({ page }) => {
     await page.goto("/");
     await waitForHydration(page);
-    await page.getByRole("radio", { name: "Cómoda" }).click();
+    await page.getByRole("button", { name: "Preferencias de diseño" }).click();
+    await page.getByRole("radiogroup", { name: "Densidad" }).getByRole("radio", { name: "Cómoda" }).click();
     await expect(page.locator("html")).toHaveAttribute("data-density", "comfortable");
 
     await page.reload();

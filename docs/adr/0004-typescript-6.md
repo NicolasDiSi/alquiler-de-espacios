@@ -1,6 +1,6 @@
 # 0004. TypeScript 6.0 until Next.js supports TypeScript 7
 
-- Status: proposed
+- Status: accepted
 
 ## Context
 

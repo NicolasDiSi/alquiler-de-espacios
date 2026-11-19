@@ -2,6 +2,7 @@
   "name": "@espacios/db",
   "version": "0.0.0",
   "private": true,
+  "license": "SEE LICENSE IN LICENSE",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
@@ -12,6 +13,8 @@
     "test": "vitest run --coverage --reporter=dot",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db execute --file prisma/seed.sql",
+    "db:seed:scale": "prisma db execute --file prisma/seed-scale.sql",
     "db:studio": "prisma studio"
   },
   "dependencies": {

@@ -27,7 +27,8 @@ These are team conventions, not enforced by hooks. What enforces quality is the 
 - **Layers:** the code lives in the right layer and `pnpm depcruise` passes.
 - **Tests:**
   - Domain rules and use cases are tested.
-  - Database guarantees (no overlap under concurrency, tenant isolation) have integration tests against a real Postgres.
+  - Database guarantees (no overlap under concurrency, tenant isolation, persistence across a restart) have integration tests against a real Postgres. Race tests assert every outcome at once.
+  - A new or changed endpoint is in `docs/api/` and in `handlers.test.ts`.
 - **UI states:** loading, empty, error and disabled states are handled, and every failed operation says why.
 - **Accessibility:** semantic HTML, labels, keyboard support and visible focus. The axe check in E2E passes.
 - **Docs:** decisions go to `docs/adr/` or `docs/specs/`; assumptions and limitations go to the README.
@@ -38,7 +39,8 @@ These are team conventions, not enforced by hooks. What enforces quality is the 
 2. **Security.** Is the policy called in the use case, not only in the UI? Is input validated with Zod at the boundary?
 3. **Tenancy.** Does all company data go through the tenant scoped transaction?
 4. **Boundaries.** No business rule in a component, route handler or adapter; no vendor SDK outside its adapter.
-5. **Readability.** Do the naming and structure match the surrounding code?
+5. **Consistency.** If a rule changed, do the tests (titles included), specs, `docs/api/` and README say the new rule?
+6. **Readability.** Do the naming and structure match the surrounding code?
 
 ## Architecture decisions
 

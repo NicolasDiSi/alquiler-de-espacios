@@ -1,14 +1,14 @@
 import { afterAll, describe, expect, inject, it } from "vitest";
 
 import { createDatabaseClient } from "./client";
-import { createTenant, randomIds } from "./testing/fixtures";
+import { createTenant } from "./testing/fixtures";
 import { createPrismaUnitOfWork } from "./unit-of-work";
 
 const { ownerUrl, runtimeUrl } = inject("databaseUrls");
 const owner = createDatabaseClient(ownerUrl);
 // One connection, so a leaked session setting would be visible to the next statement.
 const runtime = createDatabaseClient(`${runtimeUrl}?connection_limit=1`);
-const uow = createPrismaUnitOfWork(runtime, randomIds);
+const uow = createPrismaUnitOfWork(runtime);
 
 afterAll(async () => {
   await Promise.all([owner.$disconnect(), runtime.$disconnect()]);

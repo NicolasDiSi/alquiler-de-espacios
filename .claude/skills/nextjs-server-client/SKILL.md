@@ -20,7 +20,7 @@ The web app's own conventions are in `apps/web/AGENTS.md`. Before using a Next.j
 ## Checklist for a Server Action
 
 - **Location:** the file starts with `"use server"` and lives in the route's `_actions/`.
-- **Input:** the input schema comes from `@espacios/contracts` or a local Zod schema. Never trust `FormData` shape.
+- **Input:** the input schema is a Zod schema from the edge's `apps/web/src/lib/<edge>/` or the route. Never trust `FormData` shape.
 - **Authorization:** the use case checks the policy. The action does not re-implement it.
 - **Results:** return `{ ok: true, data } | { ok: false, error }`, where `error` carries the reason the UI shows ("the room is already booked from 10:00 to 11:00"). Throw only for unexpected failures.
 - **Cache:** invalidate with `updateTag` for read-your-own-writes, using the same tag names the reads use.

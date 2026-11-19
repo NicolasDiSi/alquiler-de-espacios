@@ -1,14 +1,16 @@
 {
   "name": "alquiler-de-espacios",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
+  "license": "SEE LICENSE IN LICENSE",
   "packageManager": "pnpm@12.16.1",
   "engines": {
     "node": ">=24"
   },
   "type": "module",
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "pnpm services:up && pnpm db:deploy && pnpm db:seed && pnpm db:seed:scale && turbo run dev",
+    "dev:app": "turbo run dev",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
@@ -23,6 +25,8 @@
     "services:down": "docker compose down",
     "db:migrate": "pnpm --filter @espacios/db db:migrate",
     "db:deploy": "pnpm --filter @espacios/db db:deploy",
+    "db:seed": "pnpm --filter @espacios/db db:seed",
+    "db:seed:scale": "pnpm --filter @espacios/db db:seed:scale",
     "db:studio": "pnpm --filter @espacios/db db:studio",
     "prepare": "husky"
   },

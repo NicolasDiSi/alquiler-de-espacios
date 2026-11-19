@@ -8,7 +8,15 @@ export const formats = {
   dateTime: {
     short: { day: "2-digit", month: "2-digit", year: "numeric" },
     long: { day: "numeric", month: "long", year: "numeric" },
-    dateTime: { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" },
+    dateTime: {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    },
+    time: { hour: "2-digit", minute: "2-digit", hourCycle: "h23" },
   },
   number: {
     integer: { maximumFractionDigits: 0 },

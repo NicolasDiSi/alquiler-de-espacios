@@ -4,7 +4,7 @@
 
 alquiler-de-espacios is a technical challenge (Fontanella SRL, Senior Full Stack, 72 hours): a web app where client companies see meeting room availability, book rooms and cancel their own bookings, and the operator sees utilization metrics overall and per client company. The full brief is in [docs/challenge.md](docs/challenge.md); read it before planning.
 
-**Status:** the foundation is in place (tooling, layer packages, database adapter skeleton, web app shell). No booking feature exists yet. Next: `/scope` with the brief, then `/architect` to confirm the stack ADRs and decide the open questions below.
+**Status:** the foundations, booking, cancelling, room availability, the operator's administration (sedes, rooms, clients, blocks), its metrics API and dashboard, and the client and sede activity pages are built (specs 0001 to 0009), and every form shows its refusals the same way (spec 0011). The company API is in [docs/api/company.md](docs/api/company.md), the operator's in [docs/api/operator.md](docs/api/operator.md). [docs/scope/_root/scope.md](docs/scope/_root/scope.md) holds the build order and each feature's status. The README covers run and test, architecture, assumptions, limitations, next version and AI usage. Left for delivery: the full `pnpm check:ai` with e2e and the release to `main`.
 
 ## Non negotiables from the brief
 
@@ -15,15 +15,15 @@ alquiler-de-espacios is a technical challenge (Fontanella SRL, Senior Full Stack
 - Frontend React + TypeScript, backend Node.js + TypeScript. Runs locally from the README instructions.
 - No full authentication, cloud infrastructure or production deploy required.
 
-## Decisions owed to /architect
+## Decisions made in /architect
 
-Record each one in `docs/specs/` or `docs/adr/` with the alternatives and the reason, because the interview will ask about them:
+[Spec 0001](docs/specs/_root/0001-booking-platform-architecture/index.md) records each one, with the alternatives and the reasons in its `rationale.md`, because the interview will ask about them. A new load bearing decision gets its own spec or ADR the same way.
 
-- Confirm or change the proposed ADRs in `docs/adr/` (monorepo, ports and adapters, Prisma with RLS, TypeScript 6).
-- API style: Server Actions only, or also a documented REST API under `/api/v1` (the brief asks for a Node.js backend and evaluates API design).
-- How a company is represented without real authentication (seeded users, a company switcher, a signed cookie...).
-- Booking rules: time zone, granularity, opening hours, minimum and maximum length, cancellation window.
-- Which metrics, their exact definitions, and how they are computed.
+- ADRs in `docs/adr/` (monorepo, ports and adapters, Prisma with RLS, TypeScript 6): spec 0001 builds on all four and amends ADR 0003 with the database roles.
+- API style: Server Actions for the UI plus a documented REST API under `/api/v1`, both calling the same use cases and returning the same typed result.
+- Company identity without real authentication: seeded users and a "sign in as" picker that sets an HMAC signed cookie. The server reads the company from the cookie, never from client input.
+- Booking rules: a 30 minute grid, 30 minutes to 4 hours, up to 60 days ahead, cancel any time before the start. Hours, open weekdays and time zone belong to each sede since spec 0004 (the demo sede: Monday to Friday 08:00 to 20:00, `America/Argentina/Buenos_Aires`). See "Booking rules" in spec 0001 and spec 0004.
+- Metrics: occupancy per room and overall, usage per company and a weekday by hour heatmap, over confirmed bookings only. See "Metrics (definitions)" in the spec.
 
 ## Stack
 
@@ -40,9 +40,11 @@ Tracer Bullet: one thin, real thread through every layer first (a company books 
 
 ```bash
 pnpm install
-pnpm dev               # turbo run dev (the web app on http://localhost:3000)
+pnpm dev               # services:up, db:deploy, db:seed, db:seed:scale, then the web app on http://localhost:3000
+pnpm dev:app           # only the web app (turbo run dev), when the database is already up
 pnpm check:ai          # every quality gate, one PASS/FAIL line each. Use this to iterate.
 pnpm check:ai --gate=test --lines=60
+pnpm check:ai --gate=e2e --suite=bookings   # one area's Playwright specs (suites: bookings, shell, operator)
 pnpm check:fix         # Biome lint + format + import sorting
 pnpm test              # turbo run test
 pnpm typecheck
@@ -50,12 +52,21 @@ pnpm depcruise         # architecture boundaries
 pnpm knip              # unused files, exports and dependencies
 pnpm services:up       # local Postgres from compose.yaml (copy .env.example to .env.local first)
 pnpm db:deploy         # apply migrations
+pnpm db:seed           # demo companies, rooms, users and bookings (safe to run twice)
+pnpm db:seed:scale     # volume on top: 4 sedes, 42 rooms, 15 clients, ~3000 bookings (not run by e2e)
 pnpm db:studio         # data panel on http://localhost:5555
 ```
 
 - Tests start their own throwaway Postgres with testcontainers, so Docker must be running for `pnpm test` and `pnpm check:ai`.
 - Gates: `biome`, `strings`, `typecheck`, `boundaries`, `knip`, `test`, `e2e`. The `e2e` gate builds `apps/web` and runs Playwright against `next start`, so it is the slow one; skip it while iterating on code it does not cover.
 - Hooks: `pre-commit` runs Biome and the tests related to the staged files, `commit-msg` runs commitlint, `pre-push` runs `check:ai --affected`. `.claude/settings.json` runs Biome on every file the agent edits.
+
+## Iterating cheaply
+
+- Run `pnpm check:ai` (or `--gate=<name>`) instead of individual tools. It prints one line per gate and at most 20 lines per failure.
+- When a gate fails, fix the reported files and rerun only that gate before running the full set again.
+- Run the smallest check that covers the change, and the full set once at the end. The table is in [scoped-verification](.claude/skills/scoped-verification/).
+- **The user runs end to end tests.** Hand over the exact command (for example `pnpm check:ai --gate=e2e --suite=bookings`), say which tests are new or edited, and keep working. Suites: `bookings` (book, my bookings, calendar marks), `shell` (shell, keyboard, accessibility) and `operator` (operator screens, conflicts).
 
 ## Workflow
 
@@ -77,8 +88,8 @@ The business rules do not know about Next.js or Prisma. `dependency-cruiser` enf
 | Workspace              | Role                                                                                  | May import                                     |
 | ---------------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------- |
 | `packages/domain`      | Business rules: booking validity, overlap, cancellation, policies, metric definitions | nothing                                        |
-| `packages/application` | Use cases and **ports** (interfaces). Orchestrates, never implements infrastructure.  | `domain`, `contracts`, `zod`                   |
-| `packages/db`          | Prisma schema, migrations, RLS and the unit of work: the PostgreSQL adapter.          | `application`, `domain`, `contracts`           |
+| `packages/application` | Use cases and **ports** (interfaces). Orchestrates, never implements infrastructure.  | `domain`, `zod`                                |
+| `packages/db`          | Prisma schema, migrations, RLS and the unit of work: the PostgreSQL adapter.          | `application`, `domain`                        |
 | `packages/config`      | Shared TypeScript configuration.                                                      | nothing                                        |
 | `apps/web`             | The web app (Next.js 16). See [apps/web/AGENTS.md](apps/web/AGENTS.md).               | anything; adapters only from `src/composition` |
 
@@ -86,6 +97,13 @@ The business rules do not know about Next.js or Prisma. `dependency-cruiser` enf
 - **Use cases are the only entry point for writes.**
 - **Authorization is a business rule.** Decisions are pure functions in `domain`; use cases call them before acting, and UI checks are only for display.
 - **Tenant data is isolated twice:** row level security in the database and a tenant filter in every repository. See [packages/db/AGENTS.md](packages/db/AGENTS.md).
+
+**Where to look first** (the README has the layer and data model diagrams):
+
+- Data model: `packages/db/prisma/schema.prisma`; constraints, RLS, grants and triggers are only in `packages/db/prisma/migrations/`.
+- Rules: `packages/domain/src/` (`booking/`, `catalog/`, `metrics/`, `identity/`).
+- Use cases and ports: `packages/application/src/use-cases/`, `packages/application/src/ports/`.
+- Wiring: `apps/web/src/composition/index.ts`. HTTP: `apps/web/src/app/api/v1/`, documented in `docs/api/`.
 
 ## Security
 
@@ -99,7 +117,17 @@ The business rules do not know about Next.js or Prisma. `dependency-cruiser` enf
 - **Integration:** real Postgres through `@testcontainers/postgresql` for repositories, RLS, the overlap constraint under concurrency and the metric queries.
 - **End to end:** Playwright with axe in `apps/web/e2e/`, against the built app: book, see the failure reason, cancel, operator metrics.
 - **One execution context.** The pre-commit hook, `pnpm check:ai` and CI all run Vitest inside each workspace. The root `vitest.config.ts` exists only for editors.
+- **Race tests assert every outcome at once,** with `settledOutcomes` or `resultOutcomes` and `oneWinner` (`packages/db/src/testing/outcomes.ts`), never the count of winners first: a failure must print why each racer lost. Their transactions use `RACE_WAITS`, so load on the shared container never turns a race into timeouts.
+- **The HTTP contract is tested twice:** `apps/web/src/app/api/v1/routes.test.ts` checks every route file (it authenticates, a member route reads no company id, it is documented) and `handlers.test.ts` calls the handlers with signed cookies. A new route needs its row in `docs/api/` or that test fails.
 - **Never depend on the working directory.** Scripts, configs and test setups resolve paths from their own file (`fileURLToPath(new URL(..., import.meta.url))`), never from `process.cwd()`.
+
+## Keeping the work consistent
+
+- **A rule change carries its tests and docs in the same commit, titles included.** Before committing, grep the old rule's words in tests, specs, `docs/api/` and the README. A test that still names the old rule reads as a rule nobody updated.
+- **Every brief rule lives in two places:** the database (a constraint, a trigger, RLS) or the use case under a lock (and then the test says so), plus an integration test against Postgres that names its criterion (`P-1`, `AC-18`).
+- **Identity never comes from the request.** The company is the session's; a test sends another company's id in the body and checks it is ignored.
+- **Every endpoint authenticates first** (`authenticateRequest` or `operatorRoute`), has its row in `docs/api/`, and each reason it answers has its status in `contract.test.ts`.
+- **Closing a slice:** the full `pnpm check:ai` with e2e, then `/sync` so this file and the scope match the code.
 
 ## Code conventions
 
@@ -148,5 +176,5 @@ The Prisma skills (`prisma/skills`) are listed in [packages/db/AGENTS.md](packag
 
 - [packages/domain/AGENTS.md](packages/domain/AGENTS.md): pure business rules and their conventions
 - [packages/application/AGENTS.md](packages/application/AGENTS.md): ports, use cases and the command order
-- [packages/db/AGENTS.md](packages/db/AGENTS.md): Prisma schema, migrations, row level security and the two database connections
+- [packages/db/AGENTS.md](packages/db/AGENTS.md): Prisma schema, migrations, row level security and the three database logins
 - [apps/web/AGENTS.md](apps/web/AGENTS.md): the web app shell, theme tokens, preferences before the first paint, the Spanish catalog and the Playwright suites

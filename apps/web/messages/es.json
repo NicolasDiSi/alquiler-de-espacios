@@ -1104,8 +1104,6 @@
       },
       "instructions": "Tocá o arrastrá sobre una sala libre para reservarla.",
       "instructionsCards": "Cada tarjeta muestra los horarios libres de la sala ese día.",
-      "previousDay": "Día hábil anterior",
-      "nextDay": "Día hábil siguiente",
       "closed": "Cerrado",
       "peopleCount": "{count, plural, one {# persona} other {# personas}}"
     },

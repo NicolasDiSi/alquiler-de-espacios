@@ -43,7 +43,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClock } from "@/hooks/use-clock";
 import { useMounted } from "@/hooks/use-mounted";
-import { indexMonth, type MonthData } from "@/lib/bookings/month";
+import { indexMonth } from "@/lib/bookings/month";
 import {
   bookableFrom,
   cellOf,
@@ -57,7 +57,7 @@ import {
   roomOptions,
   scrollTimeFor,
 } from "@/lib/bookings/room-matrix";
-import { matchesName, type RoomSize, type RoomsView, timeOf } from "@/lib/bookings/search";
+import { matchesName, mondayOf, type RoomSize, type RoomsView, timeOf } from "@/lib/bookings/search";
 import { zoneOffset } from "@/lib/operator/format";
 
 import { RoomCards } from "./room-cards";
@@ -65,26 +65,18 @@ import { RoomCards } from "./room-cards";
 const plugins = [timeGridPlugin, interactionPlugin];
 const noon = (date: LocalDate) => new Date(`${date}T12:00:00Z`);
 
-/** The closest day the sede opens before (`step` -1) or after (`step` 1) `day`, within two weeks. */
-function openDayFrom(month: MonthData, day: LocalDate, step: 1 | -1): LocalDate | null {
-  for (let offset = 1; offset <= 14; offset += 1) {
-    const candidate = addDays(day, offset * step);
-    if (isOpenWeekday(candidate, month.facility)) return candidate;
-  }
-  return null;
-}
-
 /**
- * The week's rooms (spec 0009). A strip of seven day pills (the days the sede opens enabled, each with its free slots
- * for the rooms the filters leave), scrolled by touch, with arrows to the previous and next open day; then the chosen
- * day in a card headed as the room detail's calendar (the day as title, how to book, week and today controls and the
- * legend), as a time grid with a column per room (its header opens the room) or as cards. Busy time reads "Ocupada",
- * "Tu reserva" or "No disponible", never whose. Picking a free range in one column draws a card for it and opens the
+ * The week's rooms (spec 0009), in one card headed as the room detail's calendar: the day as title, how to book, week
+ * and today controls and "Ir a fecha" (a success dot under each day of the month with a free slot); then a strip of
+ * day pills over the month's six weeks (the days the sede opens enabled, each with its free slots for the rooms the
+ * filters leave), a week in view on a wide screen, scrolled by touch or a week at a time by the arrows, which mark the
+ * week's first open day without choosing it (a tap on a pill chooses; none of it asks the server); then the legend and the chosen day as a time grid
+ * with a column per room (its header opens the room) or as cards. Busy time reads "Ocupada", "Tu reserva" or
+ * "No disponible", never whose. Picking a free range in one column draws a card for it and opens the
  * booking dialog; closing the dialog drops both.
  */
 export function RoomMatrix({
   week,
-  monday,
   day,
   people,
   size,
@@ -95,7 +87,6 @@ export function RoomMatrix({
   className,
 }: {
   readonly week: Promise<Result<FacilityMonth>>;
-  readonly monday: LocalDate;
   readonly day: LocalDate;
   readonly people: number;
   readonly size: RoomSize;
@@ -109,6 +100,7 @@ export function RoomMatrix({
 }) {
   const t = useTranslations("rooms.matrix");
   const legend = useTranslations("booking.timeline.legend");
+  const dayLegend = useTranslations("booking.calendar");
   const format = useFormatter();
   const mounted = useMounted();
   const result = use(week);
@@ -133,21 +125,37 @@ export function RoomMatrix({
     return Boolean(data && room && isFreeSlot(data, room.id, day, now, cell.minutes));
   }, nowOnGrid);
 
-  // Keep the chosen day's pill in sight when the strip scrolls sideways (a phone, or a narrow column).
+  // The pill the strip's arrows point at, bordered but not chosen: the arrows only scroll, choosing is a tap on a pill.
+  // A new chosen day moves the mark back onto it.
+  const [ring, setRing] = useState({ day, at: day });
+  const cursor = ring.day === day ? ring.at : day;
+  // The first day the strip shows, read when a scroll ends (touch or arrows), so the arrows know where they stand.
+  const [shown, setShown] = useState<LocalDate>(() => mondayOf(day));
+
+  // Show the chosen day's week when the chosen day is out of sight (the first paint, "Hoy", another week).
   useEffect(() => {
-    strip.current
-      ?.querySelector<HTMLElement>(`[data-day="${day}"]`)
-      ?.scrollIntoView({ inline: "nearest", block: "nearest" });
+    const list = strip.current;
+    const pill = list?.querySelector<HTMLElement>(`[data-day="${day}"]`);
+    if (!list || !pill) return;
+    const left = pill.offsetLeft - list.scrollLeft;
+    if (left >= 0 && left + pill.offsetWidth <= list.clientWidth) return;
+    const monday = mondayOf(day);
+    list.scrollTo({ left: list.querySelector<HTMLElement>(`[data-day="${monday}"]`)?.offsetLeft ?? pill.offsetLeft });
+    setShown(monday);
   }, [day]);
 
   // A refusal is a database that could not answer in time, or a sede retired since the page read the rooms.
   if (!data) throw new Error(`getFacilityMonth: ${result.ok ? "" : result.reason}`);
 
-  const slots = freeSlotsByDay(data, rooms, monday, now);
+  // Free slots per day over the month's six weeks, for the rooms the filters leave: the pills' counts, and the dots
+  // of "Ir a fecha" on every day with one.
+  const slots = new Map<LocalDate, number>();
+  for (let week = data.from; week <= data.to; week = addDays(week, 7)) {
+    for (const [date, free] of freeSlotsByDay(data, rooms, week, now)) slots.set(date, free);
+  }
+  const withRoom = [...slots].filter(([, free]) => free > 0).map(([date]) => date);
   const from = bookableFrom(data, day, now);
   const { opensAt, closesAt } = data.facility;
-  const previousDay = openDayFrom(data, day, -1);
-  const nextDay = openDayFrom(data, day, 1);
 
   const events: EventInput[] = [
     ...matrixBusy(data, rooms, day).map(({ column, span }) => {
@@ -185,91 +193,37 @@ export function RoomMatrix({
       : []),
   ];
 
-  const days = Array.from({ length: 7 }, (_, index) => addDays(monday, index));
+  // Every day the server read: touch scrolls through them, the arrows a week at a time, none of it asks the server.
+  const days = Array.from({ length: 42 }, (_, index) => addDays(data.from, index)).filter((date) => date <= data.to);
+  const lastWeek = mondayOf(data.to);
+  const shownWeek = mondayOf(shown);
+  // Back: the start of the week partly shown, or the one before. Forward: the next week.
+  const previousWeek = shown === shownWeek ? addDays(shownWeek, -7) : shownWeek;
+  const nextWeek = addDays(shownWeek, 7);
+  /** Scroll the strip to the week of `monday` and mark its first open day; nothing is chosen. */
+  const showWeek = (monday: LocalDate) => {
+    const list = strip.current;
+    const pill = list?.querySelector<HTMLElement>(`[data-day="${monday}"]`);
+    if (!list || !pill) return;
+    list.scrollTo({ left: pill.offsetLeft, behavior: "smooth" });
+    setShown(monday);
+    const open = days.find((date) => date >= monday && isOpenWeekday(date, data.facility));
+    if (open && open <= addDays(monday, 6)) setRing({ day, at: open });
+  };
+  /** The first pill fully in sight, after a scroll ends. */
+  const readShown = () => {
+    const list = strip.current;
+    if (!list) return;
+    const first = [...list.querySelectorAll<HTMLElement>("[data-day]")].find(
+      (pill) => pill.offsetLeft >= list.scrollLeft - 1,
+    );
+    if (first?.dataset.day) setShown(first.dataset.day as LocalDate);
+  };
   const draftRoom = draft ? rooms[draft.column] : undefined;
   const filtered = query.trim() !== "" || size !== "todas";
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="bg-card flex items-center gap-1 rounded-xl border p-1 shadow-sm">
-        <Button
-          size="icon"
-          variant="ghost"
-          className="size-11 shrink-0"
-          aria-label={t("previousDay")}
-          disabled={!previousDay}
-          onClick={() => (previousDay ? onDay(previousDay) : null)}
-        >
-          <ChevronLeft aria-hidden />
-        </Button>
-        <ul
-          ref={strip}
-          className="flex min-w-0 flex-1 touch-pan-x snap-x snap-mandatory gap-1 overflow-x-auto overscroll-x-contain [scrollbar-width:none]"
-          aria-label={t("days")}
-        >
-          {days.map((date) => {
-            const open = isOpenWeekday(date, data.facility);
-            const selected = date === day;
-            const past = date < today;
-            const free = slots.get(date) ?? 0;
-            return (
-              <li key={date} data-day={date} className="min-w-24 flex-1 snap-start">
-                <button
-                  type="button"
-                  disabled={!open}
-                  aria-pressed={selected}
-                  onClick={() => onDay(date)}
-                  className={cn(
-                    "flex min-h-11 w-full flex-col items-center justify-center gap-1 rounded-lg px-2 py-2 text-sm transition-colors",
-                    "hover:bg-muted focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px] disabled:opacity-50",
-                    // A day gone, or with nothing left to book, reads quieter than one with room.
-                    !selected && (past || free === 0) && "text-muted-foreground",
-                    selected && "bg-primary text-primary-foreground hover:bg-primary",
-                  )}
-                >
-                  <span className="font-medium first-letter:uppercase">
-                    {format.dateTime(noon(date), { weekday: "short", day: "numeric", timeZone: "UTC" })}
-                  </span>
-                  {open && past ? (
-                    // Gone, not full: the legend's "Ya pasó" instead of "0 libres" (no hatch: it would cut through the text).
-                    <span
-                      className={cn(
-                        "rounded-md border px-1.5 py-0.5 text-xs",
-                        selected ? "border-primary-foreground/60" : "bg-card border-input",
-                      )}
-                    >
-                      {t("past")}
-                    </span>
-                  ) : open ? (
-                    <span
-                      className={cn(
-                        "rounded-md px-1.5 py-0.5 text-xs tabular-nums",
-                        selected && "bg-primary-foreground text-primary",
-                        !selected && (free > 0 ? "bg-secondary text-primary" : "bg-muted text-muted-foreground"),
-                      )}
-                    >
-                      {t("free", { count: free })}
-                    </span>
-                  ) : (
-                    <span className="text-xs">{t("closed")}</span>
-                  )}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="size-11 shrink-0"
-          aria-label={t("nextDay")}
-          disabled={!nextDay}
-          onClick={() => (nextDay ? onDay(nextDay) : null)}
-        >
-          <ChevronRight aria-hidden />
-        </Button>
-      </div>
-
       <div
         className={cn(
           "bg-card flex flex-col overflow-hidden rounded-xl border shadow-sm",
@@ -323,10 +277,94 @@ export function RoomMatrix({
               isDisabled={(date) => !isOpenWeekday(date, data.facility)}
               defaultMonth={day}
               today={today}
+              marks={{ days: withRoom, marked: dayLegend("legendAvailable"), unmarked: dayLegend("legendUnavailable") }}
             >
               {t("goTo")}
             </DatePickerButton>
           </div>
+        </div>
+        <div className="flex items-center gap-1 border-b p-1">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-11 shrink-0"
+            aria-label={t("previousWeek")}
+            disabled={previousWeek < data.from}
+            onClick={() => showWeek(previousWeek)}
+          >
+            <ChevronLeft aria-hidden />
+          </Button>
+          <ul
+            ref={strip}
+            onScrollEnd={readShown}
+            className="relative flex min-w-0 flex-1 touch-pan-x snap-x snap-mandatory gap-1 overflow-x-auto overscroll-x-contain [scrollbar-width:none]"
+            aria-label={t("days")}
+          >
+            {days.map((date) => {
+              const open = isOpenWeekday(date, data.facility);
+              const selected = date === day;
+              const past = date < today;
+              const free = slots.get(date) ?? 0;
+              return (
+                // A week fills the strip on a wide screen; on a narrow one a pill keeps 6rem and touch scrolls.
+                <li key={date} data-day={date} className="w-[max(6rem,calc((100%-1.5rem)/7))] shrink-0 snap-start">
+                  <button
+                    type="button"
+                    disabled={!open}
+                    aria-pressed={selected}
+                    onClick={() => onDay(date)}
+                    className={cn(
+                      // A transparent 2px border on every pill, so the arrows' mark colors it without moving anything.
+                      "flex min-h-11 w-full flex-col items-center justify-center gap-1 rounded-lg border-2 border-transparent px-2 py-1.5 text-sm transition-colors",
+                      "hover:bg-muted focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px] disabled:opacity-50",
+                      // A day gone, or with nothing left to book, reads quieter than one with room.
+                      !selected && (past || free === 0) && "text-muted-foreground",
+                      selected && "bg-primary text-primary-foreground hover:bg-primary",
+                      // The arrows' mark: a border drawn inside the pill, so it never reads as keyboard focus.
+                      date === cursor && !selected && "border-primary",
+                    )}
+                  >
+                    <span className="font-medium first-letter:uppercase">
+                      {format.dateTime(noon(date), { weekday: "short", day: "numeric", timeZone: "UTC" })}
+                    </span>
+                    {open && past ? (
+                      // Gone, not full: the legend's "Ya pasó" instead of "0 libres" (no hatch: it would cut through the text).
+                      <span
+                        className={cn(
+                          "rounded-md border px-1.5 py-0.5 text-xs",
+                          selected ? "border-primary-foreground/60" : "bg-card border-input",
+                        )}
+                      >
+                        {t("past")}
+                      </span>
+                    ) : open ? (
+                      <span
+                        className={cn(
+                          "rounded-md px-1.5 py-0.5 text-xs tabular-nums",
+                          selected && "bg-primary-foreground text-primary",
+                          !selected && (free > 0 ? "bg-secondary text-primary" : "bg-muted text-muted-foreground"),
+                        )}
+                      >
+                        {t("free", { count: free })}
+                      </span>
+                    ) : (
+                      <span className="text-xs">{t("closed")}</span>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-11 shrink-0"
+            aria-label={t("nextWeek")}
+            disabled={nextWeek > lastWeek}
+            onClick={() => showWeek(nextWeek)}
+          >
+            <ChevronRight aria-hidden />
+          </Button>
         </div>
         {view === "calendario" && rooms.length > 0 ? <BookingLegend className="border-b px-4 py-2" /> : null}
 

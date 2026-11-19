@@ -31,7 +31,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import {
   fitsSize,
   matchesName,
-  mondayOf,
+  monthOf,
   PEOPLE_MAX,
   ROOM_SIZES,
   type RoomSize,
@@ -61,14 +61,9 @@ const SIZE_LABEL = { todas: "all", pequenas: "small", medianas: "medium", grande
   string
 >;
 
-/** What paints while the week is read: the day pills and the matrix, at their final size. */
+/** What paints while the month is read: the matrix's card, day pills included, at its final size. */
 function MatrixSkeleton() {
-  return (
-    <div className="flex flex-col gap-4" aria-hidden>
-      <Skeleton className="h-16 w-full rounded-xl" />
-      <Skeleton className="h-[40rem] w-full rounded-xl" />
-    </div>
-  );
+  return <Skeleton aria-hidden className="h-[44rem] w-full rounded-xl" />;
 }
 
 /**
@@ -170,7 +165,7 @@ function FilterFields({
 /**
  * `/salas` (spec 0009). Above the matrix, the room search and the choice between calendar and cards; beside it, every
  * filter in one card (from `lg`), or behind a "Filtros" button that opens them in a sheet on a narrower screen. Behind
- * `<Suspense>`, the week's data read with `use()`. A new sede or week goes to the server with `router.replace`; the
+ * `<Suspense>`, the month's data read with `use()`. A new sede or month goes to the server with `router.replace`; the
  * day, the people, the size and the view are applied here and only mirrored in the URL with the History API; the
  * search is not.
  */
@@ -199,7 +194,6 @@ export function RoomsWeek({
   const [query, setQuery] = useState("");
   const [pending, startTransition] = useTransition();
   const facility = facilities.find((item) => item.id === search.facilityId);
-  const monday = mondayOf(search.date);
 
   // The sede's rooms the search and the people leave, counted per size for the chips and the summary.
   const sedeRooms = rooms.filter((room) => room.facilityId === search.facilityId);
@@ -210,7 +204,7 @@ export function RoomsWeek({
   const go = (patch: Partial<RoomsSearch>) => {
     const next = { ...search, ...patch };
     const href = roomsHref(next);
-    if (next.facilityId !== search.facilityId || mondayOf(next.date) !== monday) {
+    if (next.facilityId !== search.facilityId || monthOf(next.date) !== monthOf(search.date)) {
       startTransition(() => router.replace(href, { scroll: false }));
       return;
     }
@@ -320,7 +314,6 @@ export function RoomsWeek({
             <Suspense fallback={<MatrixSkeleton />}>
               <RoomMatrix
                 week={week}
-                monday={monday}
                 day={search.date}
                 people={search.people}
                 size={search.size}

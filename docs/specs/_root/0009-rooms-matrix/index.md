@@ -17,7 +17,7 @@ Adds a calendar view to `/salas`; the room cards of spec 0008 stay as the other 
 ## Decisions
 
 - **Columns per room without the paid plugin.** FullCalendar's free time grid puts days in columns; resource columns and `dayMinWidth` are in paid plugins. The matrix is a time grid of N days in UTC where day `i` from a fixed Monday stands for room `i`, so a column's clock is the sede's clock on the chosen day. The mapping lives in `apps/web/src/lib/bookings/room-matrix.ts` (`columnTime` in, `cellOf` out) and nowhere else. More rooms than fit scroll sideways.
-- **Reading:** the page starts `getFacilityMonth` for the week without waiting and passes the promise; the matrix reads it with `use()` behind a `<Suspense>` with a skeleton, so the filters paint at once. Only a new sede or week goes back to the server (`router.replace`); the day and the people are applied in the browser and mirrored with `history.replaceState`.
+- **Reading:** the page starts `getFacilityMonth` for the six weeks of the chosen day's month (`monthGrid`) without waiting and passes the promise; the matrix reads it with `use()` behind a `<Suspense>` with a skeleton, so the filters paint at once. The month lets "Ir a fecha" put a success dot under every day with a free slot in the filtered rooms. Only a new sede or month goes back to the server (`router.replace`); the day and the people are applied in the browser and mirrored with `history.replaceState`.
 
 ## Open
 

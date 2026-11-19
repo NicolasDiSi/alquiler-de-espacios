@@ -67,7 +67,7 @@ const noon = (date: LocalDate) => new Date(`${date}T12:00:00Z`);
 
 /**
  * The week's rooms (spec 0009), in one card headed as the room detail's calendar: the day as title, how to book, week
- * and today controls and "Ir a fecha" (a success dot under each day of the month with a free slot); then a strip of
+ * and today controls and "Ir a fecha" (a success frame around each day of the month with a free slot); then a strip of
  * day pills over the month's six weeks (the days the sede opens enabled, each with its free slots for the rooms the
  * filters leave), a week in view on a wide screen, scrolled by touch or a week at a time by the arrows, which mark the
  * week's first open day without choosing it (a tap on a pill chooses; none of it asks the server); then the legend and the chosen day as a time grid
@@ -147,7 +147,7 @@ export function RoomMatrix({
   // A refusal is a database that could not answer in time, or a sede retired since the page read the rooms.
   if (!data) throw new Error(`getFacilityMonth: ${result.ok ? "" : result.reason}`);
 
-  // Free slots per day over the month's six weeks, for the rooms the filters leave: the pills' counts, and the dots
+  // Free slots per day over the month's six weeks, for the rooms the filters leave: the pills' counts, and the frames
   // of "Ir a fecha" on every day with one.
   const slots = new Map<LocalDate, number>();
   for (let week = data.from; week <= data.to; week = addDays(week, 7)) {

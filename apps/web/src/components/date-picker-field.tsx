@@ -30,11 +30,14 @@ const TODAY_CLASS =
  */
 const PAST_CLASS = "[&:not([data-selected=true])_button]:text-muted-foreground";
 
-/** A success dot under a marked day; on the picked day's primary fill it turns to the fill's foreground. */
+/**
+ * A marked day ("has room") framed in success, a shape that reads at a glance where a dot under the number did not. The
+ * picked day drops the frame: its primary fill already says it, and it can only be a day with room.
+ */
 const MARKED_CLASS =
-  "relative after:pointer-events-none after:absolute after:bottom-1 after:left-1/2 after:size-1 after:-translate-x-1/2 after:rounded-full after:bg-success data-[selected=true]:after:bg-primary-foreground";
+  "[&:not([data-selected=true])_button]:border-2 [&:not([data-selected=true])_button]:border-success";
 
-/** Days the calendar marks with a dot, and the legend that says what the dot and its absence mean. */
+/** Days the calendar frames, and the legend that says what the frame and its absence mean. */
 type DayMarks = {
   readonly days: readonly LocalDate[];
   readonly marked: string;
@@ -97,7 +100,7 @@ export function DatePickerButton({
    * already tomorrow in UTC; with it, today is ringed and the days before it read as past.
    */
   readonly today?: LocalDate | undefined;
-  /** A dot under some days (a success dot for "has room"), with its legend under the month. */
+  /** A frame around some days (success for "has room"), with its legend under the month. */
   readonly marks?: DayMarks | undefined;
 }) {
   const [open, setOpen] = useState(false);
@@ -147,11 +150,11 @@ export function DatePickerButton({
         {marks ? (
           <ul className="text-muted-foreground flex justify-between gap-4 border-t px-3 py-2 text-xs">
             <li className="flex items-center gap-1.5">
-              <span aria-hidden className="bg-success size-1.5 rounded-full" />
+              <span aria-hidden className="border-success size-3.5 rounded-sm border-2" />
               {marks.marked}
             </li>
             <li className="flex items-center gap-1.5">
-              <span aria-hidden className="bg-muted-foreground/40 size-1.5 rounded-full" />
+              <span aria-hidden className="border-muted-foreground/40 size-3.5 rounded-sm border" />
               {marks.unmarked}
             </li>
           </ul>

@@ -44,21 +44,23 @@ export function BookingSummary({
     <>
       <section
         aria-label={t("title")}
-        className="bg-card hidden items-center gap-4 rounded-xl border p-5 shadow-sm lg:flex"
+        className="bg-card hidden flex-col gap-4 rounded-xl border p-5 shadow-sm lg:flex"
       >
-        <span className="bg-primary text-primary-foreground flex size-14 shrink-0 items-center justify-center rounded-xl">
-          <CalendarCheck aria-hidden className="size-6" />
-        </span>
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <p className="text-lg font-semibold">{choice.room.name}</p>
-          <p className="bg-primary/10 text-primary w-fit rounded-md px-2 py-0.5 text-sm font-medium first-letter:uppercase">
-            {when}
-          </p>
-          <p className="text-muted-foreground text-sm">
-            {place} · {t("instant")}
-          </p>
+        <div className="flex items-start gap-4">
+          <span className="bg-primary text-primary-foreground flex size-14 shrink-0 items-center justify-center rounded-xl">
+            <CalendarCheck aria-hidden className="size-6" />
+          </span>
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <p className="text-lg font-semibold break-words">{choice.room.name}</p>
+            <p className="bg-primary/10 text-primary w-fit max-w-full rounded-md px-2 py-0.5 text-sm font-medium first-letter:uppercase">
+              {when}
+            </p>
+            <p className="text-muted-foreground text-sm">
+              {place} · {t("instant")}
+            </p>
+          </div>
         </div>
-        <div className="w-56 shrink-0">
+        <div className="border-t pt-4">
           <ConfirmForm key={key} choice={choice} onBooked={onBooked} />
         </div>
       </section>
